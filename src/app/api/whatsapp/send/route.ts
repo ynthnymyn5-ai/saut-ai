@@ -21,7 +21,7 @@ export const POST = route("whatsapp-send", async (req) => {
   if (!insideServiceWindow(cust?.whatsapp_last_inbound_at as string | null | undefined)) {
     return fail(409, "template_required", "This customer hasn't messaged in the last 24 hours. WhatsApp only allows an approved template message now.");
   }
-  let r: Awaited<ReturnType<typeof sendWhatsAppText>> = { ok: false, error: "empty message" };
+  let r: Awaited<ReturnType<typeof sendWhatsAppText>> = { ok: false, error: "empty message", retryable: false };
   for (const part of splitWhatsAppText(text)) {
     r = await sendWhatsAppText(to, part);
     if (!r.ok) break;
