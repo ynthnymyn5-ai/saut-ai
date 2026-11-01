@@ -37,6 +37,13 @@ test.describe.serial("SAUT AI journey", () => {
     expect(health.ok()).toBeTruthy();
   });
 
+  test("Google button is hidden when Google sign-in isn't enabled in Supabase", async ({ page }) => {
+    await page.goto("/login");
+    await expect(page.locator("#email")).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/Google/)).toHaveCount(0); // local Supabase has Google disabled
+  });
+
   test("owner A signs up, onboards and builds the business", async ({ page }) => {
     await signUpAndOnboard(page, A, `E2E Cafe ${stamp}`);
     await expect(page.locator("body")).toContainText(/E2E Cafe/);

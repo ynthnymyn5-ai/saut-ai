@@ -25,6 +25,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [unconfirmed, setUnconfirmed] = useState(false);
   const [inApp, setInApp] = useState(false);
   useEffect(() => setInApp(isInApp(navigator.userAgent)), []);
+  // Show "Continue with Google" only if Google sign-in is actually enabled in Supabase
+  // (public /auth/v1/settings) — otherwise people land on a raw "provider is not enabled" error.
+  const [googleOn, setGoogleOn] = useState(false);
+  useEffect(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) return;
+    fetch(`${url}/auth/v1/settings`, { headers: { apikey: key } }).then((r) => (r.ok ? r.json() : null))
+      .then((j: { external?: { google?: boolean } } | null) => setGoogleOn(!!j?.external?.google)).catch(() => setGoogleOn(false));
+  }, []);
   const ar = locale === "ar";
   const notice = params.get("notice") === "link" ? (ar ? "إذا كنت قد فتحت رابط تأكيد البريد فقد تم تأكيده — سجّل الدخول الآن. وإذا انتهت صلاحية الرابط فسجّل الدخول وسنرسل لك رمزاً جديداً." : "If you just opened your confirmation link, your email is confirmed — log in now. If the link expired, log in and we'll send a new code.")
     : params.get("error") === "auth" ? (ar ? "الرابط منتهي أو تم استخدامه. سجّل الدخول أو اطلب رابطاً جديداً." : "That link has expired or was already used. Log in or request a new one.") : null;
@@ -96,14 +105,14 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             <>
               {notice && <p className="mt-6 rounded-xl border border-electric/30 bg-electric/5 p-3 text-sm text-sky-100">{notice}</p>}
               {/* Google blocks sign-in inside app WebViews (disallowed_useragent), so the app shows email sign-in only. */}
-              {!inApp && <>
+              {!inApp && googleOn && <>
               <Button variant="outline" className="mt-8 w-full py-3" onClick={google} type="button">
                 <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden><path fill="#fff" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3Z"/><path fill="#fff" opacity=".7" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22Z"/><path fill="#fff" opacity=".5" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2L6.4 14Z"/><path fill="#fff" opacity=".85" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10C7.2 7.7 9.4 5.9 12 5.9Z"/></svg>
                 {t.auth.google}
               </Button>
               <div className="my-6 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-line" />{ar ? "أو" : "or"}<span className="h-px flex-1 bg-line" /></div>
               </>}
-              <form onSubmit={submit} className={inApp ? "mt-8 space-y-4" : "space-y-4"}>
+              <form onSubmit={submit} className={inApp || !googleOn ? "mt-8 space-y-4" : "space-y-4"}>
                 {mode === "signup" && (
                   <>
                     <div><label className="label" htmlFor="fullName">{t.auth.fullName}</label><input id="fullName" name="fullName" required maxLength={120} className="input" autoComplete="name" /></div>
