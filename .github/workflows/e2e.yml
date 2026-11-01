@@ -23,6 +23,12 @@ jobs:
         with:
           node-version: 20
       - uses: supabase/setup-cli@v1
+        id: cli1
+        continue-on-error: true      # the "latest" lookup occasionally fails; retry once below
+        with:
+          version: latest
+      - uses: supabase/setup-cli@v1
+        if: steps.cli1.outcome == 'failure'
         with:
           version: latest
       - name: Start local Supabase and apply all migrations
