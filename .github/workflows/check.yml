@@ -38,6 +38,7 @@ jobs:
         run: |
           mkdir -p /tmp/out && cp *.log /tmp/out/ 2>/dev/null || true
           echo "${GITHUB_SHA}" > /tmp/out/commit.txt
+          echo '{"git":{"deploymentEnabled":false}}' > /tmp/out/vercel.json   # logs branch is not a site
           cd /tmp/out
           git init -q -b ci-logs
           git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
