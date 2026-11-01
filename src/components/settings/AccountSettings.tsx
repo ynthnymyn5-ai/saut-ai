@@ -30,6 +30,7 @@ export function ProfileCard() {
           <div><label className="label" htmlFor="pf-lang">{tr("Interface language", "لغة الواجهة")}</label>
             <select id="pf-lang" className="input" value={f.locale} onChange={(e) => setF({ ...f, locale: e.target.value as "ar" | "en" })}><option value="ar">العربية</option><option value="en">English</option></select></div>
           <div className="flex items-end"><Button type="submit">{tr("Save profile", "حفظ الملف")}</Button></div>
+          <EmailAlertsToggle />
           <p className="text-xs text-muted sm:col-span-2">{tr("To change your password, sign out and use “Forgot your password?”.", "لتغيير كلمة المرور، سجّل الخروج واستخدم «نسيت كلمة المرور؟».")}</p>
         </form>
       )}
@@ -199,5 +200,56 @@ export function ActivityLogCard() {
         </ul>
       )}
     </Card>
+  );
+}
+
+/* ─────────────── Failed / queued deliveries ─────────────── */
+type Delivery = { id: string; kind: "whatsapp_text" | "email"; status: "pending" | "dead"; attempts: number; maxAttempts: number; error: string | null; nextAt: string; at: string; to: string; preview: string };
+
+export function DeliveriesCard() {
+  const tr = useTr();
+  const mutate = useMutate();
+  const { locale } = useI18n();
+  const { data, loading, error, reload } = useApi<{ jobs: Delivery[] }>("/api/deliveries", { pollMs: 30000 });
+  const [busy, setBusy] = useState<string | null>(null);
+  const fmt = (d: string) => new Intl.DateTimeFormat(locale === "ar" ? "ar-KW" : "en-GB", { dateStyle: "short", timeStyle: "short" }).format(new Date(d));
+  return (
+    <Card id="deliveries">
+      <div className="mb-2 flex items-center gap-2"><Mail className="h-5 w-5 text-electric" /><h2 className="font-semibold">{tr("Message deliveries", "تسليم الرسائل")}</h2></div>
+      <p className="mb-3 text-xs text-muted">{tr("WhatsApp replies and emails that failed for a temporary reason are retried automatically (5 tries over a few hours). Ones that still fail are listed here.", "ردود واتساب والإيميلات التي فشلت لسبب مؤقت تُعاد محاولتها تلقائياً (٥ محاولات خلال بضع ساعات). وما يفشل نهائياً يظهر هنا.")}</p>
+      <ErrorNote error={error} />
+      {loading ? <Skeleton className="h-24" /> : !data?.jobs.length ? <p className="text-sm text-emerald-300">{tr("Everything was delivered.", "تم تسليم كل شيء.")}</p> : (
+        <ul className="divide-y divide-line text-sm">
+          {data.jobs.map((j) => (
+            <li key={j.id} className="py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone={j.status === "dead" ? "red" : "amber"}>{j.status === "dead" ? tr("Failed", "فشل") : tr(`Retrying (${j.attempts}/${j.maxAttempts})`, `إعادة المحاولة (${j.attempts}/${j.maxAttempts})`)}</Badge>
+                <span className="text-xs text-muted">{j.kind === "email" ? tr("Email", "إيميل") : "WhatsApp"} · <span dir="ltr">{j.to}</span> · {fmt(j.at)}</span>
+              </div>
+              {j.preview && <p className="mt-1 truncate text-xs" dir="auto">{j.preview}</p>}
+              {j.error && <p className="mt-1 text-xs text-rose-300" dir="auto">{j.error}</p>}
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" variant="outline" disabled={!!busy} onClick={async () => { setBusy(j.id); const r = await mutate("/api/deliveries", "PATCH", { id: j.id, action: "retry" }); setBusy(null); if (r) { reload(); } }}>{tr("Retry now", "أعد المحاولة الآن")}</Button>
+                <Button size="sm" variant="ghost" disabled={!!busy} onClick={async () => { setBusy(j.id); const r = await mutate("/api/deliveries", "PATCH", { id: j.id, action: "dismiss" }, tr("Dismissed", "تم التجاهل")); setBusy(null); if (r) reload(); }}>{tr("Dismiss", "تجاهل")}</Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+function EmailAlertsToggle() {
+  const tr = useTr();
+  const mutate = useMutate();
+  const { data, reload } = useApi<{ email: boolean; available: boolean; eligible: boolean; demo?: boolean }>("/api/profile/notifications");
+  if (!data || data.demo || !data.eligible) return null;
+  return (
+    <label className="flex items-start gap-3 rounded-xl border border-line p-3 sm:col-span-2">
+      <input type="checkbox" className="mt-0.5 h-4 w-4 accent-violet" checked={data.email} onChange={async (e) => { if (await mutate("/api/profile/notifications", "PATCH", { email: e.target.checked }, tr("Saved", "تم الحفظ"))) reload(); }} />
+      <span className="text-sm">{tr("Email me important alerts (new orders, messages waiting for a reply, failed deliveries, plan limits)", "أرسل لي تنبيهات مهمة بالإيميل (طلبات جديدة، رسائل بانتظار الرد، رسائل لم تُسلَّم، حدود الباقة)")}
+        {!data.available && <span className="mt-0.5 block text-xs text-amber-200">{tr("Email sending isn't configured on the server yet (RESEND_API_KEY, EMAIL_FROM) — alerts stay in the app until it is.", "إرسال الإيميل غير مفعّل على الخادم بعد (RESEND_API_KEY و EMAIL_FROM) — تبقى التنبيهات داخل التطبيق حتى يتم تفعيله.")}</span>}</span>
+    </label>
   );
 }

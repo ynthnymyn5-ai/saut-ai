@@ -36,4 +36,27 @@ reset role;
 delete from auth.users where id = '41000000-0000-4000-8000-000000000003';
 select pg_temp.check((select created_by is null from knowledge_documents where title = 'Staff FAQ'), 'A4. deleting a user keeps their records (creator becomes empty)');
 select pg_temp.check(not exists (select 1 from memberships where user_id = '41000000-0000-4000-8000-000000000003'), 'A5. their memberships are removed');
+-- ── Outbound queue + widget sessions ─────────────────────────────────────
+reset role;
+insert into memberships (organization_id, user_id, role) select team, '41000000-0000-4000-8000-000000000001', 'viewer' from o;
+insert into outbound_jobs (organization_id, kind, payload, status, attempts, last_error) select team, 'whatsapp_text', '{"to":"+96550000000","text":"hi"}', 'dead', 5, 'HTTP 503' from o;
+set role authenticated;
+select pg_temp.as_user('41000000-0000-4000-8000-000000000002');
+select pg_temp.check((select count(*) from outbound_jobs) = 1, 'Q1. owner sees failed deliveries');
+update outbound_jobs set status = 'pending', attempts = 0, next_attempt_at = now() where status = 'dead';
+select pg_temp.check((select status from outbound_jobs limit 1) = 'pending', 'Q2. owner can queue a failed delivery for retry');
+do $$ begin
+  begin update outbound_jobs set status = 'sent'; raise exception 'should fail'; exception when others then
+    if sqlerrm = 'should fail' then raise; end if; end;
+end $$;
+select pg_temp.check(true, 'Q3. owner cannot mark a delivery as sent (only the server can)');
+select pg_temp.as_user('41000000-0000-4000-8000-000000000001');
+select pg_temp.check((select count(*) from outbound_jobs) = 0, 'Q4. viewers cannot see the delivery queue');
+reset role;
+insert into conversations (organization_id, channel, web_session_id) select team, 'web_chat', 'abcdefghijklmnop1234' from o;
+do $$ begin
+  begin insert into conversations (organization_id, channel, web_session_id) select team, 'web_chat', 'abcdefghijklmnop1234' from o; raise exception 'dup allowed'; exception when unique_violation then null; end;
+  begin insert into conversations (organization_id, channel, web_session_id) select team, 'web_chat', 'bad id!' from o; raise exception 'bad id allowed'; exception when check_violation then null; end;
+end $$;
+select pg_temp.check(true, 'W1. one conversation per widget session; session ids are validated');
 \echo 'ALL PHASE 4 DATABASE TESTS PASSED'

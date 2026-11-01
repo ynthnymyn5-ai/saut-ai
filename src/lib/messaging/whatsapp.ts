@@ -8,14 +8,20 @@ import { serverEnv } from "@/lib/env";
 export async function sendWhatsAppText(to: string, text: string) {
   const token = serverEnv("WHATSAPP_ACCESS_TOKEN");
   const phoneId = serverEnv("WHATSAPP_PHONE_NUMBER_ID");
-  const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ messaging_product: "whatsapp", to: to.replace(/[^\d]/g, ""), type: "text", text: { body: text } }),
-  });
-  const data = (await res.json()) as { messages?: { id: string }[]; error?: { message: string } };
+  let res: Response;
+  try {
+    res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ messaging_product: "whatsapp", to: to.replace(/[^\d]/g, ""), type: "text", text: { body: text } }),
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (e) {
+    return { ok: false as const, error: `WhatsApp unreachable: ${e instanceof Error ? e.message : "network error"}`, retryable: true };
+  }
+  const data = (await res.json().catch(() => ({}))) as { messages?: { id: string }[]; error?: { message: string } };
   if (!res.ok || !data.messages?.[0]?.id) {
-    return { ok: false as const, error: data.error?.message ?? `WhatsApp API error ${res.status}` };
+    return { ok: false as const, error: data.error?.message ?? `WhatsApp API error ${res.status}`, retryable: res.status === 429 || res.status >= 500 };
   }
   return { ok: true as const, id: data.messages[0].id };
 }

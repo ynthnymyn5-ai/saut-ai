@@ -1,6 +1,6 @@
 "use client";
 import { ShieldCheck } from "lucide-react";
-import { ActivityLogCard, DeleteAccountCard, OrganizationCard, ProfileCard, TeamCard } from "@/components/settings/AccountSettings";
+import { ActivityLogCard, DeleteAccountCard, DeliveriesCard, OrganizationCard, ProfileCard, TeamCard } from "@/components/settings/AccountSettings";
 import { VoicesCard } from "@/components/settings/VoicesCard";
 import { useState } from "react";
 import { Button, Card, PageHeader } from "@/components/ui/primitives";
@@ -38,6 +38,7 @@ export function SettingsView({ demo, privacy, canManage = false }: { demo: boole
         </Card>
         <TeamCard />
         <VoicesCard />
+        {canManage && !demo && <DeliveriesCard />}
         {canManage && !demo && <ActivityLogCard />}
         <DeleteAccountCard demo={demo} />
       </div>

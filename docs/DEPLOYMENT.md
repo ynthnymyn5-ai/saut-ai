@@ -8,7 +8,7 @@ Node 20+, a Supabase project, a Vercel (or any Node) host, and accounts for the 
 ## 1. Supabase (auth, database, storage)
 1. Create a project (region close to the Gulf, e.g. Frankfurt or Mumbai).
 2. Run migrations in order (SQL editor, or `supabase db push`):
-   `0001_schema.sql` → `0002_rls.sql` → `0003_seed_plans.sql` → `0004_vault_and_admin.sql` → `0005_enum_values.sql` → `0006_operating_system.sql` → `0007_member_roles.sql` → `0008_phase1_foundation.sql` → `0009_phase2_channels_billing.sql` → `0010_voice_settings.sql` → `0011_orders_inbox.sql`.
+   `0001_schema.sql` → `0002_rls.sql` → `0003_seed_plans.sql` → `0004_vault_and_admin.sql` → `0005_enum_values.sql` → `0006_operating_system.sql` → `0007_member_roles.sql` → `0008_phase1_foundation.sql` → `0009_phase2_channels_billing.sql` → `0010_voice_settings.sql` → `0011_orders_inbox.sql` → `0012_account_deletion.sql` → `0013_widget_jobs_email.sql`.
    0011 is additive (new tables products/orders/order_items/order_events, one new column `conversations.staff_read_at`, functions `create_order` and `erase_customer`); it changes no existing rows.
    0005/0006 are additive (no drops) and safe to run on an existing database; existing customer tags and notes are copied into the new CRM tables.
 3. Auth → Providers: enable Email; optionally Google (paste its client ID/secret).
@@ -144,7 +144,9 @@ app shell and an offline page — never API responses or business data.
 - [ ] `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` set (shared rate limits)
 - [ ] `ERROR_MONITORING_DSN` set and a test error visible in Sentry
 - [ ] `CRON_SECRET` set and `/api/cron/maintenance` shows a 200 in Vercel → Cron Jobs (or pg_cron jobs scheduled)
-- [ ] Migration `0011_orders_inbox.sql` applied
+- [ ] Migrations `0011`, `0012`, `0013` applied
+- [ ] `RESEND_API_KEY` + `EMAIL_FROM` set (owner email alerts) and a test alert received
+- [ ] Optional: call `/api/cron/deliveries` every 5 minutes (Bearer `CRON_SECRET`) from pg_cron/pg_net or any scheduler for faster delivery retries
 - [ ] Voice bridge `/health` OK and one real test call made (AI answers, transcript saved, transfer works)
 - [ ] Switch CSP from Report-Only to enforcing after one clean release
 - [ ] Legal review of `/privacy` and `/terms` for Kuwait, KSA PDPL and UAE PDPL; confirm call-recording consent wording
@@ -162,3 +164,8 @@ app shell and an offline page — never API responses or business data.
 - **Health:** `GET /api/health` returns database status and which providers are configured (no secrets).
 - **CI gates:** every push to `main` runs type-check, build, unit tests, database/RLS tests and the voice-bridge test
   (`check` workflow → `ci-logs` branch) and the end-to-end journey on a local Supabase (`e2e` workflow → `e2e-logs` branch).
+
+## Website chat widget
+Dashboard → Integrations → *Website chat widget*: enter your domain, save, paste the one-line `<script>` before `</body>`.
+The chat window is served from this app and can only be framed by that domain (CSP `frame-ancestors`).
+The status turns **connected** only after the widget has really loaded inside that domain.

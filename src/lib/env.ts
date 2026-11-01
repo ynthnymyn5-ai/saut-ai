@@ -28,7 +28,7 @@ const required: Record<ProviderKey, string[]> = {
   stripe: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
   myfatoorah: ["MYFATOORAH_API_KEY", "MYFATOORAH_BASE_URL"],
   google: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
-  email: ["RESEND_API_KEY"],
+  email: ["RESEND_API_KEY", "EMAIL_FROM"],
   elevenlabs: ["ELEVENLABS_API_KEY"],
 };
 

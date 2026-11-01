@@ -27,6 +27,8 @@ export async function GET(req: Request) {
     if (error) { out[key] = { error: error.message }; reportError(new Error(`${fn}: ${error.message}`), { scope: "cron-maintenance" }); }
     else out[key] = data;
   }
+  try { const { processDueJobs } = await import("@/lib/jobs"); out.deliveries = await processDueJobs(db, 50); }
+  catch (e) { out.deliveries = { error: e instanceof Error ? e.message : "error" }; reportError(e, { scope: "cron-maintenance-jobs" }); }
   console.info(JSON.stringify({ level: "info", scope: "cron-maintenance", ...out }));
   return Response.json({ ok: true, ...out });
 }

@@ -54,6 +54,7 @@ export async function setLiveStatus(db: DB | null, agentId: string | undefined |
 
 export async function notify(db: DB, n: { orgId: string; userId?: string | null; kind: string; title: string; body?: string; link?: string }) {
   await db.from("notifications").insert({ organization_id: n.orgId, user_id: n.userId ?? null, kind: n.kind, title: n.title.slice(0, 200), body: n.body?.slice(0, 1000) ?? null, link: n.link ?? null });
+  if (!n.userId) { const { emailAlert } = await import("@/lib/notify-email"); await emailAlert(db, n); } // business-wide alerts may also go by email
 }
 
 export const maskPhone = (p?: string | null) => (p ? p.replace(/\d(?=\d{4})/g, "•") : "");

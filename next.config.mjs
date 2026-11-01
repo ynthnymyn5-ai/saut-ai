@@ -33,7 +33,11 @@ const nextConfig = {
   serverExternalPackages: ["twilio"],
   async headers() {
     return [
-      { source: "/(.*)", headers: securityHeaders },
+      // Everything except the embeddable website widget may never be framed.
+      { source: "/((?!widget/).*)", headers: securityHeaders },
+      // The widget page sets its own frame-ancestors (only the business's domain) per request.
+      { source: "/widget/:path*", headers: securityHeaders.filter((h) => h.key !== "X-Frame-Options" && !h.key.startsWith("Content-Security-Policy")) },
+      { source: "/widget.js", headers: [{ key: "Cache-Control", value: "public, max-age=3600" }, { key: "Access-Control-Allow-Origin", value: "*" }] },
       { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache" }, { key: "Service-Worker-Allowed", value: "/" }] },
     ];
   },

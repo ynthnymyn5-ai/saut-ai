@@ -1,4 +1,6 @@
 import { aiAllowance } from "@/lib/so/usage";
+import { enqueue, processDueJobs } from "@/lib/jobs";
+import { after } from "next/server";
 import crypto from "node:crypto";
 import { providerStatus } from "@/lib/env";
 import { inboundText, splitWhatsAppText, type WaInbound } from "@/lib/messaging/wa-core";
@@ -49,6 +51,7 @@ export async function POST(req: Request) {
   } catch (e) {
     reportError(e, { scope: "whatsapp-webhook" });
   }
+  after(() => processDueJobs(db, 5).catch((e) => reportError(e, { scope: "jobs-after-webhook" }))); // retry queued deliveries
   return new Response("ok"); // always 200 so Meta doesn't retry a payload we've logged as failed
 }
 
@@ -120,17 +123,25 @@ async function handleValue(db: DB, v: WaValue) {
     const r = await handleMessage(db, { orgId, channel: "whatsapp", text, conversationId: conv.id, customerId: cust.id, customerPhone: phone, branchId: conv.branch_id as string | null, test: false });
     // orchestrator stored both turns without provider ids; tag the inbound one for de-duplication
     await db.from("messages").update({ provider_message_id: m.id }).eq("conversation_id", conv.id).eq("role", "customer").is("provider_message_id", null).eq("content", text.slice(0, 10000));
-    let sent: Awaited<ReturnType<typeof sendWhatsAppText>> = { ok: false, error: "empty reply" };
-    for (const part of splitWhatsAppText(r.reply)) {
-      sent = await sendWhatsAppText(phone, part);
+    const parts = splitWhatsAppText(r.reply);
+    let sent: Awaited<ReturnType<typeof sendWhatsAppText>> = { ok: false, error: "empty reply", retryable: false };
+    let i = 0;
+    for (; i < parts.length; i++) {
+      sent = await sendWhatsAppText(phone, parts[i]);
       if (!sent.ok) break;
     }
     if (sent.ok) {
       await db.from("messages").update({ provider_message_id: sent.id, delivery_status: "sent" }).eq("conversation_id", conv.id).eq("role", "ai").is("provider_message_id", null).eq("content", r.reply.slice(0, 10000));
       await db.from("usage_records").insert({ organization_id: orgId, employee_id: r.agent.id, metric: "whatsapp_messages", quantity: 1, period_start: now.slice(0, 10) });
+    } else if (sent.retryable && parts.length) {
+      // Temporary failure (Meta 5xx / rate limit / network): queue the unsent part(s) for retry with backoff.
+      const { data: aiMsg } = await db.from("messages").select("id").eq("conversation_id", conv.id).eq("role", "ai").is("provider_message_id", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (aiMsg) await db.from("messages").update({ delivery_status: "queued" }).eq("id", aiMsg.id);
+      const job = await enqueue(db, { orgId, kind: "whatsapp_text", payload: { to: phone, parts: parts.slice(i) }, conversationId: conv.id, messageId: aiMsg?.id ?? null });
+      if (job) await db.from("outbound_jobs").update({ attempts: 1, last_error: sent.error.slice(0, 1000), next_attempt_at: new Date(Date.now() + 30_000).toISOString() }).eq("id", job.id);
     } else {
       await db.from("messages").update({ delivery_status: "failed" }).eq("conversation_id", conv.id).eq("role", "ai").is("provider_message_id", null);
-      await notify(db, { orgId, kind: "integration", title: "WhatsApp reply failed to send", body: sent.error, link: "/dashboard/live" });
+      await notify(db, { orgId, kind: "integration", title: "WhatsApp reply failed to send", body: sent.error, link: "/dashboard/conversations" });
     }
   }
 }

@@ -128,6 +128,52 @@ test.describe.serial("SAUT AI journey", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
+  test("website widget: locked to the business domain, visitor messages reach the inbox, staff replies reach the visitor", async ({ page, request }) => {
+    await page.goto("/login");
+    await page.fill("#email", A.email); await page.fill("#password", A.password);
+    await page.locator('form button[type="submit"]').click();
+    await page.waitForURL(/\/dashboard/);
+    const api = page.request;
+    expect((await api.post("/api/widget/settings", { data: { domain: "not a domain" } })).status()).toBe(422);
+    let r = await api.post("/api/widget/settings", { data: { domain: "https://www.e2e-cafe.example/menu", greeting_en: "Hi from E2E Cafe" } });
+    expect(r.status()).toBe(200);
+    const settings = await (await api.get("/api/widget/settings")).json();
+    expect(settings.domain).toBe("e2e-cafe.example");
+    expect(settings.status).toBe("pending"); // not "connected" until it really loads on that site
+    expect(settings.snippetEn).toContain(`data-key="${settings.key}"`);
+
+    // the chat page may only be framed by the business's domain
+    r = await request.get(`/widget/${settings.key}?lang=en`);
+    expect(r.status()).toBe(200);
+    expect(r.headers()["content-security-policy"]).toContain("frame-ancestors https://e2e-cafe.example https://*.e2e-cafe.example");
+    expect(r.headers()["x-frame-options"]).toBeUndefined();
+    expect(await r.text()).toContain("Hi from E2E Cafe");
+    expect((await request.get("/widget/wk_doesnotexist000000000000")).status()).toBe(404);
+    // other app pages still refuse framing
+    expect((await request.get("/login")).headers()["x-frame-options"]).toBe("DENY");
+
+    // a visitor writes (no AI key in CI → the message is queued for staff, never a fake AI answer)
+    const session = "e2e" + Date.now() + "abcdefgh";
+    expect((await request.post(`/api/widget/${settings.key}`, { data: { session, text: "hi" }, headers: { "sec-fetch-site": "cross-site" } })).status()).toBe(403);
+    r = await request.post(`/api/widget/${settings.key}`, { data: { session, text: "Do you have oat milk?", lang: "en" } });
+    expect(r.status()).toBe(200);
+    const sent = await r.json();
+    expect(sent.reply).toBeNull();
+    expect(sent.queued).toBe(true);
+    const inbox = await (await api.get("/api/conversations?channel=web_chat")).json();
+    const conv = inbox.conversations.find((c) => c.summary === "" || c.channel === "web_chat");
+    expect(conv).toBeTruthy();
+    expect(conv.unread).toBe(true);
+    // staff replies from the inbox → visible in the widget
+    expect((await api.post(`/api/so/live/${conv.id}`, { data: { action: "reply", text: "Yes, we do!" } })).status()).toBe(200);
+    const polled = await (await request.get(`/api/widget/${settings.key}?session=${session}`)).json();
+    expect(polled.messages.map((m) => `${m.role}:${m.content}`)).toEqual(["customer:Do you have oat milk?", "human:Yes, we do!"]);
+    // another visitor's session sees nothing
+    expect((await (await request.get(`/api/widget/${settings.key}?session=other${Date.now()}xxxxxxxx`)).json()).messages).toHaveLength(0);
+    // delivery queue is readable and empty
+    expect((await (await api.get("/api/deliveries")).json()).jobs).toHaveLength(0);
+  });
+
   test("dashboard pages fit a phone screen without horizontal scrolling", async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await ctx.newPage();

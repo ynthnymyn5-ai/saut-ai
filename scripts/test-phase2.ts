@@ -320,3 +320,40 @@ test("allowance: AI pauses without a subscription or past plan + 10 % grace", ()
   assert.deepEqual(allowanceDecision(u("starter", 10, 330), "whatsapp"), { ok: true }, "voice minutes don't block WhatsApp");
   assert.deepEqual(allowanceDecision({ plan: "custom", conversations: { used: 99999, limit: 0 }, voiceMinutes: { used: 0, limit: 0 } }, "phone"), { ok: true }, "0 = not capped");
 });
+
+// ── Website widget ───────────────────────────────────────────────────────
+import { frameAncestors, hostAllowed, isSessionId, isWidgetKey, normalizeDomain, safeColor } from "../src/lib/widget-core";
+test("widget: domains are normalised and the embed is locked to them", () => {
+  assert.equal(normalizeDomain("https://www.Layali-Cafe.com/menu?x=1"), "layali-cafe.com");
+  assert.equal(normalizeDomain("shop.example.com.kw"), "shop.example.com.kw");
+  assert.equal(normalizeDomain("localhost"), null);
+  assert.equal(normalizeDomain("javascript:alert(1)"), null);
+  assert.equal(normalizeDomain("evil.com\"><script>"), null);
+  assert.ok(hostAllowed("https://layali-cafe.com/contact", "layali-cafe.com"));
+  assert.ok(hostAllowed("https://www.layali-cafe.com/", "layali-cafe.com"));
+  assert.ok(!hostAllowed("https://layali-cafe.com.evil.io/", "layali-cafe.com"), "suffix trick refused");
+  assert.ok(!hostAllowed("https://notlayali-cafe.com/", "layali-cafe.com"));
+  assert.ok(!hostAllowed(null, "layali-cafe.com"));
+  assert.equal(frameAncestors("layali-cafe.com"), "frame-ancestors https://layali-cafe.com https://*.layali-cafe.com");
+});
+test("widget: keys, sessions and colours are validated", () => {
+  assert.ok(isWidgetKey("wk_" + "a".repeat(24)));
+  assert.ok(!isWidgetKey("wk_short") && !isWidgetKey("sk_" + "a".repeat(24)));
+  assert.ok(isSessionId("0123456789abcdef0123"));
+  assert.ok(!isSessionId("short") && !isSessionId("has space in it 1234"));
+  assert.equal(safeColor("#112233"), "#112233");
+  assert.equal(safeColor("red;background:url(x)"), "#8B5CF6");
+});
+
+// ── Delivery retries ─────────────────────────────────────────────────────
+import { afterFailure, retryDelayMs } from "../src/lib/jobs-core";
+test("deliveries: exponential backoff, capped, then marked failed", () => {
+  assert.equal(retryDelayMs(1), 30_000);
+  assert.equal(retryDelayMs(2), 120_000);
+  assert.equal(retryDelayMs(3), 480_000);
+  assert.equal(retryDelayMs(20), 6 * 3600_000, "capped at 6 h");
+  const now = Date.UTC(2026, 10, 1, 12, 0, 0);
+  assert.deepEqual(afterFailure({ attempts: 0, max_attempts: 5 }, true, now), { status: "pending", attempts: 1, next_attempt_at: new Date(now + 30_000).toISOString() });
+  assert.deepEqual(afterFailure({ attempts: 4, max_attempts: 5 }, true, now), { status: "dead", attempts: 5 }, "out of attempts");
+  assert.deepEqual(afterFailure({ attempts: 0, max_attempts: 5 }, false, now), { status: "dead", attempts: 1 }, "permanent errors are not retried");
+});
