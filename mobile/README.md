@@ -19,3 +19,14 @@ Until then, iPhone users install the web app: Safari → Share → Add to Home S
 
 ## Change the web address
 Edit `server.url` (e.g. your own domain) and re-run the workflow.
+
+## Sign-up and login inside the app (what was fixed, v1.1)
+- The app adds `SautAIApp/1.1` to its user agent. The web app uses it to hide **Continue with Google**
+  (Google blocks sign-in inside app WebViews — error `disallowed_useragent`).
+- Email links open in the phone's browser, not in the app, so the app now lets people **type the code
+  from the email** (sign-up confirmation and password reset). The link still works; after opening it the
+  person is told their email is confirmed and logs in inside the app.
+- One-time Supabase setting needed for codes (see `docs/ANDROID_RELEASE.md` → *Email templates*).
+
+## Releasing to Google Play
+See `docs/ANDROID_RELEASE.md` (keystore, signing, store listing, data-safety answers, account-deletion URL).

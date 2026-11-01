@@ -1,13 +1,13 @@
 "use client";
 import { ShieldCheck } from "lucide-react";
-import { OrganizationCard, ProfileCard, TeamCard } from "@/components/settings/AccountSettings";
+import { ActivityLogCard, DeleteAccountCard, OrganizationCard, ProfileCard, TeamCard } from "@/components/settings/AccountSettings";
 import { VoicesCard } from "@/components/settings/VoicesCard";
 import { useState } from "react";
 import { Button, Card, PageHeader } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/Toast";
 import { useI18n } from "@/lib/i18n/client";
 
-export function SettingsView({ demo, privacy }: { demo: boolean; privacy: { recordingEnabled: boolean; consentMessage: string; retentionDays: number }; team?: unknown }) {
+export function SettingsView({ demo, privacy, canManage = false }: { demo: boolean; privacy: { recordingEnabled: boolean; consentMessage: string; retentionDays: number }; team?: unknown; canManage?: boolean }) {
   const { t, locale } = useI18n();
   const ar = locale === "ar";
   const toast = useToast();
@@ -38,6 +38,8 @@ export function SettingsView({ demo, privacy }: { demo: boolean; privacy: { reco
         </Card>
         <TeamCard />
         <VoicesCard />
+        {canManage && !demo && <ActivityLogCard />}
+        <DeleteAccountCard demo={demo} />
       </div>
     </>
   );

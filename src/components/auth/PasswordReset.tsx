@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/Toast";
 import { useI18n } from "@/lib/i18n/client";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { authErrorMessage, classifyAuthError } from "@/lib/auth-errors";
+import { EmailCode } from "@/components/auth/EmailCode";
 
 function Frame({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
   return (
@@ -25,24 +27,30 @@ function Frame({ title, sub, children }: { title: string; sub?: string; children
 
 /** Step 1: request a reset email. Always shows the same message (no account enumeration). */
 export function ForgotPassword() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const router = useRouter();
   const sb = supabaseBrowser();
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState<string | null>(null);
+  const [expired, setExpired] = useState(false);
+  useEffect(() => setExpired(new URLSearchParams(window.location.search).get("expired") === "1"), []);
+  const send = (email: string) => sb!.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/auth/callback?next=/reset-password` });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
     <Frame title={t.auth.resetTitle} sub={t.auth.resetSub}>
+      {expired && !sent && <p className="mb-4 rounded-xl border border-amber-400/30 bg-amber-400/5 p-3 text-sm text-amber-100">{locale === "ar" ? "رابط الاستعادة منتهي أو فُتح في متصفح مختلف. اطلب رمزاً جديداً هنا وأدخله في نفس الشاشة." : "That reset link expired or was opened in a different browser. Request a new code here and enter it on this screen."}</p>}
       {!sb ? <p className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-4 text-sm text-amber-100">{t.auth.demoNotice}</p> : sent ? (
-        <p className="rounded-xl border border-emerald-400/30 bg-emerald-400/5 p-4 text-sm text-emerald-100" role="status">{t.auth.linkSent}</p>
+        <EmailCode email={sent} purpose="recovery" onResend={() => send(sent)} onVerified={() => { router.replace("/reset-password"); router.refresh(); }} />
       ) : (
         <form className="space-y-4" onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true); setError(null);
           const email = String(new FormData(e.currentTarget).get("email"));
-          const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/auth/callback?next=/reset-password` });
+          const { error } = await send(email.trim()).catch((e) => ({ error: { message: e instanceof Error ? e.message : "network" } }));
           setBusy(false);
-          // Rate-limit errors are shown; "user not found" is never revealed by Supabase.
-          if (error && /rate|seconds/i.test(error.message)) setError(error.message); else setSent(true);
+          // Rate-limit and network errors are shown; "user not found" is never revealed by Supabase.
+          const k = error ? classifyAuthError(error) : null;
+          if (k === "rate_limited" || k === "network" || k === "invalid_email") setError(authErrorMessage(error, locale)); else setSent(email.trim());
         }}>
           <div><label className="label" htmlFor="email">{t.auth.email}</label><input id="email" name="email" type="email" required autoComplete="email" dir="ltr" className="input" /></div>
           {error && <p className="text-sm text-rose-300">{error}</p>}

@@ -129,3 +129,75 @@ export function TeamCard() {
     </Card>
   );
 }
+
+/* ─────────────── Delete account (danger zone) ─────────────── */
+type DeletionPlan = { delete: { id: string; name: string }[]; block: { id: string; name: string; reason: "sole_owner" | "subscription_active" }[]; leave: { id: string; name: string }[] };
+
+export function DeleteAccountCard({ demo }: { demo: boolean }) {
+  const tr = useTr();
+  const [open, setOpen] = useState(false);
+  const plan = useApi<DeletionPlan>(open && !demo ? "/api/account" : null);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const p = plan.data;
+  return (
+    <Card className="border-rose-400/30">
+      <div className="mb-3 flex items-center gap-2"><Trash2 className="h-5 w-5 text-rose-300" /><h2 className="font-semibold">{tr("Delete my account", "حذف حسابي")}</h2></div>
+      <p className="text-sm text-muted">{tr("Permanently deletes your login. Businesses where you are the only member are deleted with all their data. This can't be undone.", "يحذف حساب الدخول نهائياً. الأنشطة التي أنت عضوها الوحيد تُحذف مع كل بياناتها. لا يمكن التراجع.")}</p>
+      {!open ? <Button className="mt-4" variant="danger" size="sm" onClick={() => setOpen(true)}>{tr("Start account deletion", "بدء حذف الحساب")}</Button> : demo ? (
+        <p className="mt-4 text-sm text-amber-200">{tr("Demo mode: nothing can be deleted.", "وضع تجريبي: لا يمكن حذف شيء.")}</p>
+      ) : plan.loading || !p ? <Skeleton className="mt-4 h-24" /> : (
+        <div className="mt-4 space-y-3 text-sm">
+          <ErrorNote error={plan.error} />
+          {p.delete.length > 0 && <p>{tr("Will be deleted with all data:", "سيُحذف مع كل بياناته:")} <b>{p.delete.map((o) => o.name).join("، ")}</b></p>}
+          {p.leave.length > 0 && <p className="text-muted">{tr("You will leave (their data stays):", "ستغادر (تبقى بياناتهم):")} {p.leave.map((o) => o.name).join("، ")}</p>}
+          {p.block.length > 0 ? (
+            <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-3 text-amber-100">
+              <p className="font-semibold">{tr("Before you can delete your account:", "قبل حذف حسابك:")}</p>
+              <ul className="mt-1 list-disc ps-5">{p.block.map((b) => <li key={b.id}>{b.name} — {b.reason === "sole_owner" ? tr("make another member an owner (Settings → Team), or remove the other members", "اجعل عضواً آخر مالكاً (الإعدادات ← الفريق) أو أزل الأعضاء الآخرين") : tr("cancel the subscription in Billing", "ألغِ الاشتراك من صفحة الفوترة")}</li>)}</ul>
+            </div>
+          ) : (
+            <form className="space-y-2" onSubmit={async (e) => {
+              e.preventDefault(); if (busy || typed !== "DELETE") return;
+              setBusy(true); setErr(null);
+              const r = await fetch("/api/account", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirm: "DELETE" }) });
+              const j = await r.json().catch(() => ({}));
+              if (!r.ok) { setBusy(false); setErr(j?.error?.message ?? tr("Something went wrong", "حدث خطأ")); return; }
+              window.location.href = "/?account=deleted";
+            }}>
+              <label className="label" htmlFor="del-confirm">{tr("Type DELETE to confirm", "اكتب DELETE للتأكيد")}</label>
+              <input id="del-confirm" dir="ltr" autoComplete="off" className="input" value={typed} onChange={(e) => setTyped(e.target.value)} />
+              {err && <p className="text-rose-300" role="alert">{err}</p>}
+              <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => { setOpen(false); setTyped(""); }}>{tr("Cancel", "إلغاء")}</Button><Button type="submit" variant="danger" disabled={busy || typed !== "DELETE"}>{busy ? tr("Deleting…", "جارٍ الحذف…") : tr("Delete permanently", "حذف نهائي")}</Button></div>
+            </form>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/* ─────────────── Activity log (owners/admins) ─────────────── */
+export function ActivityLogCard() {
+  const tr = useTr();
+  const { locale } = useI18n();
+  const { data, loading, error } = useApi<{ entries: { id: number; action: string; target: string | null; at: string; actor: string }[]; demo?: boolean }>("/api/audit");
+  return (
+    <Card>
+      <div className="mb-4 flex items-center gap-2"><Building2 className="h-5 w-5 text-electric" /><h2 className="font-semibold">{tr("Activity log", "سجل النشاط")}</h2></div>
+      <p className="mb-3 text-xs text-muted">{tr("Sensitive actions in this business: who did what, and when.", "الإجراءات الحساسة في هذا النشاط: من فعل ماذا ومتى.")}</p>
+      <ErrorNote error={error} />
+      {loading ? <Skeleton className="h-40" /> : !data?.entries.length ? <p className="text-sm text-muted">{tr("Nothing recorded yet.", "لا يوجد شيء مسجّل بعد.")}</p> : (
+        <ul className="max-h-80 divide-y divide-line overflow-y-auto text-sm">
+          {data.entries.map((e) => (
+            <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+              <span><code className="rounded bg-white/5 px-1.5 py-0.5 text-xs" dir="ltr">{e.action}</code> <span className="text-muted">· {e.actor}</span></span>
+              <span className="text-xs text-muted" dir="ltr">{new Intl.DateTimeFormat(locale === "ar" ? "ar-KW" : "en-GB", { dateStyle: "short", timeStyle: "short" }).format(new Date(e.at))}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}

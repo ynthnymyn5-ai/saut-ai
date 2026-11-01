@@ -1,5 +1,6 @@
 import { SettingsView } from "@/components/dashboard/SettingsView";
 import { requirePageSession } from "@/lib/auth";
+import { can, MANAGE_ORG } from "@/lib/rbac";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const metadata = { title: "Settings" };
@@ -23,6 +24,7 @@ export default async function SettingsPage() {
   return (
     <SettingsView
       demo={false}
+      canManage={can(s.role, MANAGE_ORG)}
       privacy={{ recordingEnabled: org?.recording_enabled ?? false, consentMessage: org?.recording_consent_msg ?? "", retentionDays: org?.retention_days ?? 90 }}
       team={(members ?? []).map((m) => { const u = m.users as unknown as { full_name: string; email: string }; return { name: u?.full_name ?? "—", email: u?.email ?? "", role: m.role }; })}
     />

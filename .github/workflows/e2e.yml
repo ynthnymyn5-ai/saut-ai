@@ -61,6 +61,8 @@ jobs:
         run: |
           mkdir -p /tmp/out && cp *.log health.json /tmp/out/ 2>/dev/null || true
           cp -r e2e-results /tmp/out/ 2>/dev/null || true
+          # Redact local keys/JWTs (push protection rejects them, and logs should never carry keys)
+          find /tmp/out -type f \( -name "*.log" -o -name "*.json" -o -name "*.md" -o -name "*.txt" \) -exec sed -i -E 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[redacted-jwt]/g; s/sb_(secret|publishable)_[A-Za-z0-9_-]+/sb_\1_[redacted]/g; s/(KEY|SECRET|key|secret)([^=:]{0,20}[=:] *)[^ ]+/\1\2[redacted]/g' {} +
           echo "${GITHUB_SHA}" > /tmp/out/commit.txt
           echo '{"git":{"deploymentEnabled":false}}' > /tmp/out/vercel.json
           cd /tmp/out

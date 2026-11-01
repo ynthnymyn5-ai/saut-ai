@@ -284,3 +284,27 @@ test("money: KWD shows three decimals", () => {
   assert.match(formatMoney(3.75, "KWD", "en"), /3\.750/);
   assert.match(formatMoney(10, "USD", "en"), /10\.00/);
 });
+
+// ── Auth errors (sign-up / login on web and in the Android app) ──────────
+import { authErrorMessage, classifyAuthError, isInApp, isObfuscatedExistingUser } from "../src/lib/auth-errors";
+test("auth: Supabase errors map to clear messages in both languages", () => {
+  assert.equal(classifyAuthError({ message: "Invalid login credentials" }), "invalid_credentials");
+  assert.equal(classifyAuthError({ message: "Email not confirmed" }), "email_not_confirmed");
+  assert.equal(classifyAuthError({ message: "User already registered" }), "already_registered");
+  assert.equal(classifyAuthError({ message: "email rate limit exceeded", status: 429 }), "rate_limited");
+  assert.equal(classifyAuthError({ code: "over_email_send_rate_limit", message: "" }), "rate_limited");
+  assert.equal(classifyAuthError({ message: "For security purposes, you can only request this after 42 seconds." }), "rate_limited");
+  assert.equal(classifyAuthError({ message: "Password should be at least 8 characters." }), "weak_password");
+  assert.equal(classifyAuthError({ message: "Token has expired or is invalid" }), "otp_invalid");
+  assert.equal(classifyAuthError({ message: "Failed to fetch" }), "network");
+  assert.equal(classifyAuthError({ message: "Signups not allowed for this instance" }), "signups_disabled");
+  assert.match(authErrorMessage({ message: "Invalid login credentials" }, "ar"), /غير صحيحة/);
+  assert.equal(authErrorMessage({ message: "Some new provider error" }, "en"), "Some new provider error", "unknown errors are not hidden");
+});
+test("auth: existing account detection and in-app detection", () => {
+  assert.ok(isObfuscatedExistingUser({ identities: [] }));
+  assert.ok(!isObfuscatedExistingUser({ identities: [{}] }));
+  assert.ok(!isObfuscatedExistingUser(null));
+  assert.ok(isInApp("Mozilla/5.0 (Linux; Android 14; wv) Chrome/130 Mobile Safari/537.36 SautAIApp/1.1"));
+  assert.ok(!isInApp("Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile Safari/537.36"));
+});

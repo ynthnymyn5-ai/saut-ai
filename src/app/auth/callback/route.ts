@@ -26,7 +26,10 @@ export async function GET(req: Request) {
       if (!error) return NextResponse.redirect(new URL(next, url.origin));
     }
   }
-  // An expired recovery link shows the reset page's "link expired" state instead of a generic error.
-  if (next === "/reset-password") return NextResponse.redirect(new URL("/reset-password", url.origin));
+  // Typical on phones: the email link opens in the phone's browser, not in the app where sign-up
+  // started, so the PKCE code can't be exchanged here. Supabase has ALREADY confirmed the email at
+  // this point, so we send people to log in (or to request a reset code) with a clear explanation.
+  if (next === "/reset-password") return NextResponse.redirect(new URL("/forgot-password?expired=1", url.origin));
+  if (code || type === "signup" || type === "email") return NextResponse.redirect(new URL("/login?notice=link", url.origin));
   return NextResponse.redirect(new URL("/login?error=auth", url.origin));
 }

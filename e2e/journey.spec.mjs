@@ -144,4 +144,43 @@ test.describe.serial("SAUT AI journey", () => {
     }
     await ctx.close();
   });
+
+  test("Android app: email sign-up works and the Google button is hidden", async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 7 Build/UQ1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0 Mobile Safari/537.36 SautAIApp/1.1" });
+    const page = await ctx.newPage();
+    await page.goto("/login");
+    await expect(page.locator("#email")).toBeVisible();
+    await expect(page.getByText(/Google/)).toHaveCount(0);
+    const C = { email: `app.user.${stamp}@e2e.test`, password: "E2e-password-789", name: "App User", company: "App Co" };
+    await signUpAndOnboard(page, C, `App Business ${stamp}`);
+    // wrong password gives a clear message, not a raw error code
+    await page.request.post("/auth/signout"); await ctx.clearCookies();
+    await page.goto("/login");
+    await page.fill("#email", C.email); await page.fill("#password", "nope-nope-1");
+    await page.locator('form button[type="submit"]').click();
+    await expect(page.locator("form p[role=alert]")).toContainText(/Wrong email or password|غير صحيحة/);
+    await ctx.close();
+  });
+
+  test("owner B deletes their account (business and login removed)", async ({ browser }) => {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await page.goto("/login");
+    await page.fill("#email", B.email); await page.fill("#password", B.password);
+    await page.locator('form button[type="submit"]').click();
+    await page.waitForURL(/\/dashboard/);
+    const plan = await (await page.request.get("/api/account")).json();
+    expect(plan.delete).toHaveLength(1);
+    expect(plan.block).toHaveLength(0);
+    expect((await page.request.delete("/api/account", { data: { confirm: "nope" } })).status()).toBe(422);
+    const r = await page.request.delete("/api/account", { data: { confirm: "DELETE" } });
+    expect(r.status()).toBe(200);
+    await ctx.clearCookies();
+    await page.goto("/login");
+    await page.fill("#email", B.email); await page.fill("#password", B.password);
+    await page.locator('form button[type="submit"]').click();
+    await expect(page.locator("form p[role=alert]")).toBeVisible();
+    await expect(page).toHaveURL(/\/login/);
+    await ctx.close();
+  });
 });
