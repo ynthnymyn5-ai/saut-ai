@@ -20,7 +20,7 @@ import { createServer } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 
 const { OPENAI_API_KEY, APP_URL, INTERNAL_API_SECRET } = process.env;
-const MODEL = process.env.OPENAI_REALTIME_MODEL || "gpt-4o-realtime-preview";
+const MODEL = process.env.OPENAI_REALTIME_MODEL || "gpt-realtime";
 const STT_MODEL = process.env.OPENAI_STT_MODEL || "gpt-4o-transcribe";
 const REALTIME_URL = process.env.OPENAI_REALTIME_URL || "wss://api.openai.com/v1/realtime"; // override only for tests
 for (const [k, v] of Object.entries({ OPENAI_API_KEY, APP_URL, INTERNAL_API_SECRET })) {
@@ -103,13 +103,15 @@ wss.on("connection", (twilio) => {
       if (!s.ok) { log("error", "session failed", { callSid, error: s.error }); return end("session_failed"); }
       session = s;
 
-      ai = new WebSocket(`${REALTIME_URL}?model=${encodeURIComponent(MODEL)}`, { headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "OpenAI-Beta": "realtime=v1" } });
+      ai = new WebSocket(`${REALTIME_URL}?model=${encodeURIComponent(MODEL)}`, { headers: { Authorization: `Bearer ${OPENAI_API_KEY}` } });
       ai.on("open", () => {
+        // GA Realtime session shape (the beta "OpenAI-Beta: realtime=v1" interface was retired)
         ai.send(JSON.stringify({ type: "session.update", session: {
-          instructions: s.instructions, voice: s.voice, speed: s.speed,
-          input_audio_format: "g711_ulaw", output_audio_format: "g711_ulaw",
-          input_audio_transcription: { model: STT_MODEL, language: s.language },
-          turn_detection: { type: "server_vad", silence_duration_ms: 600 },
+          type: "realtime", model: MODEL, instructions: s.instructions, output_modalities: ["audio"],
+          audio: {
+            input: { format: { type: "audio/pcmu" }, transcription: { model: STT_MODEL, language: s.language }, turn_detection: { type: "server_vad", silence_duration_ms: 600 } },
+            output: { format: { type: "audio/pcmu" }, voice: s.voice, speed: s.speed },
+          },
           tools: s.tools, tool_choice: "auto",
         } }));
         ai.send(JSON.stringify({ type: "response.create" })); // greet the caller

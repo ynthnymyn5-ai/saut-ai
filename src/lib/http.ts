@@ -1,7 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { ZodError, type z, type ZodTypeAny } from "zod";
-import { ProviderNotConfiguredError } from "@/lib/env";
+import { maskSecrets, ProviderNotConfiguredError, ProviderRequestError } from "@/lib/env";
 import { checkRateLimit, clientKey } from "@/lib/rate-limit";
 import { reportError } from "@/lib/monitoring";
 
@@ -33,6 +33,11 @@ export function route(
       if (e instanceof ProviderNotConfiguredError)
         return fail(503, "provider_not_configured", e.message, { variable: e.variable });
       if (e instanceof AuthError) return fail(e.status, e.code, e.message);
+      const provider = providerFailure(e);
+      if (provider) {
+        reportError(e, { scope, provider: provider.provider, status: provider.status });
+        return fail(502, "provider_error", `${provider.provider}: ${provider.message}`, { provider: provider.provider, status: provider.status });
+      }
       reportError(e, { scope });
       return fail(500, "internal_error", "Something went wrong");
     }
@@ -43,4 +48,16 @@ export class AuthError extends Error {
   constructor(public status: 401 | 403, public code = status === 401 ? "unauthenticated" : "forbidden") {
     super(status === 401 ? "Sign in required" : "You don't have access to this");
   }
+}
+
+/** Recognises provider rejections (our ProviderRequestError or the OpenAI SDK's APIError) so users see the real reason. */
+export function providerFailure(e: unknown): { provider: string; status: number; message: string } | null {
+  if (e instanceof ProviderRequestError) return { provider: e.provider, status: e.status, message: e.message };
+  const x = e as { status?: unknown; message?: unknown; error?: { message?: unknown }; constructor?: { name?: string } } | null;
+  const name = x?.constructor?.name ?? "";
+  if (x && typeof x.status === "number" && /APIError|AuthenticationError|RateLimitError|BadRequestError|NotFoundError|PermissionDeniedError|InternalServerError/.test(name)) {
+    const msg = typeof x.error?.message === "string" ? x.error.message : typeof x.message === "string" ? x.message : "request failed";
+    return { provider: "OpenAI", status: x.status, message: maskSecrets(msg) };
+  }
+  return null;
 }

@@ -55,3 +55,19 @@ export class ProviderNotConfiguredError extends Error {
     this.name = "ProviderNotConfiguredError";
   }
 }
+
+/** A provider (OpenAI, Meta, …) rejected a request. The message is the provider's own, with secrets masked. */
+export class ProviderRequestError extends Error {
+  constructor(public provider: string, public status: number, message: string) {
+    super(maskSecrets(message));
+    this.name = "ProviderRequestError";
+  }
+}
+
+/** Masks anything that looks like an API key or token so it never reaches the browser or logs. */
+export function maskSecrets(text: string): string {
+  return text
+    .replace(/\b(sk|rk|ek|sb_secret|sb_publishable|xi)[-_][A-Za-z0-9_-]{6,}/g, (m) => `${m.slice(0, 6)}…`)
+    .replace(/\bEAA[A-Za-z0-9]{10,}/g, "EAA…")
+    .slice(0, 300);
+}

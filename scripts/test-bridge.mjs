@@ -91,7 +91,9 @@ test("bridge: full call — session, greeting, transcripts, guarded tool, live t
     await wait(() => env.ai.session);
     assert.equal(env.ai.auth, "Bearer sk-test");
     assert.equal(env.ai.session.instructions, "Be nice");
-    assert.equal(env.ai.session.input_audio_format, "g711_ulaw");
+    assert.equal(env.ai.session.type, "realtime");
+    assert.equal(env.ai.session.audio.input.format.type, "audio/pcmu", "Twilio μ-law in");
+    assert.equal(env.ai.session.audio.output.format.type, "audio/pcmu", "Twilio μ-law out");
     assert.equal(env.ai.session.tools[0].name, "transfer_to_human");
     await wait(() => got.media >= 1);                       // greeting audio reached the caller
     ws.send(JSON.stringify({ event: "media", media: { payload: "//8=" } }));

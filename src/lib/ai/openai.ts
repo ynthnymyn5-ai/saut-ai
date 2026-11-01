@@ -1,6 +1,6 @@
 import "server-only";
 import OpenAI from "openai";
-import { serverEnv } from "@/lib/env";
+import { ProviderRequestError, serverEnv } from "@/lib/env";
 
 let client: OpenAI | null = null;
 
@@ -11,29 +11,40 @@ export function openai() {
 
 export const models = {
   chat: () => process.env.OPENAI_CHAT_MODEL || "gpt-4o-mini",
-  realtime: () => process.env.OPENAI_REALTIME_MODEL || "gpt-4o-realtime-preview",
+  realtime: () => process.env.OPENAI_REALTIME_MODEL || "gpt-realtime",
   tts: () => process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts",
   stt: () => process.env.OPENAI_STT_MODEL || "gpt-4o-transcribe",
 };
 
 /**
- * Mints a short-lived client secret for a browser WebRTC realtime session.
+ * Mints a short-lived client secret for a browser WebRTC realtime session (GA API:
+ * POST /v1/realtime/client_secrets — the beta /v1/realtime/sessions endpoint was retired).
  * The real API key never leaves the server.
  */
 export async function createRealtimeSession(instructions: string, voice: string) {
-  const res = await fetch("https://api.openai.com/v1/realtime/sessions", {
+  const model = models.realtime();
+  const res = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
     method: "POST",
     headers: { Authorization: `Bearer ${serverEnv("OPENAI_API_KEY")}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: models.realtime(),
-      voice,
-      instructions,
-      input_audio_transcription: { model: models.stt() },
-      turn_detection: { type: "server_vad" },
+      expires_after: { anchor: "created_at", seconds: 600 },
+      session: {
+        type: "realtime",
+        model,
+        instructions,
+        audio: {
+          input: { transcription: { model: models.stt() }, turn_detection: { type: "server_vad" } },
+          output: { voice },
+        },
+      },
     }),
   });
-  if (!res.ok) throw new Error(`Realtime session failed: ${res.status} ${await res.text()}`);
-  return (await res.json()) as { client_secret: { value: string; expires_at: number }; model: string };
+  if (!res.ok) {
+    const j = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+    throw new ProviderRequestError("OpenAI", res.status, j.error?.message ?? `Realtime session failed (${res.status})`);
+  }
+  const j = (await res.json()) as { value: string; expires_at: number; session?: { model?: string } };
+  return { client_secret: { value: j.value, expires_at: j.expires_at }, model: j.session?.model ?? model };
 }
 
 /** One-line summary + sentiment for a finished conversation. */

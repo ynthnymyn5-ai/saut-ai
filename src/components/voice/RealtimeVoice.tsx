@@ -40,13 +40,13 @@ export function RealtimeVoice({ employee, hue }: { employee: Record<string, unkn
         const ev = JSON.parse(e.data) as { type: string; name?: string };
         if (ev.type === "input_audio_buffer.speech_started") setState("listening");
         else if (ev.type === "input_audio_buffer.speech_stopped" || ev.type === "response.created") setState("thinking");
-        else if (ev.type === "output_audio_buffer.started" || ev.type === "response.audio.delta") setState("speaking");
+        else if (ev.type === "output_audio_buffer.started" || ev.type === "response.audio.delta" || ev.type === "response.output_audio.delta") setState("speaking");
         else if (ev.type === "response.function_call_arguments.done" && ev.name === "transfer_to_human") setState("transfer");
         else if (ev.type === "output_audio_buffer.stopped" || ev.type === "response.done") setState((s) => (s === "transfer" ? s : "completed"));
       };
       const offer = await conn.createOffer();
       await conn.setLocalDescription(offer);
-      const sdp = await fetch(`https://api.openai.com/v1/realtime?model=${encodeURIComponent(data.model)}`, {
+      const sdp = await fetch("https://api.openai.com/v1/realtime/calls", { // GA WebRTC endpoint
         method: "POST",
         body: offer.sdp,
         headers: { Authorization: `Bearer ${data.client_secret}`, "Content-Type": "application/sdp" },

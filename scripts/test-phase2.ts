@@ -239,3 +239,13 @@ test("assistant: “اربط واتساب” opens the WhatsApp guide", () => {
   assert.equal(detectNavigation("connect whatsapp"), "whatsapp_setup");
   assert.equal(detectNavigation("افتح التكاملات"), "integrations");
 });
+
+import { maskSecrets, ProviderRequestError } from "../src/lib/env";
+test("provider errors: real reason shown, secrets masked", () => {
+  const e = new ProviderRequestError("OpenAI", 401, "Incorrect API key provided: sk-proj-abcdefghijklmnop1234. You can find your API key at …");
+  assert.match(e.message, /Incorrect API key provided/);
+  assert.doesNotMatch(e.message, /abcdefghijklmnop1234/);
+  assert.doesNotMatch(maskSecrets("token EAAGm0PX4ZCpsBAKZCZBz9 expired"), /EAAGm0PX4ZCpsBAKZCZBz9/);
+  assert.doesNotMatch(maskSecrets("key sb_secret_9hF0abcdefgh"), /9hF0abcdefgh/);
+  assert.equal(maskSecrets("You exceeded your current quota"), "You exceeded your current quota");
+});
