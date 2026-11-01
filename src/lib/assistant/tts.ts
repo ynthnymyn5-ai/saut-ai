@@ -8,12 +8,15 @@ import { asEmotion, elevenVoiceSettings, resamplePcm16, speechLanguage, voiceDir
  *     English voices chosen by the language of each reply.
  *  2. OpenAI TTS otherwise, or if ElevenLabs fails (the assistant never goes silent).
  */
-export async function synthesize(text: string, emotionRaw: string | undefined, locale: "ar" | "en"): Promise<{ pcm: Uint8Array; provider: "elevenlabs" | "openai" }> {
+export async function synthesize(
+  text: string, emotionRaw: string | undefined, locale: "ar" | "en",
+  pick?: (lang: "ar" | "en") => string | null, // chosen voice (employee → business); null = server default
+): Promise<{ pcm: Uint8Array; provider: "elevenlabs" | "openai" }> {
   const emotion = asEmotion(emotionRaw);
   const lang = speechLanguage(text, locale);
   if (process.env.ELEVENLABS_API_KEY) {
     try {
-      return { pcm: await eleven(text, lang, emotion), provider: "elevenlabs" };
+      return { pcm: await eleven(text, lang, emotion, pick?.(lang) ?? null), provider: "elevenlabs" };
     } catch (e) {
       const { reportError } = await import("@/lib/monitoring");
       reportError(e, { scope: "tts", provider: "elevenlabs" });
@@ -30,8 +33,8 @@ export function elevenVoiceFor(lang: "ar" | "en") {
   return lang === "ar" ? process.env.ELEVENLABS_VOICE_AR || en : en;
 }
 
-async function eleven(text: string, lang: "ar" | "en", emotion: ReturnType<typeof asEmotion>) {
-  const voice = elevenVoiceFor(lang);
+async function eleven(text: string, lang: "ar" | "en", emotion: ReturnType<typeof asEmotion>, chosen: string | null) {
+  const voice = chosen ?? elevenVoiceFor(lang);
   const model = process.env.ELEVENLABS_MODEL || "eleven_flash_v2_5"; // fast, 32 languages incl. Arabic
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice)}?output_format=pcm_16000`, {
     method: "POST",

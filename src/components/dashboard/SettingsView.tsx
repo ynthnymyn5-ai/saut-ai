@@ -1,6 +1,7 @@
 "use client";
 import { ShieldCheck } from "lucide-react";
 import { OrganizationCard, ProfileCard, TeamCard } from "@/components/settings/AccountSettings";
+import { VoicesCard } from "@/components/settings/VoicesCard";
 import { useState } from "react";
 import { Button, Card, PageHeader } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/Toast";
@@ -36,6 +37,7 @@ export function SettingsView({ demo, privacy }: { demo: boolean; privacy: { reco
           <Button className="mt-5" onClick={save}>{t.common.save}</Button>
         </Card>
         <TeamCard />
+        <VoicesCard />
       </div>
     </>
   );

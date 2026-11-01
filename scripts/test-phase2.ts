@@ -199,3 +199,25 @@ test("voice: emotion changes expressiveness within safe ranges", () => {
   }
   assert.ok(elevenVoiceSettings("celebrating").stability < elevenVoiceSettings("concerned").stability, "celebrating is more expressive");
 });
+
+import { resolveVoice, shapeVoices } from "../src/lib/assistant/voices";
+test("voices: employee choice beats business default beats server default", () => {
+  const emp = { voice_ar: "EmpArabicVoice01" }, biz = { voice_ar: "BizArabicVoice01", voice_en: "BizEnglishVoice1" }, env = { voice_ar: "EnvArabicVoice01", voice_en: "EnvEnglishVoice1" };
+  assert.equal(resolveVoice("ar", [emp, biz, env]), "EmpArabicVoice01");
+  assert.equal(resolveVoice("en", [emp, biz, env]), "BizEnglishVoice1", "employee has no English voice → business");
+  assert.equal(resolveVoice("en", [null, {}, env]), "EnvEnglishVoice1");
+  assert.equal(resolveVoice("ar", [{ voice_ar: "bad id!" }, { voice_ar: "../etc/passwd" }]), null, "invalid IDs are ignored");
+  assert.equal(resolveVoice("ar", []), null);
+});
+test("voices: ElevenLabs list is shaped safely; Arabic voices recognised", () => {
+  const out = shapeVoices({ voices: [
+    { voice_id: "A9ATTqUUQ6GHu0coCz8t", name: "Abu Salem - Professional", preview_url: "https://storage.googleapis.com/x.mp3", labels: { gender: "male", accent: "gulf" } },
+    { voice_id: "G1QUjBCuRBbLbAmYlTgl", name: "Jessica", preview_url: "javascript:alert(1)", labels: { gender: "female", language: "en" } },
+    { voice_id: "Xx", name: "too short id" },
+    { name: "no id" },
+  ] });
+  assert.equal(out.length, 2);
+  assert.equal(out[0].arabic, true); assert.equal(out[1].arabic, false);
+  assert.equal(out[1].preview, null, "non-https preview URLs are dropped");
+  assert.deepEqual(shapeVoices(null), []);
+});

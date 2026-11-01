@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/primitives";
 import { scriptedReply } from "@/lib/demo-script";
 import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
+import { BuiltinVoice } from "@/components/assistant/voice";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -41,7 +42,23 @@ export function ConversationPanel({
 
   useEffect(() => { listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" }); }, [msgs, state]);
 
-  function say(text: string, done: () => void) {
+  const human = useRef<BuiltinVoice | null>(null);
+  useEffect(() => () => human.current?.close(), []);
+
+  /** Live tests speak with the chosen human voice (employee → business); else the browser voice. */
+  async function say(text: string, done: () => void) {
+    if (speak && mode === "live" && !providerMissing) {
+      const r = await fetch("/api/assistant/speak", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, locale, employeeId }) }).catch(() => null);
+      if (r?.ok) {
+        human.current ??= new BuiltinVoice();
+        await human.current.speak(new Uint8Array(await r.arrayBuffer())).catch(() => {});
+        return done();
+      }
+    }
+    sayBrowser(text, done);
+  }
+
+  function sayBrowser(text: string, done: () => void) {
     if (!speak || typeof window === "undefined" || !("speechSynthesis" in window)) {
       setTimeout(done, Math.min(2600, 600 + text.length * 25));
       return;
@@ -123,7 +140,7 @@ export function ConversationPanel({
           </div>
         </div>
         {simulated && <Badge tone="amber">{t.demo.simulated}</Badge>}
-        <button onClick={() => { setSpeak((s) => !s); window.speechSynthesis?.cancel(); }} className="rounded-lg p-2 text-muted hover:bg-white/5 hover:text-white" aria-label="Toggle voice">
+        <button onClick={() => { setSpeak((s) => !s); window.speechSynthesis?.cancel(); human.current?.stop(); }} className="rounded-lg p-2 text-muted hover:bg-white/5 hover:text-white" aria-label="Toggle voice">
           {speak ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
         </button>
       </div>
