@@ -6,7 +6,14 @@
   "git": {
     "deploymentEnabled": {
       "ci-logs": false,
-      "android-build": false
+      "android-build": false,
+      "e2e-logs": false
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/maintenance",
+      "schedule": "30 0 * * *"
+    }
+  ]
 }

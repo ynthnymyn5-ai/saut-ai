@@ -14,6 +14,13 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       NEXT_PUBLIC_DEMO_MODE: "true"
       NEXT_TELEMETRY_DISABLED: "1"
@@ -33,6 +40,12 @@ jobs:
       - name: Unit tests
         run: npm test 2>&1 | tee test.log; echo "exit=${PIPESTATUS[0]}" >> test.log
         continue-on-error: true
+      - name: Database tests (all migrations + RLS / tenant isolation, throwaway Postgres)
+        run: PGHOST=localhost PGPORT=5432 PGUSER=postgres PGPASSWORD=postgres bash scripts/test-db.sh 2>&1 | tee db.log; echo "exit=${PIPESTATUS[0]}" >> db.log
+        continue-on-error: true
+      - name: Voice bridge integration test
+        run: npm --prefix services/voice-bridge install --no-audit --no-fund > /dev/null 2>&1 && node --test scripts/test-bridge.mjs 2>&1 | tee bridge.log; echo "exit=${PIPESTATUS[0]}" >> bridge.log
+        continue-on-error: true
       - name: Publish logs to ci-logs branch
         if: always()
         run: |
@@ -45,4 +58,4 @@ jobs:
           git add -A && git commit -qm "logs for ${GITHUB_SHA}"
           git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" ci-logs
       - name: Fail if type-check or build failed
-        run: grep -q "exit=0" tsc.log && grep -q "exit=0" build.log
+        run: grep -q "exit=0" tsc.log && grep -q "exit=0" build.log && grep -q "exit=0" test.log && grep -q "exit=0" db.log && grep -q "exit=0" bridge.log

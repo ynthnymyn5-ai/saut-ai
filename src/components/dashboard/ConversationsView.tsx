@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessagesSquare, Phone, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge, Card, EmptyState, PageHeader, statusTone } from "@/components/ui/primitives";
 import type { Conv } from "@/components/dashboard/Overview";
 import { useI18n } from "@/lib/i18n/client";
@@ -12,6 +12,17 @@ export function ConversationsView({ items, transcript, demo, kind }: { items: Co
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [sel, setSel] = useState<Conv | null>(null);
+  const [loaded, setLoaded] = useState<{ id: string; lines: { role: string; text: string }[] } | null>(null);
+  // Real data: load the selected conversation's message log from the API (demo mode keeps its labelled sample).
+  useEffect(() => {
+    if (!sel || demo) return;
+    let alive = true;
+    fetch(`/api/conversations/${sel.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+      if (alive) setLoaded({ id: sel.id, lines: ((j?.messages ?? []) as { role: string; content: string }[]).filter((m) => m.role !== "system").map((m) => ({ role: m.role, text: m.content })) });
+    }).catch(() => alive && setLoaded({ id: sel.id, lines: [] }));
+    return () => { alive = false; };
+  }, [sel, demo]);
+  const lines = demo ? transcript : loaded?.id === sel?.id ? loaded?.lines ?? [] : [];
   const statuses = useMemo(() => ["all", ...new Set(items.map((i) => i.status))], [items]);
   const rows = items.filter((i) => (status === "all" || i.status === status) && `${i.customer} ${i.summary} ${i.employee}`.toLowerCase().includes(q.toLowerCase()));
 
@@ -55,14 +66,14 @@ export function ConversationsView({ items, transcript, demo, kind }: { items: Co
               <div className="mt-4 flex flex-wrap gap-1.5"><Badge tone={statusTone(sel.status)}>{sel.status}</Badge><Badge>{sel.channel}</Badge><Badge tone={sel.sentiment === "positive" ? "green" : sel.sentiment === "negative" ? "red" : "gray"}>{sel.sentiment}</Badge>{sel.duration > 0 && <Badge tone="blue">{formatDuration(sel.duration)}</Badge>}</div>
               <Card className="mt-5 bg-violet/[0.06]"><p className="text-xs font-semibold uppercase tracking-wide text-violet-soft">{locale === "ar" ? "ملخص الذكاء الاصطناعي" : "AI summary"}</p><p className="mt-2 text-sm">{sel.summary}</p></Card>
               <h3 className="mb-3 mt-6 text-sm font-semibold">{locale === "ar" ? "النص الكامل" : "Transcript"}</h3>
-              {transcript.length ? (
-                <div className="space-y-2.5">{transcript.map((m, i) => (
+              {lines.length ? (
+                <div className="space-y-2.5">{lines.map((m, i) => (
                   <div key={i} className={cn("flex", m.role === "customer" ? "justify-start" : "justify-end")}>
                     <p dir="auto" className={cn("max-w-[85%] rounded-2xl px-3 py-2 text-sm", m.role === "customer" ? "bg-white/[0.06]" : "bg-violet/80")}>{m.text}</p>
                   </div>))}
                   {demo && <p className="pt-2 text-center text-[11px] text-amber-200">{t.dash.demoBadge}</p>}
                 </div>
-              ) : <p className="text-sm text-muted">{locale === "ar" ? "يتم تحميل النص من سجل الرسائل." : "Transcript loads from the message log."}</p>}
+              ) : <p className="text-sm text-muted">{locale === "ar" ? (loaded?.id === sel.id ? "لا توجد رسائل مسجّلة لهذه المحادثة." : "جارٍ تحميل النص…") : (loaded?.id === sel.id ? "No messages were recorded for this conversation." : "Loading transcript…")}</p>}
             </motion.aside>
           </motion.div>
         )}

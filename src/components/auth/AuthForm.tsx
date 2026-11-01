@@ -33,7 +33,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       if (error) setError(error.message);
       else router.replace(params.get("next") ?? "/dashboard");
     } else {
-      const { error } = await sb.auth.signUp({
+      const { data, error } = await sb.auth.signUp({
         email,
         password,
         options: {
@@ -42,6 +42,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         },
       });
       if (error) setError(error.message);
+      else if (data.session) router.replace("/onboarding"); // email confirmation disabled → already signed in
       else toast({ kind: "success", title: t.auth.checkEmail });
     }
     setLoading(false);

@@ -249,3 +249,38 @@ test("provider errors: real reason shown, secrets masked", () => {
   assert.doesNotMatch(maskSecrets("key sb_secret_9hF0abcdefgh"), /9hF0abcdefgh/);
   assert.equal(maskSecrets("You exceeded your current quota"), "You exceeded your current quota");
 });
+
+import { checkSlot } from "../src/lib/so/availability";
+test("bookings: outside opening hours and over-capacity are refused", () => {
+  const hours = { thu: [["16:00", "23:00"]] as [string, string][], fri: [["16:00", "02:00"]] as [string, string][] };
+  const at = (iso: string) => new Date(iso);
+  // 2026-11-05 is a Thursday. Kuwait = UTC+3.
+  assert.deepEqual(checkSlot({ startsAt: at("2026-11-05T17:00:00+03:00"), durationMin: 60, hours, busy: [] }), { ok: true });
+  assert.deepEqual(checkSlot({ startsAt: at("2026-11-05T10:00:00+03:00"), durationMin: 60, hours, busy: [] }), { ok: false, reason: "outside_hours" });
+  assert.deepEqual(checkSlot({ startsAt: at("2026-11-05T22:30:00+03:00"), durationMin: 60, hours, busy: [] }), { ok: false, reason: "outside_hours" }, "must end before closing");
+  assert.deepEqual(checkSlot({ startsAt: at("2026-11-06T23:30:00+03:00"), durationMin: 60, hours, busy: [] }), { ok: true }, "overnight hours (Fri until 2 AM)");
+  assert.deepEqual(checkSlot({ startsAt: at("2026-11-04T17:00:00+03:00"), durationMin: 30, hours, busy: [] }), { ok: false, reason: "outside_hours" }, "closed on Wednesday");
+  const busy = [{ starts_at: "2026-11-05T17:00:00+03:00", ends_at: "2026-11-05T18:00:00+03:00" }];
+  assert.deepEqual(checkSlot({ startsAt: at("2026-11-05T17:30:00+03:00"), durationMin: 30, hours, busy }), { ok: false, reason: "full" }, "capacity 1 → overlap refused");
+  assert.deepEqual(checkSlot({ startsAt: at("2026-11-05T17:30:00+03:00"), durationMin: 30, hours, busy, capacity: 3 }), { ok: true }, "capacity 3 → allowed");
+  assert.deepEqual(checkSlot({ startsAt: at("2026-11-05T18:00:00+03:00"), durationMin: 30, hours, busy }), { ok: true }, "back-to-back is fine");
+  assert.deepEqual(checkSlot({ startsAt: at("2026-11-05T12:00:00+03:00"), durationMin: 30, hours: {}, busy: [] }), { ok: true }, "no hours set → 09:00–21:00 default");
+});
+
+// ── Orders ────────────────────────────────────────────────────────────────
+import { canMove, orderErrorMessage } from "../src/lib/orders";
+import { formatMoney } from "../src/lib/payments/money";
+test("orders: only forward status moves; delivered/canceled are final", () => {
+  assert.ok(canMove("pending", "confirmed") && canMove("confirmed", "preparing") && canMove("ready", "delivered"));
+  assert.ok(canMove("pending", "canceled") && canMove("ready", "canceled"));
+  assert.ok(!canMove("delivered", "canceled") && !canMove("canceled", "pending") && !canMove("pending", "delivered") && !canMove("bogus", "confirmed"));
+});
+test("orders: database errors become readable messages; unknown errors stay hidden", () => {
+  assert.match(orderErrorMessage("Product not available")!, /no longer available/);
+  assert.match(orderErrorMessage("Invalid quantity")!, /1 and 999/);
+  assert.equal(orderErrorMessage("permission denied for table orders"), null);
+});
+test("money: KWD shows three decimals", () => {
+  assert.match(formatMoney(3.75, "KWD", "en"), /3\.750/);
+  assert.match(formatMoney(10, "USD", "en"), /10\.00/);
+});

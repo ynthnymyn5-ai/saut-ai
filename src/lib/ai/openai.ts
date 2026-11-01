@@ -5,7 +5,8 @@ import { ProviderRequestError, serverEnv } from "@/lib/env";
 let client: OpenAI | null = null;
 
 export function openai() {
-  if (!client) client = new OpenAI({ apiKey: serverEnv("OPENAI_API_KEY") });
+  // 30 s per request, up to 2 retries with exponential backoff (429 / 5xx / network) — never a fake reply.
+  if (!client) client = new OpenAI({ apiKey: serverEnv("OPENAI_API_KEY"), timeout: Number(process.env.OPENAI_TIMEOUT_MS) || 30_000, maxRetries: 2 });
   return client;
 }
 

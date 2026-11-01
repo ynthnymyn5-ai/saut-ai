@@ -1,4 +1,5 @@
-import { OPERATE } from "@/lib/rbac";
+import { MANAGE_ORG, OPERATE } from "@/lib/rbac";
+import { audit } from "@/lib/audit";
 import { z } from "zod";
 import { requireApiSession } from "@/lib/auth";
 import { fail, ok, parseJson, route } from "@/lib/http";
@@ -28,3 +29,25 @@ export const PATCH = route("customers-update", async (req, ctx) => {
   if (!data) return fail(404, "not_found", "Customer not found");
   return ok({ ok: true });
 });
+
+/**
+ * Right to erasure: removes this customer's personal data (messages, notes, memory, tags, leads)
+ * and unlinks their conversations, appointments and orders, which are kept anonymised for the
+ * business's records. Owners/admins only — enforced again inside erase_customer() in the database.
+ */
+export const DELETE = route("customers-erase", async (req, ctx) => {
+  const s = await requireApiSession(MANAGE_ORG);
+  if (s.demo) return ok({ demo: true });
+  const id = z.string().uuid().parse((await ctx.params).id);
+  const { confirm } = await parseJson(req, z.object({ confirm: z.literal("ERASE") }));
+  void confirm;
+  const sb = (await supabaseServer())!;
+  const { data, error } = await sb.rpc("erase_customer", { p_org: s.org.id, p_customer: id });
+  if (error) {
+    if (/not found/i.test(error.message)) return fail(404, "not_found", "Customer not found");
+    if (/Only owners and admins/i.test(error.message)) return fail(403, "forbidden", "Only owners and admins can erase customer data");
+    throw error;
+  }
+  await audit({ orgId: s.org.id, actorId: s.userId, action: "customer.erase_requested", targetType: "customer", targetId: id, metadata: data as Record<string, unknown> });
+  return ok({ ok: true, removed: data });
+}, { limit: 10 });

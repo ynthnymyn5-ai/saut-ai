@@ -45,5 +45,5 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   // Static assets, PWA files and server-to-server endpoints skip the session refresh.
-  matcher: ["/((?!_next/static|_next/image|favicon.svg|icon.svg|icons/|brand/|sw.js|manifest.webmanifest|offline.html|api/webhooks|api/telephony|api/internal).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.svg|icon.svg|icons/|brand/|sw.js|manifest.webmanifest|offline.html|api/webhooks|api/telephony|api/internal|api/cron).*)"],
 };

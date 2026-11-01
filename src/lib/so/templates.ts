@@ -27,7 +27,7 @@ export const ROLE_TEMPLATES: Record<Exclude<AgentRole, "custom">, RoleTemplate> 
       { en: "Manage appointments", ar: "إدارة المواعيد" },
       { en: "Route requests to the right teammate", ar: "توجيه الطلبات للزميل المناسب" },
     ],
-    tools: ["lookup_customer", "save_customer", "search_knowledge", "check_availability", "book_appointment", "create_lead", "create_task", "transfer_to_human", "send_whatsapp"],
+    tools: ["lookup_customer", "save_customer", "search_knowledge", "list_products", "take_order", "lookup_order", "check_availability", "book_appointment", "create_lead", "create_task", "transfer_to_human", "send_whatsapp"],
     instructions: "Greet warmly with the business name. Identify what the caller needs in one question. Answer from the knowledge base. Hand bookings, sales and complaints to the right workflow or teammate.",
   },
   sales: {
@@ -40,7 +40,7 @@ export const ROLE_TEMPLATES: Record<Exclude<AgentRole, "custom">, RoleTemplate> 
       { en: "Recommend products and services", ar: "اقتراح المنتجات والخدمات" },
       { en: "Schedule follow-ups", ar: "جدولة المتابعات" },
     ],
-    tools: ["lookup_customer", "save_customer", "search_knowledge", "create_lead", "update_lead_stage", "book_appointment", "check_availability", "create_task", "send_whatsapp", "transfer_to_human"],
+    tools: ["lookup_customer", "save_customer", "search_knowledge", "list_products", "take_order", "lookup_order", "create_lead", "update_lead_stage", "book_appointment", "check_availability", "create_task", "send_whatsapp", "transfer_to_human"],
     instructions: "Find out need, budget and timing without pressure. Recommend only offers that exist in the knowledge base, with their real prices. Record every prospect as a lead and set a follow-up. Never invent discounts.",
   },
   support: {
@@ -53,7 +53,7 @@ export const ROLE_TEMPLATES: Record<Exclude<AgentRole, "custom">, RoleTemplate> 
       { en: "Open and track support cases", ar: "فتح الحالات ومتابعتها" },
       { en: "Escalate complex cases to staff", ar: "تصعيد الحالات المعقدة للموظفين" },
     ],
-    tools: ["lookup_customer", "save_customer", "search_knowledge", "create_support_case", "create_task", "transfer_to_human", "send_whatsapp"],
+    tools: ["lookup_customer", "save_customer", "search_knowledge", "list_products", "lookup_order", "create_support_case", "create_task", "transfer_to_human", "send_whatsapp"],
     instructions: "Acknowledge the problem first. Collect order/booking reference. Resolve with the knowledge base; otherwise open a support case and tell the customer exactly what happens next. Escalate refunds, legal threats and repeated complaints to a human.",
   },
   manager: {

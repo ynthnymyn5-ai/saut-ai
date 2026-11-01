@@ -11,6 +11,7 @@ const patch = z.object({
   duration_min: z.number().int().min(5).max(600).optional(),
   party_size: z.number().int().min(1).max(100).nullable().optional(),
   notes: z.string().trim().max(1000).nullable().optional(),
+  override: z.boolean().default(false),
 });
 
 /** Update or reschedule. Cancelling is a status change — appointments are never hard-deleted. */
@@ -26,6 +27,11 @@ export const PATCH = route("appointment-update", async (req, ctx) => {
   if (b.starts_at || b.duration_min) {
     const starts = new Date(b.starts_at ?? cur.starts_at);
     const dur = b.duration_min ?? (cur.ends_at ? Math.round((new Date(cur.ends_at).getTime() - new Date(cur.starts_at).getTime()) / 60000) : 30);
+    if (!b.override) {
+      const { validateBooking } = await import("@/lib/so/booking-rules");
+      const slot = await validateBooking(sb, { orgId: s.org.id, startsAt: starts, durationMin: dur, ignoreAppointmentId: id });
+      if (!slot.ok) return fail(409, slot.reason, `${slot.reason === "full" ? "That time is fully booked" : "That time is outside opening hours"}. Free that day: ${slot.alternatives.join(", ") || "none"}.`, { alternatives: slot.alternatives });
+    }
     row.starts_at = starts.toISOString();
     row.ends_at = new Date(starts.getTime() + dur * 60000).toISOString();
   }

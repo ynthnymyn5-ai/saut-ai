@@ -11,3 +11,4 @@ next-env.d.ts
 
 # local test link to shared modules
 services/voice-bridge/node_modules
+e2e-results/

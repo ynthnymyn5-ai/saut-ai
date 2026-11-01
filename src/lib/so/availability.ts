@@ -39,3 +39,36 @@ export function freeSlots(opts: {
   }
   return out;
 }
+
+/**
+ * Validates ONE requested booking against opening hours and capacity — pure.
+ * Used by the AI booking tools and the staff booking API so neither can double-book or book
+ * outside opening hours. Returns the reason so the caller can explain or offer alternatives.
+ */
+export function checkSlot(opts: {
+  startsAt: Date;
+  durationMin: number;
+  hours: Record<string, [string, string][]>;      // {} = 09:00–21:00 default
+  busy: Busy[];                                    // other live bookings that day (excluding the one being moved)
+  capacity?: number;
+  utcOffsetMin?: number;
+}): { ok: true } | { ok: false; reason: "outside_hours" | "full" } {
+  const off = opts.utcOffsetMin ?? 180, cap = Math.max(1, opts.capacity ?? 1);
+  const local = new Date(opts.startsAt.getTime() + off * 60000);
+  const dayKey = DAYS[local.getUTCDay()];
+  const startMin = local.getUTCHours() * 60 + local.getUTCMinutes();
+  const endMin = startMin + opts.durationMin;
+  const ranges = Object.keys(opts.hours).length ? opts.hours[dayKey] ?? [] : [["09:00", "21:00"] as [string, string]];
+  const inHours = ranges.some(([from, to]) => {
+    const f = toMin(from), t0 = toMin(to), t = t0 <= f ? t0 + 1440 : t0;
+    return startMin >= f && endMin <= t;
+  });
+  if (!inHours) return { ok: false, reason: "outside_hours" };
+  const s = opts.startsAt.getTime(), e = s + opts.durationMin * 60000;
+  const overlapping = opts.busy.filter((b) => {
+    const bs = new Date(b.starts_at).getTime();
+    const be = b.ends_at ? new Date(b.ends_at).getTime() : bs + 30 * 60000;
+    return bs < e && be > s;
+  }).length;
+  return overlapping >= cap ? { ok: false, reason: "full" } : { ok: true };
+}

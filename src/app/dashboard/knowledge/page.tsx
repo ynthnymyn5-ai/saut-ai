@@ -1,5 +1,6 @@
 import { KnowledgeView } from "@/components/dashboard/KnowledgeView";
 import { requirePageSession } from "@/lib/auth";
+import { can, MANAGE_AI } from "@/lib/rbac";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const metadata = { title: "Knowledge base" };
@@ -15,5 +16,5 @@ export default async function KnowledgePage() {
   if (s.demo) return <KnowledgeView docs={DEMO_DOCS} demo />;
   const sb = (await supabaseServer())!;
   const { data } = await sb.from("knowledge_documents").select("id, title, status, size_bytes, created_at, error").eq("organization_id", s.org.id).order("created_at", { ascending: false });
-  return <KnowledgeView demo={false} docs={(data ?? []).map((d) => ({ id: d.id, title: d.title, status: d.status, size: Number(d.size_bytes ?? 0), created_at: d.created_at, error: (d.error as string | null) ?? null }))} />;
+  return <KnowledgeView demo={false} canManage={can(s.role, MANAGE_AI)} docs={(data ?? []).map((d) => ({ id: d.id, title: d.title, status: d.status, size: Number(d.size_bytes ?? 0), created_at: d.created_at, error: (d.error as string | null) ?? null }))} />;
 }

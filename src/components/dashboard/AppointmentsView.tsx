@@ -21,6 +21,7 @@ export function AppointmentsView({ demo, canEdit }: { demo: boolean; canEdit: bo
   const [filter, setFilter] = useState<string>("all");
   const { data, error, loading, reload } = useApi<{ appointments: Appt[]; demo?: boolean }>(`/api/appointments${filter !== "all" ? `?status=${filter}` : ""}`);
   const [form, setForm] = useState<null | { customer_name: string; phone: string; starts_at: string; duration_min: number; kind: string; party_size: string; notes: string }>(null);
+  const [override, setOverride] = useState(false);
   const [resched, setResched] = useState<{ id: string; at: string } | null>(null);
   const label = (st: string) => (locale === "ar" ? STATUS_AR[st] ?? st : st.replace("_", " "));
 
@@ -79,10 +80,10 @@ export function AppointmentsView({ demo, canEdit }: { demo: boolean; canEdit: bo
           <form onClick={(e) => e.stopPropagation()} className="glass my-8 w-full max-w-md space-y-3 bg-ink-2 p-6" onSubmit={async (e) => {
             e.preventDefault();
             if (resched) {
-              if (await mutate(`/api/appointments/${resched.id}`, "PATCH", { starts_at: new Date(resched.at).toISOString() }, tr("Rescheduled", "تم تغيير الموعد"))) { setResched(null); reload(); }
+              if (await mutate(`/api/appointments/${resched.id}`, "PATCH", { starts_at: new Date(resched.at).toISOString(), override }, tr("Rescheduled", "تم تغيير الموعد"))) { setResched(null); reload(); }
               return;
             }
-            const r = await mutate("/api/appointments", "POST", { customer_name: form!.customer_name, phone: form!.phone, starts_at: new Date(form!.starts_at).toISOString(), duration_min: form!.duration_min, kind: form!.kind, party_size: form!.party_size ? Number(form!.party_size) : undefined, notes: form!.notes || undefined }, tr("Appointment created", "تم إنشاء الموعد"));
+            const r = await mutate("/api/appointments", "POST", { customer_name: form!.customer_name, phone: form!.phone, starts_at: new Date(form!.starts_at).toISOString(), duration_min: form!.duration_min, kind: form!.kind, party_size: form!.party_size ? Number(form!.party_size) : undefined, notes: form!.notes || undefined, override }, tr("Appointment created", "تم إنشاء الموعد"));
             if (r) { setForm(null); reload(); }
           }}>
             <h3 className="font-display text-lg font-semibold">{resched ? tr("Reschedule", "تغيير الموعد") : tr("New appointment", "موعد جديد")}</h3>
@@ -102,6 +103,7 @@ export function AppointmentsView({ demo, canEdit }: { demo: boolean; canEdit: bo
                 <div><label className="label" htmlFor="ap-notes">{tr("Notes", "ملاحظات")}</label><input id="ap-notes" dir="auto" maxLength={1000} className="input" value={form!.notes} onChange={(e) => setForm({ ...form!, notes: e.target.value })} /></div>
               </>
             )}
+            <label className="flex items-center gap-2 text-xs text-muted"><input type="checkbox" className="h-4 w-4 accent-violet" checked={override} onChange={(e) => setOverride(e.target.checked)} />{tr("Book anyway, even if outside opening hours or fully booked", "احجز حتى لو خارج أوقات الدوام أو الوقت محجوز بالكامل")}</label>
             <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="ghost" onClick={() => { setForm(null); setResched(null); }}>{tr("Cancel", "إلغاء")}</Button><Button type="submit">{tr("Save", "حفظ")}</Button></div>
           </form>
         </div>

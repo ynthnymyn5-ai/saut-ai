@@ -95,10 +95,12 @@ export async function handleMessage(db: DB | null, input: Inbound): Promise<Orch
   const tools = await openAiToolSpecs(await agentToolKeys(ctx));
   let failed = 0;
   let reply = "";
+  let tokens = 0;
 
   // 5. Model loop with guarded tool execution
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const r = await openai().chat.completions.create({ model: models.chat(), messages, tools: tools.length ? tools : undefined, temperature: 0.5, max_tokens: input.channel === "phone" ? 160 : 350 });
+    tokens += r.usage?.total_tokens ?? 0;
     const msg = r.choices[0].message;
     if (!msg.tool_calls?.length) { reply = msg.content ?? ""; break; }
     messages.push(msg);
@@ -121,6 +123,11 @@ export async function handleMessage(db: DB | null, input: Inbound): Promise<Orch
       toolsUsed.push({ key: "transfer_to_human", ok: h.ok, note: h.note });
       messages.push({ role: "system", content: "You were unable to complete the request; a human is taking over. Apologise briefly and tell the customer." });
     }
+  }
+  // Per-business AI usage (test chats included: they are real model calls)
+  if (db && tokens > 0) {
+    const { error: uErr } = await db.from("usage_records").insert({ organization_id: input.orgId, employee_id: realAgentId, metric: "ai_tokens", quantity: tokens, period_start: new Date().toISOString().slice(0, 10) });
+    if (uErr) console.warn(JSON.stringify({ level: "warn", scope: "usage", msg: "ai_tokens not recorded", code: uErr.code }));
   }
   if (!reply) reply = intent.language === "ar" ? "لحظة من فضلك، أحوّلك لأحد الزملاء." : "One moment, I'm passing you to a colleague.";
 

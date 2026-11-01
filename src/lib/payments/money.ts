@@ -22,3 +22,13 @@ export function toMinor(amount: number, currency: string): number {
   const v = Math.round(amount * 10 ** d);
   return d === 3 ? Math.round(v / 10) * 10 : v;
 }
+
+/** Display a decimal amount with the currency's own number of decimals (KWD → 3). */
+export function formatMoney(amount: number, currency: string, locale: "ar" | "en" = "en"): string {
+  const d = minorUnitDigits(currency);
+  try {
+    return new Intl.NumberFormat(locale === "ar" ? "ar-KW" : "en-KW", { style: "currency", currency, minimumFractionDigits: d, maximumFractionDigits: d }).format(amount);
+  } catch {
+    return `${amount.toFixed(d)} ${currency}`;
+  }
+}

@@ -14,6 +14,7 @@ export type AgentRole = "receptionist" | "sales" | "support" | "manager" | "book
 export const PERMISSIONS = [
   "customers.read", "customers.write", "customers.delete", "customers.export",
   "appointments.read", "appointments.write", "appointments.cancel",
+  "orders.read", "orders.write",
   "leads.read", "leads.write",
   "messages.send", "messages.bulk_send",
   "tasks.write", "tasks.delegate",
@@ -32,11 +33,12 @@ export const ALWAYS_CONFIRM: readonly Permission[] = ["appointments.cancel"];
 
 const base: Partial<Record<Permission, Effect>> = {
   "customers.read": "allow", "knowledge.read": "allow", "calls.transfer": "allow", "tasks.write": "allow", "tasks.delegate": "allow",
+  "orders.read": "allow", // catalogue prices + the caller's own orders only
 };
 
 export const ROLE_DEFAULTS: Record<AgentRole, Partial<Record<Permission, Effect>>> = {
-  receptionist: { ...base, "customers.write": "allow", "appointments.read": "allow", "appointments.write": "allow", "appointments.cancel": "confirm", "leads.write": "allow", "messages.send": "allow" },
-  sales:        { ...base, "customers.write": "allow", "leads.read": "allow", "leads.write": "allow", "appointments.read": "allow", "appointments.write": "allow", "messages.send": "allow" },
+  receptionist: { ...base, "orders.write": "allow", "customers.write": "allow", "appointments.read": "allow", "appointments.write": "allow", "appointments.cancel": "confirm", "leads.write": "allow", "messages.send": "allow" },
+  sales:        { ...base, "orders.write": "allow", "customers.write": "allow", "leads.read": "allow", "leads.write": "allow", "appointments.read": "allow", "appointments.write": "allow", "messages.send": "allow" },
   support:      { ...base, "customers.write": "allow", "appointments.read": "allow", "messages.send": "allow" },
   manager:      { ...base, "reports.read": "allow", "leads.read": "allow", "appointments.read": "allow" },
   booking:      { ...base, "customers.write": "allow", "appointments.read": "allow", "appointments.write": "allow", "appointments.cancel": "confirm", "messages.send": "allow" },

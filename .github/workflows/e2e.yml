@@ -1,0 +1,68 @@
+name: e2e
+# End-to-end journey against a LOCAL Supabase stack (Docker) and a production build.
+# No production data or provider keys are used. Logs go to the `e2e-logs` branch.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: e2e
+  cancel-in-progress: true
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_DEMO_MODE: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase and apply all migrations
+        run: |
+          set -o pipefail
+          (yes n | supabase init) > supabase.log 2>&1 || true
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,realtime,postgres-meta 2>&1 | tee -a supabase.log
+          supabase status -o env > /tmp/sb.env 2>>supabase.log
+          set -a; . /tmp/sb.env; set +a
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000" >> "$GITHUB_ENV"
+      - name: Install
+        run: npm install --no-audit --no-fund > install.log 2>&1
+      - name: Build
+        run: npm run build 2>&1 | tee build.log; echo "exit=${PIPESTATUS[0]}" >> build.log
+      - name: Start app
+        run: |
+          nohup npx next start -H 127.0.0.1 -p 3000 > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:3000/api/health > health.json && break; sleep 1; done
+          cat health.json
+      - name: Playwright
+        run: |
+          npm i --no-save --no-audit --no-fund @playwright/test@1.49.1 >> install.log 2>&1
+          npx playwright install --with-deps chromium >> install.log 2>&1
+          npx playwright test -c e2e/playwright.config.mjs 2>&1 | tee e2e.log; echo "exit=${PIPESTATUS[0]}" >> e2e.log
+        continue-on-error: true
+      - name: Publish logs to e2e-logs branch
+        if: always()
+        run: |
+          mkdir -p /tmp/out && cp *.log health.json /tmp/out/ 2>/dev/null || true
+          cp -r e2e-results /tmp/out/ 2>/dev/null || true
+          echo "${GITHUB_SHA}" > /tmp/out/commit.txt
+          echo '{"git":{"deploymentEnabled":false}}' > /tmp/out/vercel.json
+          cd /tmp/out
+          git init -q -b e2e-logs
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "e2e logs for ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" e2e-logs
+      - name: Fail if the journey failed
+        run: grep -q "exit=0" e2e.log

@@ -21,6 +21,7 @@ export async function usageVsLimits(db: DB, orgId: string) {
     conversations: { used: used("conversations"), limit: plan?.monthly_conversations ?? 0 },
     whatsappMessages: { used: used("whatsapp_messages"), limit: (plan?.monthly_conversations ?? 0) + add("messages") },
     employees: { used: employees ?? 0, limit: (plan?.max_employees ?? 1) + add("extra_employee") },
+    aiTokens: { used: used("ai_tokens") }, // measured, not capped by plan
   };
 }
 

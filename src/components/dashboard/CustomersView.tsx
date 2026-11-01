@@ -1,7 +1,8 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarCheck, Download, MessagesSquare, Phone, Search, Tag, Users, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CalendarCheck, Download, MessagesSquare, Phone, Search, Tag, Trash2, Users, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/Toast";
 import { useI18n } from "@/lib/i18n/client";
@@ -18,13 +19,28 @@ const csvCell = (v: unknown) => {
   return `"${safe.replace(/"/g, '""')}"`;
 };
 
-export function CustomersView({ customers, demo }: { customers: Customer[]; demo: boolean }) {
+export function CustomersView({ customers: initial, demo, canErase = false }: { customers: Customer[]; demo: boolean; canErase?: boolean }) {
   const { t, locale } = useI18n();
   const toast = useToast();
   const [q, setQ] = useState("");
   const [tag, setTag] = useState<string | null>(null);
   const [sel, setSel] = useState<Customer | null>(null);
   const [notes, setNotes] = useState("");
+  const [customers, setCustomers] = useState(initial);
+  useEffect(() => setCustomers(initial), [initial]);
+  const [erase, setErase] = useState<{ id: string; name: string; typed: string; busy: boolean } | null>(null);
+  const router = useRouter();
+  async function doErase() {
+    if (!erase || erase.typed !== "ERASE" || erase.busy) return;
+    setErase({ ...erase, busy: true });
+    const res = await fetch(`/api/customers/${erase.id}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirm: "ERASE" }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { setErase({ ...erase, busy: false }); return toast({ kind: "error", title: data?.error?.message ?? "Failed" }); }
+    setCustomers((cs) => cs.filter((c) => c.id !== erase.id));
+    setErase(null); setSel(null);
+    toast({ kind: "success", title: locale === "ar" ? "تم حذف بيانات العميل" : "Customer data erased" });
+    router.refresh();
+  }
   const tags = useMemo(() => [...new Set(customers.flatMap((c) => c.tags))], [customers]);
   const rows = customers.filter((c) => (!tag || c.tags.includes(tag)) && `${c.name} ${c.phone}`.toLowerCase().includes(q.toLowerCase()));
 
@@ -89,6 +105,19 @@ export function CustomersView({ customers, demo }: { customers: Customer[]; demo
               <div className="mt-6"><label className="label" htmlFor="notes">{locale === "ar" ? "ملاحظة جديدة" : "New note"}</label><textarea id="notes" dir="auto" rows={5} maxLength={5000} value={notes} onChange={(e) => setNotes(e.target.value)} className="input" /></div>
               <Button className="mt-3 w-full" onClick={saveNotes}>{locale === "ar" ? "إضافة ملاحظة" : "Add note"}</Button>
               {!demo && <CustomerTimeline id={sel.id} />}
+              {canErase && !demo && (
+                <div className="mt-8 rounded-2xl border border-rose-400/30 p-4">
+                  <p className="text-sm font-semibold text-rose-300">{locale === "ar" ? "حذف بيانات العميل" : "Erase customer data"}</p>
+                  <p className="mt-1 text-xs text-muted">{locale === "ar" ? "يحذف الرسائل والملاحظات والذاكرة والوسوم والفرص البيعية. تبقى المواعيد والطلبات والمحادثات بدون أي بيانات تعريفية. لا يمكن التراجع." : "Deletes messages, notes, memory, tags and leads. Appointments, orders and conversations are kept without any identifying data. This can't be undone."}</p>
+                  {erase?.id === sel.id ? (
+                    <form className="mt-3 space-y-2" onSubmit={(e) => { e.preventDefault(); doErase(); }}>
+                      <label className="label" htmlFor="erase-confirm">{locale === "ar" ? "اكتب ERASE للتأكيد" : "Type ERASE to confirm"}</label>
+                      <input id="erase-confirm" dir="ltr" autoComplete="off" className="input" value={erase.typed} onChange={(e) => setErase({ ...erase, typed: e.target.value })} />
+                      <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setErase(null)}>{t.common.cancel}</Button><Button type="submit" variant="danger" disabled={erase.typed !== "ERASE" || erase.busy}>{locale === "ar" ? "حذف نهائي" : "Erase permanently"}</Button></div>
+                    </form>
+                  ) : <Button className="mt-3" variant="danger" size="sm" onClick={() => setErase({ id: sel.id, name: sel.name, typed: "", busy: false })}><Trash2 className="h-4 w-4" />{locale === "ar" ? "حذف بيانات هذا العميل" : "Erase this customer's data"}</Button>}
+                </div>
+              )}
             </motion.aside>
           </motion.div>
         )}

@@ -40,6 +40,7 @@ const createSchema = z.object({
   party_size: z.number().int().min(1).max(100).optional(),
   notes: z.string().trim().max(1000).optional(),
   status: z.enum(["pending", "confirmed"]).default("confirmed"),
+  override: z.boolean().default(false), // staff may knowingly book outside hours / over capacity
 });
 
 /** Staff-created appointment; finds or creates the customer by phone within the organization. */
@@ -50,6 +51,11 @@ export const POST = route("appointments-create", async (req) => {
   const starts = new Date(b.starts_at);
   if (starts.getTime() < Date.now() - 5 * 60000) return fail(422, "invalid_input", "The appointment time is in the past");
   const sb = (await supabaseServer())!;
+  if (!b.override) {
+    const { validateBooking } = await import("@/lib/so/booking-rules");
+    const slot = await validateBooking(sb, { orgId: s.org.id, startsAt: starts, durationMin: b.duration_min });
+    if (!slot.ok) return fail(409, slot.reason, `${slot.reason === "full" ? "That time is fully booked" : "That time is outside opening hours"}. Free that day: ${slot.alternatives.join(", ") || "none"}. Tick “Book anyway” to override.`, { alternatives: slot.alternatives });
+  }
   const phone = (b.phone.startsWith("+") ? "+" : "") + b.phone.replace(/\D/g, "");
   const { data: cust, error: cErr } = await sb.from("customers").upsert({ organization_id: s.org.id, phone, full_name: b.customer_name, last_contact_at: new Date().toISOString() }, { onConflict: "organization_id,phone" }).select("id").single();
   if (cErr) throw cErr;

@@ -101,6 +101,9 @@ export const TOOLS: ToolDef[] = [
       const starts = new Date(a.starts_at);
       if (starts.getTime() < Date.now()) throw new PermanentError("That time is in the past.");
       const ends = new Date(starts.getTime() + (a.duration_min ?? 30) * 60000);
+      const { validateBooking } = await import("./booking-rules");
+      const slot = await validateBooking(ctx.db, { orgId: ctx.orgId, branchId: ctx.branchId, employeeId: ctx.agent?.id, startsAt: starts, durationMin: a.duration_min ?? 30 });
+      if (!slot.ok) return { ok: false, note: slot.reason === "outside_hours" ? `That time is outside opening hours. Free times that day: ${slot.alternatives.join(", ") || "none"}.` : `That time is fully booked. Free times that day: ${slot.alternatives.join(", ") || "none"}.`, data: { alternatives: slot.alternatives } };
       const customerId = await upsertCustomer(ctx, a.phone, a.customer_name);
       const { data, error } = await ctx.db.from("appointments").insert({
         organization_id: ctx.orgId, branch_id: ctx.branchId ?? null, customer_id: customerId, employee_id: ctx.agent?.id ?? null, conversation_id: ctx.conversationId ?? null,
@@ -117,6 +120,9 @@ export const TOOLS: ToolDef[] = [
     run: async (ctx, a) => {
       const starts = new Date(a.starts_at);
       if (starts.getTime() < Date.now()) throw new PermanentError("That time is in the past.");
+      const { validateBooking } = await import("./booking-rules");
+      const slot = await validateBooking(ctx.db, { orgId: ctx.orgId, branchId: ctx.branchId, employeeId: ctx.agent?.id, startsAt: starts, durationMin: 30, ignoreAppointmentId: a.appointment_id });
+      if (!slot.ok) return { ok: false, note: `That time is not available (${slot.reason === "full" ? "fully booked" : "outside opening hours"}). Free times: ${slot.alternatives.join(", ") || "none"}.` };
       const { data, error } = await ctx.db.from("appointments").update({ starts_at: starts.toISOString(), ends_at: new Date(starts.getTime() + 30 * 60000).toISOString() }).eq("id", a.appointment_id).eq("organization_id", ctx.orgId).in("status", ["pending", "confirmed"]).select("id").maybeSingle();
       if (error) throw new PermanentError(error.message);
       return data ? { ok: true, note: "Appointment moved." } : { ok: false, note: "Appointment not found or already closed." };
@@ -223,6 +229,51 @@ export const TOOLS: ToolDef[] = [
       if (ctx.conversationId) await ctx.db.from("messages").insert({ conversation_id: ctx.conversationId, organization_id: ctx.orgId, role: "ai", content: a.text ?? `[template:${a.template}]`, provider_message_id: r.id, delivery_status: "sent" });
       await ctx.db.from("usage_records").insert({ organization_id: ctx.orgId, employee_id: ctx.agent?.id ?? null, metric: "whatsapp_messages", quantity: 1, period_start: new Date().toISOString().slice(0, 10) });
       return { ok: true, note: `WhatsApp accepted by Meta (to ${maskPhone(to)}).`, data: { message_id: r.id } };
+    },
+  }),
+  def({
+    key: "list_products", permission: "orders.read", description: "The business's real product/menu list with current prices. Use it before quoting any price.",
+    schema: z.object({ search: z.string().trim().max(80).optional() }),
+    run: async (ctx, a) => {
+      let q = ctx.db.from("products").select("id, name, price, currency, description").eq("organization_id", ctx.orgId).eq("is_active", true).order("name").limit(40);
+      if (a.search) q = q.ilike("name", `%${a.search.replace(/[%_]/g, "")}%`);
+      const { data } = await q;
+      if (!data?.length) return { ok: true, note: "No products are listed. Do not quote prices; offer to check with staff." , data: [] };
+      return { ok: true, note: `${data.length} products.`, data };
+    },
+  }),
+  def({
+    key: "take_order", permission: "orders.write", description: "Place an order from the product list. Prices and total are calculated by the system; the order is created as PENDING for staff to confirm.",
+    schema: z.object({
+      items: z.array(z.object({ product: z.string().trim().min(1).max(160), quantity: z.number().int().min(1).max(99) })).min(1).max(20),
+      phone, customer_name: z.string().trim().max(120).optional(),
+      fulfillment: z.enum(["pickup", "delivery", "dine_in"]).default("pickup"), notes: z.string().max(500).optional(),
+    }),
+    run: async (ctx, a) => {
+      const { data: catalogue } = await ctx.db.from("products").select("id, name").eq("organization_id", ctx.orgId).eq("is_active", true);
+      const byName = (n: string) => (catalogue ?? []).find((p: { id: string; name: string }) => p.id === n || p.name.toLowerCase() === n.toLowerCase())
+        ?? (catalogue ?? []).filter((p: { name: string }) => p.name.toLowerCase().includes(n.toLowerCase())).at(0);
+      const missing = a.items.filter((i) => !byName(i.product)).map((i) => i.product);
+      if (missing.length) return { ok: false, note: `Not on the menu: ${missing.join(", ")}. Call list_products and ask the customer to choose.` };
+      const customerId = await upsertCustomer(ctx, a.phone, a.customer_name);
+      const { data: id, error } = await ctx.db.rpc("create_order", {
+        p_org: ctx.orgId, p_items: a.items.map((i) => ({ product_id: byName(i.product)!.id, quantity: i.quantity })),
+        p_customer: customerId, p_conversation: ctx.conversationId ?? null, p_fulfillment: a.fulfillment, p_notes: a.notes ?? null, p_agent: ctx.agent?.id ?? null, p_status: "pending",
+      });
+      if (error) throw new PermanentError(error.message);
+      const { data: o } = await ctx.db.from("orders").select("order_no, total, currency").eq("id", id).eq("organization_id", ctx.orgId).single();
+      await notify(ctx.db, { orgId: ctx.orgId, kind: "task", title: `New order #${o?.order_no} to confirm`, body: `${o?.total} ${o?.currency}`, link: "/dashboard/orders" });
+      return { ok: true, note: `Order #${o?.order_no} placed as PENDING, total ${o?.total} ${o?.currency}. Tell the customer staff will confirm it.`, data: { order_id: id, order_no: o?.order_no, total: o?.total } };
+    },
+  }),
+  def({
+    key: "lookup_order", permission: "orders.read", description: "Status of one of THIS customer's orders by order number.",
+    schema: z.object({ order_no: z.number().int().min(1).max(99999999) }),
+    run: async (ctx, a) => {
+      if (!ctx.customerId) return { ok: false, note: "I can't verify who the customer is in this conversation, so I can't share order details. Offer a staff callback." };
+      const { data: o } = await ctx.db.from("orders").select("order_no, status, total, currency, fulfillment, created_at, customer_id").eq("organization_id", ctx.orgId).eq("order_no", a.order_no).maybeSingle();
+      if (!o || o.customer_id !== ctx.customerId) return { ok: false, note: "No order with that number for this customer." };
+      return { ok: true, note: `Order #${o.order_no} is ${o.status}.`, data: { order_no: o.order_no, status: o.status, total: o.total, currency: o.currency, fulfillment: o.fulfillment, placed_at: o.created_at } };
     },
   }),
   def({

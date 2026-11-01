@@ -100,7 +100,7 @@ const en = {
   },
   dash: {
     demoBadge: "Demo data",
-    nav: { appointments: "Appointments", command: "Command Center", live: "Live Operations", templates: "Templates", automations: "Automation Studio", pipeline: "Sales pipeline", intelligence: "Business Intelligence", branches: "Branches", gWorkforce: "AI workforce", gCustomers: "Customers", gInsight: "Insight", gBusiness: "Business", overview: "Overview", employees: "My AI Employees", calls: "Calls", conversations: "Conversations", customers: "Customers", knowledge: "Knowledge Base", integrations: "Integrations", analytics: "Analytics", billing: "Billing", settings: "Settings", support: "Support", admin: "Admin panel", signOut: "Sign out" },
+    nav: { orders: "Orders", appointments: "Appointments", command: "Command Center", live: "Live Operations", templates: "Templates", automations: "Automation Studio", pipeline: "Sales pipeline", intelligence: "Business Intelligence", branches: "Branches", gWorkforce: "AI workforce", gCustomers: "Customers", gInsight: "Insight", gBusiness: "Business", overview: "Overview", employees: "My AI Employees", calls: "Calls", conversations: "Conversations", customers: "Customers", knowledge: "Knowledge Base", integrations: "Integrations", analytics: "Analytics", billing: "Billing", settings: "Settings", support: "Support", admin: "Admin panel", signOut: "Sign out" },
     create: "Create AI Employee",
     greeting: "Good evening",
     stats: { total: "Total calls", answered: "Answered calls", missed: "Missed calls", ai: "AI-handled conversations", appointments: "Appointments booked", saved: "Est. time saved", hours: "hrs" },
@@ -217,7 +217,7 @@ const ar: Dict = {
   },
   dash: {
     demoBadge: "بيانات تجريبية",
-    nav: { appointments: "المواعيد", command: "مركز القيادة", live: "العمليات المباشرة", templates: "القوالب", automations: "استوديو الأتمتة", pipeline: "مسار المبيعات", intelligence: "ذكاء الأعمال", branches: "الفروع", gWorkforce: "فريق الذكاء الاصطناعي", gCustomers: "العملاء", gInsight: "التحليلات", gBusiness: "النشاط", overview: "نظرة عامة", employees: "موظفيني الأذكياء", calls: "المكالمات", conversations: "المحادثات", customers: "العملاء", knowledge: "قاعدة المعرفة", integrations: "التكاملات", analytics: "التحليلات", billing: "الفوترة", settings: "الإعدادات", support: "الدعم", admin: "لوحة الإدارة", signOut: "تسجيل الخروج" },
+    nav: { orders: "الطلبات", appointments: "المواعيد", command: "مركز القيادة", live: "العمليات المباشرة", templates: "القوالب", automations: "استوديو الأتمتة", pipeline: "مسار المبيعات", intelligence: "ذكاء الأعمال", branches: "الفروع", gWorkforce: "فريق الذكاء الاصطناعي", gCustomers: "العملاء", gInsight: "التحليلات", gBusiness: "النشاط", overview: "نظرة عامة", employees: "موظفيني الأذكياء", calls: "المكالمات", conversations: "المحادثات", customers: "العملاء", knowledge: "قاعدة المعرفة", integrations: "التكاملات", analytics: "التحليلات", billing: "الفوترة", settings: "الإعدادات", support: "الدعم", admin: "لوحة الإدارة", signOut: "تسجيل الخروج" },
     create: "إنشاء موظف ذكي",
     greeting: "مساء الخير",
     stats: { total: "إجمالي المكالمات", answered: "مكالمات تم الرد عليها", missed: "مكالمات فائتة", ai: "محادثات تولّاها الذكاء الاصطناعي", appointments: "مواعيد محجوزة", saved: "الوقت الموفَّر تقريباً", hours: "ساعة" },

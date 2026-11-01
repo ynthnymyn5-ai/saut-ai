@@ -1,22 +1,28 @@
-import Link from "next/link";
-import { Logo } from "@/components/brand/Logo";
+import { LegalPage, type LegalSection } from "@/components/brand/LegalPage";
 
-export const metadata = { title: "Privacy" };
+export const metadata = { title: "Privacy Policy" };
 
-/** Template only — have counsel review against Kuwait, KSA (PDPL) and UAE (PDPL) requirements before launch. */
+const S: LegalSection[] = [
+  { en: ["Who we are", "SAUT AI provides AI employees that answer calls, WhatsApp messages and website chat for businesses. For the business's customers' data, the business is the controller and SAUT AI processes it on the business's behalf. For account holders' own data, SAUT AI is the controller."],
+    ar: ["من نحن", "توفّر SAUT AI موظفين أذكياء يردّون على المكالمات ورسائل واتساب ودردشة الموقع نيابةً عن الشركات. بالنسبة لبيانات عملاء الشركة، الشركة هي المسؤولة عن البيانات و SAUT AI تعالجها نيابةً عنها. أما بيانات أصحاب الحسابات أنفسهم فـ SAUT AI هي المسؤولة عنها."] },
+  { en: ["What we process", "• Account data: name, email, business name, role, sign-in records.\n• Business configuration: AI employee settings, instructions, knowledge base files and text, products and prices, opening hours.\n• Customer data handled for the business: phone numbers, names, messages and call transcripts, appointments, orders, notes, tags and lead status.\n• Call recordings — only if the business switches recording on (off by default).\n• Billing data: plan, invoices and payment status. Card numbers are entered on the payment provider's page and are never stored by SAUT AI."],
+    ar: ["ما البيانات التي نعالجها", "• بيانات الحساب: الاسم والبريد واسم النشاط والدور وسجلات الدخول.\n• إعدادات النشاط: إعدادات الموظف الذكي والتعليمات وملفات ونصوص قاعدة المعرفة والمنتجات والأسعار وأوقات الدوام.\n• بيانات العملاء نيابةً عن النشاط: أرقام الهواتف والأسماء والرسائل ونصوص المكالمات والمواعيد والطلبات والملاحظات والوسوم وحالة الفرص.\n• تسجيلات المكالمات — فقط إذا فعّلها النشاط (مغلقة افتراضياً).\n• بيانات الفوترة: الباقة والفواتير وحالة الدفع. تُدخل أرقام البطاقات في صفحة مزوّد الدفع ولا تخزّنها SAUT AI أبداً."] },
+  { en: ["How AI is used", "Customer messages and speech are sent to OpenAI to understand them and write replies, and may be sent to ElevenLabs to produce a voice. Replies are generated automatically and can be wrong; the AI is instructed to use only the business's own information and to hand over to a human when unsure. The AI can book appointments, take orders (as pending, for staff to confirm) and create tasks only within the permissions the business grants. Provider policies state that API data is not used to train their models by default; see each provider's terms."],
+    ar: ["كيف نستخدم الذكاء الاصطناعي", "تُرسل رسائل العملاء وكلامهم إلى OpenAI لفهمها وكتابة الرد، وقد تُرسل إلى ElevenLabs لتوليد الصوت. الردود آلية وقد تخطئ؛ والموظف الذكي موجّه لاستخدام معلومات النشاط فقط وتحويل المحادثة لموظف بشري عند الشك. يستطيع الحجز وأخذ الطلبات (بحالة بانتظار التأكيد من الموظفين) وإنشاء المهام ضمن الصلاحيات التي يمنحها النشاط فقط. تنص سياسات المزوّدين على أن بيانات الواجهة البرمجية لا تُستخدم لتدريب نماذجهم افتراضياً؛ راجع شروط كل مزوّد."] },
+  { en: ["Telling customers they are talking to AI", "Businesses must tell their customers they are talking to an AI assistant (for example in the greeting) and obtain any consent their local law requires, especially before recording calls. When recording is on, callers hear the business's consent message first."],
+    ar: ["إبلاغ العملاء بأنهم يتحدثون مع ذكاء اصطناعي", "يجب على النشاط إبلاغ عملائه بأنهم يتحدثون مع مساعد ذكي (مثلاً في التحية) والحصول على أي موافقة يتطلبها القانون المحلي، خاصة قبل تسجيل المكالمات. عند تفعيل التسجيل يسمع المتصل رسالة الموافقة أولاً."] },
+  { en: ["Service providers (processors)", "Vercel (hosting), Supabase (database, authentication, file storage), OpenAI (language, speech-to-text, voice), ElevenLabs (voice, if enabled), Simli (animated assistant face, if enabled), Twilio (phone calls, if connected), Meta WhatsApp Business Platform (WhatsApp, if connected), Stripe or MyFatoorah (payments), Upstash (rate limiting) and Sentry (error monitoring, if enabled). Data may be processed outside Kuwait by these providers."],
+    ar: ["مزوّدو الخدمة (المعالِجون)", "Vercel (الاستضافة)، Supabase (قاعدة البيانات والدخول وتخزين الملفات)، OpenAI (اللغة وتحويل الكلام لنص والصوت)، ElevenLabs (الصوت إن فُعّل)، Simli (وجه المساعد المتحرك إن فُعّل)، Twilio (المكالمات إن رُبطت)، منصة واتساب للأعمال من Meta (إن رُبطت)، Stripe أو MyFatoorah (المدفوعات)، Upstash (الحد من الطلبات) و Sentry (مراقبة الأخطاء إن فُعّلت). قد تُعالج البيانات خارج الكويت لدى هؤلاء المزوّدين."] },
+  { en: ["Data retention", "Each business chooses a retention period (default 90 days, 1–3650 days) in Settings → Privacy. A daily job deletes conversations, messages and recordings older than that period. Orders, appointments and invoices are kept for the business's records until the business deletes its account. Audit logs of sensitive actions are kept for security."],
+    ar: ["مدة الاحتفاظ بالبيانات", "يختار كل نشاط مدة الاحتفاظ (افتراضياً ٩٠ يوماً، من ١ إلى ٣٦٥٠ يوماً) من الإعدادات ← الخصوصية. تحذف مهمة يومية المحادثات والرسائل والتسجيلات الأقدم من هذه المدة. تُحفظ الطلبات والمواعيد والفواتير لسجلات النشاط حتى يحذف النشاط حسابه. تُحفظ سجلات التدقيق للإجراءات الحساسة لأغراض أمنية."] },
+  { en: ["Deleting a customer's data", "A customer can ask the business to delete their data. An owner or admin opens Customers → the customer → “Erase this customer's data” and types ERASE to confirm. This permanently deletes their messages, notes, AI memory, tags and leads and the customer record; conversations, appointments and orders are kept without any identifying details. The action is recorded in the audit log. Customers may also contact us and we will forward the request to the business."],
+    ar: ["حذف بيانات عميل", "يستطيع العميل طلب حذف بياناته من النشاط. يفتح المالك أو المدير: العملاء ← العميل ← «حذف بيانات هذا العميل» ويكتب ERASE للتأكيد. يحذف ذلك نهائياً رسائله وملاحظاته وذاكرة الموظف الذكي عنه ووسومه وفرصه وسجلّه؛ وتبقى المحادثات والمواعيد والطلبات بدون أي بيانات تعريفية. يُسجّل الإجراء في سجل التدقيق. ويمكن للعملاء التواصل معنا وسنحوّل الطلب إلى النشاط."] },
+  { en: ["Security", "Data of each business is isolated by database row-level security, every API checks the user's role, secrets stay on the server, webhooks are signature-verified, and sensitive actions are audit-logged. No system is perfectly secure; we will notify affected businesses of a breach as required by law."],
+    ar: ["الأمان", "بيانات كل نشاط معزولة بسياسات أمان على مستوى الصفوف في قاعدة البيانات، وكل واجهة برمجية تتحقق من دور المستخدم، والمفاتيح السرية تبقى على الخادم، ويُتحقق من توقيع الويب هوك، وتُسجّل الإجراءات الحساسة. لا يوجد نظام آمن تماماً؛ وسنبلغ الأنشطة المتأثرة بأي اختراق وفق ما يتطلبه القانون."] },
+  { en: ["Your rights and contact", "You can access, correct, export (Customers → Export) or delete personal data. Account holders can ask us to delete their account and business data. Contact: privacy@saut.ai."],
+    ar: ["حقوقك والتواصل", "يمكنك الاطلاع على البيانات الشخصية وتصحيحها وتصديرها (العملاء ← تصدير) أو حذفها. ويمكن لأصحاب الحسابات طلب حذف الحساب وبيانات النشاط. للتواصل: privacy@saut.ai."] },
+];
+
 export default function Privacy() {
-  return (
-    <main className="mx-auto max-w-3xl px-4 py-16">
-      <Link href="/"><Logo /></Link>
-      <h1 className="mt-10 font-display text-3xl font-semibold">Privacy Policy · سياسة الخصوصية</h1>
-      <p className="mt-2 text-xs text-amber-200">Draft template — not legal advice. Review with a qualified lawyer before publishing.</p>
-      <div className="mt-8 space-y-4 text-sm leading-relaxed text-muted">
-        <p><b className="text-white">What we process.</b> Account details, business configuration, and — on behalf of our business customers — caller phone numbers, conversation transcripts, appointments and, only where enabled, call recordings.</p>
-        <p><b className="text-white">Consent.</b> Call recording is off by default. When a business enables it, callers hear a consent notice before recording begins.</p>
-        <p><b className="text-white">Retention.</b> Each business sets a retention period; conversations and recordings are deleted automatically after it.</p>
-        <p><b className="text-white">Processors.</b> Hosting and database (Supabase), AI processing (OpenAI), telephony (Twilio), messaging (Meta WhatsApp), payments (Stripe / MyFatoorah). Card data is handled by the payment provider and never stored by SAUT AI.</p>
-        <p><b className="text-white">Your rights.</b> Contact privacy@saut.ai to access, correct or delete personal data.</p>
-      </div>
-    </main>
-  );
+  return <LegalPage titleEn="Privacy Policy" titleAr="سياسة الخصوصية" updated="1 November 2026" sections={S} />;
 }
