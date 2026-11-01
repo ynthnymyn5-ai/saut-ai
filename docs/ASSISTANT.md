@@ -20,6 +20,9 @@ A round SO button at the bottom of every dashboard screen (above the phone tab b
 
 SO is **read-only**: it never changes data, sends messages, calls or charges. Numbers come only from tool results; in demo mode it says there is no live data.
 
+## Voices (Arabic + English)
+With `ELEVENLABS_API_KEY` set, SO speaks with ElevenLabs human voices: `ELEVENLABS_VOICE_AR` for Arabic replies and `ELEVENLABS_VOICE_EN` for English, chosen per reply from the text itself. Emotion adjusts expressiveness. If ElevenLabs is missing or fails, OpenAI voices are used automatically. (Live phone calls still use OpenAI Realtime speech-to-speech for lowest latency.)
+
 ## How it works
 `AssistantLauncher` (tiny) → on tap, lazy-loads `AssistantPanel`.
 1. Text or `/api/assistant/listen` (OpenAI STT) → `/api/assistant/chat`: navigation fast-path, else OpenAI with role-scoped read-only tools; returns `{reply, emotion, actions}`.

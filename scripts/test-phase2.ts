@@ -183,3 +183,19 @@ test("assistant: emotions, voice tone and speakable text", () => {
   assert.equal(speakable("**تم** ✅ حجز الموعد! شوف https://x.y/z"), "تم حجز الموعد! شوف");
   assert.equal(speakable("a".repeat(2000)).length, 900);
 });
+
+import { elevenVoiceSettings, speechLanguage } from "../src/lib/assistant/core";
+test("voice: Arabic or English voice is chosen from the reply text", () => {
+  assert.equal(speechLanguage("هلا والله! عندك ٣ مواعيد اليوم.", "en"), "ar");
+  assert.equal(speechLanguage("You have 3 appointments today.", "ar"), "en");
+  assert.equal(speechLanguage("تم حجز موعدك عند Dr. Ahmed الساعة 5", "en"), "ar", "mostly Arabic with a name");
+  assert.equal(speechLanguage("Your booking is confirmed — شكراً", "ar"), "en", "mostly English");
+  assert.equal(speechLanguage("123 !!", "ar"), "ar", "no letters → UI language");
+});
+test("voice: emotion changes expressiveness within safe ranges", () => {
+  for (const e of ["neutral", "happy", "thinking", "concerned", "celebrating"] as const) {
+    const s = elevenVoiceSettings(e);
+    assert.ok(s.stability >= 0 && s.stability <= 1 && s.style >= 0 && s.style <= 1 && s.speed >= 0.7 && s.speed <= 1.2, e);
+  }
+  assert.ok(elevenVoiceSettings("celebrating").stability < elevenVoiceSettings("concerned").stability, "celebrating is more expressive");
+});

@@ -106,3 +106,24 @@ export function speakable(text: string, max = 900): string {
     .trim()
     .slice(0, max);
 }
+
+// ── Voice selection (ElevenLabs) ─────────────────────────────────────────
+/** Arabic letters in the reply decide the voice, not the UI language (mixed chats sound right). */
+export function speechLanguage(text: string, fallback: "ar" | "en"): "ar" | "en" {
+  const letters = text.replace(/[^\p{L}]/gu, "");
+  if (!letters) return fallback;
+  const arabic = (letters.match(/\p{Script=Arabic}/gu) ?? []).length;
+  return arabic / letters.length >= 0.3 ? "ar" : "en";
+}
+
+/** ElevenLabs voice settings per emotion: lower stability = more expressive delivery. */
+export function elevenVoiceSettings(e: Emotion) {
+  const base = { similarity_boost: 0.8, use_speaker_boost: true, speed: 1 };
+  switch (e) {
+    case "celebrating": return { ...base, stability: 0.3, style: 0.55 };
+    case "happy": return { ...base, stability: 0.4, style: 0.4 };
+    case "concerned": return { ...base, stability: 0.6, style: 0.25, speed: 0.95 };
+    case "thinking": return { ...base, stability: 0.65, style: 0.15, speed: 0.95 };
+    default: return { ...base, stability: 0.5, style: 0.3 };
+  }
+}

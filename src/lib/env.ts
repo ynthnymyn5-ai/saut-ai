@@ -19,7 +19,7 @@ export const isSupabaseConfigured = () => Boolean(publicEnv.supabaseUrl && publi
 /** True when the app should render clearly-labelled demo data instead of database data. */
 export const isDemo = () => !isSupabaseConfigured() && publicEnv.demoMode;
 
-type ProviderKey = "openai" | "twilio" | "whatsapp" | "stripe" | "myfatoorah" | "google" | "email";
+type ProviderKey = "openai" | "twilio" | "whatsapp" | "stripe" | "myfatoorah" | "google" | "email" | "elevenlabs";
 
 const required: Record<ProviderKey, string[]> = {
   openai: ["OPENAI_API_KEY"],
@@ -29,6 +29,7 @@ const required: Record<ProviderKey, string[]> = {
   myfatoorah: ["MYFATOORAH_API_KEY", "MYFATOORAH_BASE_URL"],
   google: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
   email: ["RESEND_API_KEY"],
+  elevenlabs: ["ELEVENLABS_API_KEY"],
 };
 
 export function providerStatus(key: ProviderKey) {
