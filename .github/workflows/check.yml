@@ -1,0 +1,47 @@
+name: check
+# Type-check, build and test on every push. Results are also saved to the `ci-logs`
+# branch so they can be read without the GitHub UI.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: check
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_DEMO_MODE: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        run: npm install --no-audit --no-fund 2>&1 | tee install.log
+      - name: Type-check
+        run: npx tsc --noEmit --pretty false 2>&1 | tee tsc.log; echo "exit=${PIPESTATUS[0]}" >> tsc.log
+        continue-on-error: true
+      - name: Build
+        run: npm run build 2>&1 | tee build.log; echo "exit=${PIPESTATUS[0]}" >> build.log
+        continue-on-error: true
+      - name: Unit tests
+        run: npm test 2>&1 | tee test.log; echo "exit=${PIPESTATUS[0]}" >> test.log
+        continue-on-error: true
+      - name: Publish logs to ci-logs branch
+        if: always()
+        run: |
+          mkdir -p /tmp/out && cp *.log /tmp/out/ 2>/dev/null || true
+          echo "${GITHUB_SHA}" > /tmp/out/commit.txt
+          cd /tmp/out
+          git init -q -b ci-logs
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "logs for ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" ci-logs
+      - name: Fail if type-check or build failed
+        run: grep -q "exit=0" tsc.log && grep -q "exit=0" build.log

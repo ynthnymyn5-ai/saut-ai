@@ -32,7 +32,9 @@ export const POST = route("assistant-speak", async (req) => {
   if (!res.ok) return fail(502, "provider_error", `Speech failed (${res.status})`);
   const pcm24 = new Uint8Array(await res.arrayBuffer()); // OpenAI "pcm" = 24 kHz, 16-bit, mono, little-endian
   const pcm16k = resamplePcm16(pcm24, 24000, 16000);
-  return new Response(Buffer.from(pcm16k.buffer, pcm16k.byteOffset, pcm16k.byteLength), {
+  const body = new ArrayBuffer(pcm16k.byteLength); // plain ArrayBuffer: a valid BodyInit for every TS/DOM lib version
+  new Uint8Array(body).set(pcm16k);
+  return new Response(body, {
     headers: { "Content-Type": "audio/L16; rate=16000; channels=1", "Cache-Control": "no-store" },
   });
 }, { limit: 40 });
