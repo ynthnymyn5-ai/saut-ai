@@ -32,7 +32,7 @@ test("stream token: rejects wrong secret, tampering and junk", () => {
   assert.throws(() => signStreamToken("", IDS));
 });
 test("stream token: bridge verifier is byte-compatible with the app signer", async () => {
-  process.env.NODE_ENV = "test"; // bridge module must not start listening on import
+  Object.assign(process.env, { NODE_ENV: "test" }); // bridge module must not start listening on import
   const prev = { ...process.env };
   Object.assign(process.env, { OPENAI_API_KEY: "x", APP_URL: "http://x", INTERNAL_API_SECRET: "s3cret" });
   try {

@@ -7,6 +7,8 @@ import { cn, formatDate } from "@/lib/utils";
 import { HARD_DENY } from "@/lib/so/permissions";
 import { ErrorNote, LiveDot, SourceTag, useApi, useMutate, useStatusLabel, useTr } from "./shared";
 
+const PERSONALITY_DEFAULTS = { warmth: 70, formality: 50, pace: 50, tone: "friendly" as const };
+
 type Resp = {
   agent: { id: string; name: string; role: string; branch_id: string | null; status: string; live_status: string; live_detail: string | null; speaking_rate: number; language: string; safety_profile: string; dialect: string; voice: string;
     personality: { warmth: number; formality: number; pace: number; tone: string }; business_info: { businessName?: string; description?: string; address?: string; hours?: string; faqs?: string } };
@@ -41,7 +43,7 @@ export function AgentConfig({ id }: { id: string }) {
     setPerms(Object.fromEntries(data.permissions.filter((p) => p.override).map((p) => [p.permission, p.override!])));
     setInstr(data.instructions);
     const bi = data.agent.business_info ?? {};
-    setDet({ name: data.agent.name, dialect: data.agent.dialect, voice: data.agent.voice, personality: { warmth: 70, formality: 50, pace: 50, tone: "friendly", ...(data.agent.personality ?? {}) },
+    setDet({ name: data.agent.name, dialect: data.agent.dialect, voice: data.agent.voice, personality: { ...PERSONALITY_DEFAULTS, ...(data.agent.personality ?? {}) },
       business_info: { businessName: bi.businessName ?? "", description: bi.description ?? "", address: bi.address ?? "", hours: bi.hours ?? "", faqs: bi.faqs ?? "" } });
   }, [data]);
 

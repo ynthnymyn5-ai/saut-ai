@@ -77,11 +77,12 @@ test("lead scoring is bounded and explained", () => {
   const hot = scoreLead({ stage: "qualified", conversations: 4, appointments: 2, completedAppointments: 1, lastContactDaysAgo: 1, askedPricing: true, hasEstimatedValue: true, negativeSentiment: false, source: "whatsapp" });
   assert.ok(hot.score >= 80 && hot.score <= 99, String(hot.score));
   assert.ok(hot.reasons.length > 3);
-  const cold = scoreLead({ stage: "new", conversations: 0, appointments: 0, completedAppointments: 0, lastContactDaysAgo: 45, askedPricing: false, hasEstimatedValue: false, negativeSentiment: true, source: "manual" });
+  const coldSignals = { stage: "new", conversations: 0, appointments: 0, completedAppointments: 0, lastContactDaysAgo: 45, askedPricing: false, hasEstimatedValue: false, negativeSentiment: true, source: "manual" } as const;
+  const cold = scoreLead(coldSignals);
   assert.equal(cold.score, 0);
-  assert.equal(scoreLead({ ...cold, stage: "converted" }).score, 100);
-  assert.equal(suggestFollowUp({ ...cold, negativeSentiment: true })?.action, "call_back_personally");
-  assert.equal(suggestFollowUp({ ...cold, stage: "lost" }), null);
+  assert.equal(scoreLead({ ...coldSignals, stage: "converted" }).score, 100);
+  assert.equal(suggestFollowUp({ ...coldSignals, negativeSentiment: true })?.action, "call_back_personally");
+  assert.equal(suggestFollowUp({ ...coldSignals, stage: "lost" }), null);
 });
 
 test("live status: stale transient status decays; inactive is offline", () => {

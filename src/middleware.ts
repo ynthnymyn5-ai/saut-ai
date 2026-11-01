@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 const LOCALE_COOKIE = "saut_locale";
 const PROTECTED = ["/dashboard", "/admin"];
@@ -26,7 +26,7 @@ export async function middleware(req: NextRequest) {
   const supabase = createServerClient(url, key, {
     cookies: {
       getAll: () => req.cookies.getAll(),
-      setAll: (list) => list.forEach(({ name, value, options }) => res.cookies.set(name, value, options)),
+      setAll: (list: { name: string; value: string; options: CookieOptions }[]) => list.forEach(({ name, value, options }) => res.cookies.set(name, value, options)),
     },
   });
   const {
