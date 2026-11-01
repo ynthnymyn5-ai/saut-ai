@@ -3,7 +3,11 @@
  * a missing provider never crashes the app — it just reports "not configured".
  */
 export const publicEnv = {
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  // Explicit URL wins; on Vercel fall back to the project's production domain (system env var).
+  appUrl: process.env.NEXT_PUBLIC_APP_URL
+    || (process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}` : "")
+    || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "")
+    || "http://localhost:3000",
   currency: process.env.NEXT_PUBLIC_DEFAULT_CURRENCY ?? "KWD",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
