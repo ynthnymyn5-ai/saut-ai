@@ -1,0 +1,5 @@
+# The voice bridge is a separate always-on service (Fly.io / Docker), not part of the Vercel app.
+services/
+preview/
+scripts/
+supabase/tests/
