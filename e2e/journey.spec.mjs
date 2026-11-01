@@ -136,12 +136,18 @@ test.describe.serial("SAUT AI journey", () => {
     await page.fill("#password", A.password);
     await page.locator('form button[type="submit"]').click();
     await page.waitForURL(/\/dashboard/);
-    for (const path of ["/dashboard", "/dashboard/conversations", "/dashboard/orders", "/dashboard/appointments", "/dashboard/knowledge", "/dashboard/customers"]) {
-      await page.goto(path);
-      await page.waitForLoadState("networkidle");
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-      expect(overflow, `${path} overflows by ${overflow}px`).toBeLessThanOrEqual(1);
+    const problems = [];
+    for (const locale of ["en", "ar"]) {
+      await ctx.addCookies([{ name: process.env.E2E_LOCALE_COOKIE || "saut_locale", value: locale, url: page.url() }]);
+      for (const path of ["/dashboard", "/dashboard/conversations", "/dashboard/orders", "/dashboard/appointments", "/dashboard/knowledge", "/dashboard/customers", "/dashboard/settings"]) {
+        await page.goto(path);
+        await page.waitForLoadState("networkidle");
+        const { overflow, dir } = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth - window.innerWidth, dir: document.documentElement.dir }));
+        if (locale === "ar" && dir !== "rtl") problems.push(`${path} [ar] is not right-to-left`);
+        if (overflow > 1) problems.push(`${path} [${locale}] overflows by ${overflow}px`);
+      }
     }
+    expect(problems, problems.join("\n")).toEqual([]);
     await ctx.close();
   });
 

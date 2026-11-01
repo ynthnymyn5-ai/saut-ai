@@ -54,8 +54,8 @@ export function InboxView({ canOperate }: { canOperate: boolean }) {
     <>
       <PageHeader title={tr("Inbox", "صندوق المحادثات")} subtitle={tr("Every conversation from WhatsApp, calls and chat in one place.", "كل المحادثات من واتساب والمكالمات والدردشة في مكان واحد.")} />
       <ErrorNote error={list.error} />
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,380px)_1fr]">
-        <div className={cn("space-y-3", sel && "hidden lg:block")}>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+        <div className={cn("min-w-0 space-y-3", sel && "hidden lg:block")}>
           <div className="relative"><Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search name, phone or summary", "ابحث بالاسم أو الرقم أو الملخص")} className="input ps-9" dir="auto" /></div>
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             <button className={chip(f.unread)} onClick={() => setF({ ...f, unread: !f.unread })}>{tr("Unread", "غير مقروءة")}{list.data?.unreadCount ? ` (${list.data.unreadCount})` : ""}</button>
@@ -89,7 +89,7 @@ export function InboxView({ canOperate }: { canOperate: boolean }) {
           )}
         </div>
 
-        <div className={cn(!sel && "hidden lg:block")}>
+        <div className={cn("min-w-0", !sel && "hidden lg:block")}>
           {!sel ? (
             <EmptyState icon={<MessagesSquare className="h-6 w-6" />} title={tr("Select a conversation", "اختر محادثة")} />
           ) : !c ? (detail.error ? <ErrorNote error={detail.error} /> : <Skeleton className="h-96" />) : (
