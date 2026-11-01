@@ -138,7 +138,8 @@ test.describe.serial("SAUT AI journey", () => {
     await page.waitForURL(/\/dashboard/);
     const problems = [];
     for (const locale of ["en", "ar"]) {
-      await ctx.addCookies([{ name: process.env.E2E_LOCALE_COOKIE || "saut_locale", value: locale, url: page.url() }]);
+      // same name/domain/path as the cookie the app sets, so this replaces it instead of adding a second one
+      await ctx.addCookies([{ name: "saut_locale", value: locale, domain: new URL(page.url()).hostname, path: "/", sameSite: "Lax" }]);
       for (const path of ["/dashboard", "/dashboard/conversations", "/dashboard/orders", "/dashboard/appointments", "/dashboard/knowledge", "/dashboard/customers", "/dashboard/settings"]) {
         await page.goto(path);
         await page.waitForLoadState("networkidle");
