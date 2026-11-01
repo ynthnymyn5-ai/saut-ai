@@ -52,8 +52,8 @@ jobs:
           cat health.json
       - name: Playwright
         run: |
-          npm i --no-save --no-audit --no-fund @playwright/test@1.49.1 >> install.log 2>&1
-          npx playwright install --with-deps chromium >> install.log 2>&1
+          set +e
+          { npm i --no-save --no-audit --no-fund @playwright/test@1.55.0 && npx playwright install --with-deps chromium; } >> install.log 2>&1 || { echo "playwright install failed (see install.log)" > e2e.log; tail -30 install.log >> e2e.log; echo "exit=1" >> e2e.log; exit 0; }
           npx playwright test -c e2e/playwright.config.mjs 2>&1 | tee e2e.log; echo "exit=${PIPESTATUS[0]}" >> e2e.log
         continue-on-error: true
       - name: Publish logs to e2e-logs branch
