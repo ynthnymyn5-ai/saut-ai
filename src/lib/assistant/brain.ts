@@ -28,6 +28,9 @@ function toolSpecs(ctx: AssistantCtx): OpenAI.Chat.ChatCompletionTool[] {
   const specs: OpenAI.Chat.ChatCompletionTool[] = [
     { type: "function", function: { name: "open_page", description: "Open a screen of the SAUT AI dashboard for the user.", parameters: { type: "object", additionalProperties: false, required: ["page"], properties: { page: { type: "string", enum: Object.keys(ASSISTANT_PAGES) } } } } },
     { type: "function", function: { name: "get_live_status", description: "Right-now status: AI employees online, current calls, active conversations, escalations, items waiting for approval, today's leads and bookings.", parameters: { type: "object", additionalProperties: false, properties: {} } } },
+    { type: "function", function: { name: "get_attention_items", description: "What needs the user's attention now: conversations escalated to staff and waiting, AI actions waiting for approval, unread alerts.", parameters: { type: "object", additionalProperties: false, properties: {} } } },
+    { type: "function", function: { name: "list_recent_conversations", description: "Recent customer conversations (calls, WhatsApp, chat) with their summary, intent and status.", parameters: { type: "object", additionalProperties: false, required: ["limit"], properties: { limit: { type: "integer", minimum: 1, maximum: 10 }, channel: { type: ["string", "null"], enum: ["phone", "whatsapp", "web_chat", null] } } } } },
+    { type: "function", function: { name: "get_setup_progress", description: "Which setup steps are done (AI employee created/active, knowledge, WhatsApp, phone, business profile, voices) and what to do next.", parameters: { type: "object", additionalProperties: false, properties: {} } } },
     { type: "function", function: { name: "list_appointments", description: "Appointments/reservations for a day (Kuwait time).", parameters: { type: "object", additionalProperties: false, required: ["day"], properties: { day: { type: "string", enum: ["today", "tomorrow"] } } } } },
   ];
   if (MANAGE_AI.includes(ctx.role) && !ctx.branchIds) {
@@ -50,6 +53,42 @@ async function runTool(ctx: AssistantCtx, name: string, args: Record<string, unk
     const { commandSnapshot } = await import("@/lib/so/command");
     const s = await commandSnapshot(db, ctx.orgId, { branchIds: ctx.branchIds, canSeeCustomer: false });
     return { ok: true, measured: true, counters: { ...s.counters, timeSaved: undefined }, employees: s.agents.map((a) => ({ name: a.name, status: a.status, activeCalls: a.activeCalls, activeConversations: a.activeConversations })), waitingForApproval: s.approvals.length };
+  }
+  if (name === "get_attention_items") {
+    let esc = db.from("conversations").select("id, channel, current_task, escalated_at, customers(full_name)").eq("organization_id", ctx.orgId).eq("status", "transferred").order("escalated_at", { ascending: false }).limit(10);
+    if (ctx.branchIds) esc = esc.in("branch_id", ctx.branchIds);
+    const [e, a, n] = await Promise.all([
+      esc,
+      MANAGE_AI.includes(ctx.role) ? db.from("agent_executions").select("tool_key, started_at").eq("organization_id", ctx.orgId).eq("status", "pending_confirmation").order("started_at", { ascending: false }).limit(10) : Promise.resolve({ data: [] }),
+      db.from("notifications").select("kind, title, created_at").eq("organization_id", ctx.orgId).is("read_at", null).order("created_at", { ascending: false }).limit(10),
+    ]);
+    return {
+      ok: true, measured: true,
+      escalated_waiting: (e.data ?? []).map((c: Record<string, unknown>) => ({ channel: c.channel, reason: c.current_task, since: c.escalated_at, customer: (((c.customers as { full_name?: string } | null)?.full_name ?? "").split(" ")[0]) || null })),
+      approvals_waiting: (a.data ?? []).map((x: Record<string, unknown>) => ({ action: x.tool_key, since: x.started_at })),
+      unread_alerts: (n.data ?? []).map((x: Record<string, unknown>) => ({ kind: x.kind, title: x.title, at: x.created_at })),
+      where: { escalations: "/dashboard/live", approvals: "/dashboard/command" },
+    };
+  }
+  if (name === "list_recent_conversations") {
+    const limit = Math.min(10, Math.max(1, Number(args.limit) || 5));
+    let q = db.from("conversations").select("channel, status, intent, summary, sentiment, started_at, customers(full_name)").eq("organization_id", ctx.orgId).order("started_at", { ascending: false }).limit(limit);
+    if (typeof args.channel === "string") q = q.eq("channel", args.channel);
+    if (ctx.branchIds) q = q.in("branch_id", ctx.branchIds);
+    const { data } = await q;
+    return {
+      ok: true, measured: true,
+      items: (data ?? []).map((c: Record<string, unknown>) => ({
+        channel: c.channel, status: c.status, intent: c.intent, sentiment: c.sentiment, at: c.started_at,
+        summary: typeof c.summary === "string" ? c.summary.slice(0, 300) : null,
+        customer: (((c.customers as { full_name?: string } | null)?.full_name ?? "").split(" ")[0]) || null,
+      })),
+    };
+  }
+  if (name === "get_setup_progress") {
+    const { setupStatus } = await import("@/lib/setup/status");
+    const st = await setupStatus(db, ctx.orgId);
+    return { ok: true, measured: true, ...st, screens: { employee: "/dashboard/employees/new", knowledge: "/dashboard/knowledge", whatsapp: "/dashboard/integrations/whatsapp", phone: "/dashboard/integrations", business: "/dashboard/settings", voices: "/dashboard/settings" } };
   }
   if (name === "list_appointments") {
     const kw = new Date(Date.now() + 3 * 3600_000); // Asia/Kuwait (UTC+3, no DST)
@@ -86,6 +125,7 @@ function systemPrompt(ctx: AssistantCtx) {
     "You help the business owner and staff use SAUT AI: explain screens and features, answer questions about THEIR business using the tools, and open screens with open_page.",
     "Facts and numbers must come only from tool results (they are measured). Never invent numbers, customers or events. If a tool says DEMO MODE or not available, say so plainly.",
     "You cannot change data, send messages, make calls or take payments. If asked, open the right screen and tell the user what to tap.",
+    "When asked what needs attention, or at the start of a day, use get_attention_items and mention escalations first. When the user seems new or asks how to start, use get_setup_progress and suggest the single next step (and open its screen if they agree).",
     "SAUT AI screens: Overview, Command Center (live status), Live Operations, AI employees (create/edit, voice, dialect, tools, permissions), Templates, Automation Studio, Knowledge base, Customers, Appointments, Sales pipeline, Calls, Conversations, Business Intelligence, Analytics, Branches, Integrations (phone, WhatsApp, calendar), Billing (plans: Starter 19, Business 49, Pro 99 KWD/month), Settings (profile, business, team & roles), Support.",
     'Return JSON {"reply": string, "emotion": "neutral"|"happy"|"thinking"|"concerned"|"celebrating"} — emotion matches what you say (good news → happy/celebrating, problems → concerned).',
   ].join("\n");

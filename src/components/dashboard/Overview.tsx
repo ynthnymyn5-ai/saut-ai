@@ -4,6 +4,7 @@ import { Bot, CalendarCheck, Clock, MessagesSquare, Phone, PhoneIncoming, PhoneM
 import Link from "next/link";
 import { SoMascot } from "@/components/brand/SoMascot";
 import { DailyChart, MonthlyChart } from "@/components/dashboard/Charts";
+import { SetupChecklist } from "@/components/dashboard/SetupChecklist";
 import { Badge, ButtonLink, Card, EmptyState, PageHeader, statusTone } from "@/components/ui/primitives";
 import type { DemoEmployee } from "@/lib/demo-data";
 import { useI18n } from "@/lib/i18n/client";
@@ -38,6 +39,7 @@ export function Overview(p: {
         demo={p.demo}
         actions={<ButtonLink href="/dashboard/employees/new" size="lg"><Plus className="h-4 w-4" />{t.dash.create}</ButtonLink>}
       />
+      {!p.demo && <SetupChecklist />}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map(([label, value, I, color], i) => (
           <motion.div key={label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>

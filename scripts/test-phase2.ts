@@ -221,3 +221,21 @@ test("voices: ElevenLabs list is shaped safely; Arabic voices recognised", () =>
   assert.equal(out[1].preview, null, "non-https preview URLs are dropped");
   assert.deepEqual(shapeVoices(null), []);
 });
+
+import { businessExample, fillEmpty } from "../src/lib/business-examples";
+test("wizard examples: every placeholder is bracketed and only empty fields are filled", () => {
+  for (const loc of ["ar", "en"] as const) for (const ind of ["restaurant", "clinic", "beauty_salon", "hotel", "other"]) {
+    const ex = businessExample(ind, loc);
+    assert.ok(ex.description && ex.hours && ex.faqs, `${loc}/${ind}`);
+    assert.match(ex.description, /\[[^\]]+\]/, "description has placeholders to replace");
+  }
+  const cur = { businessName: "لوكيشن كافي", description: "", address: "السالمية", hours: "  ", faqs: "س: عندي سؤال" };
+  const out = fillEmpty(cur, businessExample("restaurant", "ar"));
+  assert.equal(out.businessName, "لوكيشن كافي"); assert.equal(out.address, "السالمية"); assert.equal(out.faqs, "س: عندي سؤال", "owner text is never overwritten");
+  assert.match(out.description, /مقهى/); assert.match(out.hours, /يومياً/);
+});
+test("assistant: “اربط واتساب” opens the WhatsApp guide", () => {
+  assert.equal(detectNavigation("اربط واتساب"), "whatsapp_setup");
+  assert.equal(detectNavigation("connect whatsapp"), "whatsapp_setup");
+  assert.equal(detectNavigation("افتح التكاملات"), "integrations");
+});

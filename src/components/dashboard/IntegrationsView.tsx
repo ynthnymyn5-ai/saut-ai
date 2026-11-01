@@ -1,6 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalendarDays, Code2, Database, Globe, KeyRound, Mail, MessageCircle, Phone, Webhook, X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Badge, Button, PageHeader } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/Toast";
@@ -52,7 +53,9 @@ export function IntegrationsView({ rows, demo }: { rows: IntegrationRow[]; demo:
               </div>
               <h3 className="mt-4 font-semibold">{name}</h3>
               <p className="mt-1 flex-1 text-sm text-muted">{desc}</p>
-              <Button variant="outline" size="sm" className="mt-4" onClick={() => setOpen(r)}>{r.status === "connected" ? t.common.configure : t.common.connect}</Button>
+              {r.key === "whatsapp"
+                ? <Link href="/dashboard/integrations/whatsapp" className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-white hover:border-violet/50">{r.status === "connected" ? t.common.configure : (locale === "ar" ? "ابدأ الربط خطوة بخطوة" : "Step-by-step setup")}</Link>
+                : <Button variant="outline" size="sm" className="mt-4" onClick={() => setOpen(r)}>{r.status === "connected" ? t.common.configure : t.common.connect}</Button>}
             </div>
           );
         })}

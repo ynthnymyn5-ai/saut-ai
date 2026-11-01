@@ -4,7 +4,8 @@ import {
   BedDouble, Building2, Check, ChevronLeft, ChevronRight, Headphones, Rocket, Scissors, ShoppingBag, Sparkles, Stethoscope, UtensilsCrossed,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { businessExample, fillEmpty } from "@/lib/business-examples";
 import { SoMascot, type VoiceState } from "@/components/brand/SoMascot";
 import { Badge, Button, ConfirmDialog } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/Toast";
@@ -46,6 +47,21 @@ export function EmployeeWizard({ demo }: { demo: boolean }) {
     activate: false,
   });
   const set = <K extends keyof EmployeeInput>(k: K, v: EmployeeInput[K]) => setE((x) => ({ ...x, [k]: v }));
+
+  // Start from what the business already told us (name, industry, address) instead of a blank form.
+  useEffect(() => {
+    if (demo) return;
+    fetch("/api/organization").then((r) => (r.ok ? r.json() : null)).then((d) => {
+      const o = d?.organization as { name?: string; industry?: string; address?: string | null } | undefined;
+      if (!o) return;
+      setE((x) => ({
+        ...x,
+        industry: (x.businessInfo.businessName ? x.industry : (o.industry as EmployeeInput["industry"]) ?? x.industry),
+        tasks: x.businessInfo.businessName ? x.tasks : DEFAULT_TASKS[o.industry ?? ""] ?? x.tasks,
+        businessInfo: { ...x.businessInfo, businessName: x.businessInfo.businessName || (o.name ?? ""), address: x.businessInfo.address || (o.address ?? "") },
+      }));
+    }).catch(() => {});
+  }, [demo]);
 
   const steps = locale === "ar"
     ? ["القطاع", "الاسم", "الصوت واللهجة", "الشخصية", "معلومات النشاط", "المهام", "الاختبار", "التفعيل"]
@@ -166,6 +182,13 @@ export function EmployeeWizard({ demo }: { demo: boolean }) {
                         : <input id={k} dir="auto" maxLength={300} value={e.businessInfo[k]} onChange={(ev) => set("businessInfo", { ...e.businessInfo, [k]: ev.target.value } as EmployeeInput["businessInfo"])} className="input" />}
                     </div>
                   ))}
+                  <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-violet/40 bg-violet/[0.05] p-3 md:col-span-2">
+                    <p className="min-w-[200px] flex-1 text-xs text-muted">{locale === "ar" ? "ما تعرف شنو تكتب؟ نعبّي لك مثالاً جاهزاً لقطاعك، وعدّل كل ما بين [الأقواس] بمعلوماتك الحقيقية." : "Not sure what to write? Fill a ready example for your industry, then replace everything in [brackets] with your real details."}</p>
+                    <Button type="button" variant="outline" size="sm" onClick={() => set("businessInfo", fillEmpty(e.businessInfo, businessExample(e.industry, locale)))}><Sparkles className="h-4 w-4" />{locale === "ar" ? "املأ مثالاً" : "Fill example"}</Button>
+                  </div>
+                  {[e.businessInfo.description, e.businessInfo.hours, e.businessInfo.faqs].some((v) => /\[[^\]]+\]/.test(v)) && (
+                    <p className="rounded-xl border border-amber-300/25 bg-amber-300/10 p-3 text-xs text-amber-100 md:col-span-2">{locale === "ar" ? "⚠️ ما زالت هناك [أقواس] لم تُستبدل. الموظف سيقرأها للعملاء كما هي، فاستبدلها بمعلوماتك قبل التفعيل." : "⚠️ Some [brackets] are still there. The employee would read them to customers as-is — replace them before activating."}</p>
+                  )}
                   <p className="text-xs text-muted md:col-span-2">{locale === "ar" ? "يمكنك رفع ملفات إضافية لاحقاً من قاعدة المعرفة." : "You can upload menus, price lists and documents later in Knowledge Base."}</p>
                 </div>
               )}
@@ -198,6 +221,9 @@ export function EmployeeWizard({ demo }: { demo: boolean }) {
                   <SoMascot size={160} hue={hue} state="completed" />
                   <h3 className="mt-6 font-display text-2xl font-semibold">{locale === "ar" ? `${e.name} جاهز للعمل` : `${e.name} is ready to work`}</h3>
                   <p className="mt-2 max-w-md text-sm text-muted">{locale === "ar" ? "عند التفعيل سيبدأ بالرد على القنوات المربوطة فقط. اربط رقم هاتف أو واتساب من صفحة التكاملات." : "Once activated it answers only on connected channels. Connect a phone number or WhatsApp in Integrations."}</p>
+                  {[e.businessInfo.description, e.businessInfo.hours, e.businessInfo.faqs].some((v) => /\[[^\]]+\]/.test(v)) && (
+                    <button type="button" onClick={() => setStep(4)} className="mt-4 max-w-md rounded-xl border border-amber-300/25 bg-amber-300/10 p-3 text-xs text-amber-100">{locale === "ar" ? "⚠️ معلومات النشاط فيها [أقواس] من المثال. اضغط هنا لاستبدالها قبل التفعيل." : "⚠️ Business info still has example [brackets]. Tap to replace them before activating."}</button>
+                  )}
                   <div className="mt-8 flex flex-wrap justify-center gap-3">
                     <Button variant="outline" disabled={saving} onClick={() => save(false)}>{locale === "ar" ? "حفظ كمسودة" : "Save as draft"}</Button>
                     <Button size="lg" disabled={saving} onClick={() => setConfirm(true)}><Rocket className="h-4 w-4" />{locale === "ar" ? "تفعيل الموظف" : "Activate employee"}</Button>

@@ -38,7 +38,7 @@ export const ASSISTANT_PAGES = {
   knowledge: "/dashboard/knowledge", customers: "/dashboard/customers", appointments: "/dashboard/appointments",
   pipeline: "/dashboard/pipeline", calls: "/dashboard/calls", conversations: "/dashboard/conversations",
   intelligence: "/dashboard/intelligence", analytics: "/dashboard/analytics", branches: "/dashboard/branches",
-  integrations: "/dashboard/integrations", billing: "/dashboard/billing", settings: "/dashboard/settings", support: "/dashboard/support",
+  integrations: "/dashboard/integrations", whatsapp_setup: "/dashboard/integrations/whatsapp", billing: "/dashboard/billing", settings: "/dashboard/settings", support: "/dashboard/support",
 } as const;
 export type AssistantPage = keyof typeof ASSISTANT_PAGES;
 
@@ -58,6 +58,7 @@ const PAGE_WORDS: [AssistantPage, RegExp][] = [
   ["intelligence", /ذكاء الأعمال|تقارير|intelligence|reports?\b/i],
   ["analytics", /تحليلات|إحصائيات|analytics|stats/i],
   ["branches", /فروع|الفرع|branch/i],
+  ["whatsapp_setup", /(ربط|اربط).{0,6}(واتساب|الواتساب)|connect whatsapp|whatsapp setup/i],
   ["integrations", /تكاملات|ربط|واتساب|integration|whatsapp/i],
   ["billing", /فوتر|اشتراك|الدفع|فاتورة|billing|subscription|plan\b|invoice/i],
   ["settings", /إعدادات|الاعدادات|settings|profile|الفريق|team/i],
@@ -65,7 +66,7 @@ const PAGE_WORDS: [AssistantPage, RegExp][] = [
   ["overview", /الرئيسية|نظرة عامة|لوحة التحكم|home|overview|dashboard/i],
 ];
 // JS \b only understands ASCII word characters, so the verb must be followed by a space or the end.
-const NAV_VERB = /^(\s*(من فضلك|لو سمحت|please|يا\s*\S+)\s*)?(افتح|إفتح|روح|رح|ودني|وديني|خذني|اعرض|اظهر|أظهر|انتقل|أنشئ|انشئ|go to|open|show( me)?|take me to|navigate to|create|add)(?=\s|$)/i;
+const NAV_VERB = /^(\s*(من فضلك|لو سمحت|please|يا\s*\S+)\s*)?(افتح|إفتح|روح|رح|ودني|وديني|خذني|اعرض|اظهر|أظهر|انتقل|أنشئ|انشئ|اربط|go to|open|show( me)?|take me to|navigate to|create|add|connect)(?=\s|$)/i;
 
 /** "افتح المواعيد" / "open billing" → the page to open, or null when it's a real question. */
 export function detectNavigation(text: string): AssistantPage | null {
