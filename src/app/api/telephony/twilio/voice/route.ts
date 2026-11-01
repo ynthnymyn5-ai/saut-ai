@@ -1,7 +1,8 @@
+import { aiAllowance } from "@/lib/so/usage";
 import { audit } from "@/lib/audit";
 import { reportError } from "@/lib/monitoring";
 import { supabaseService } from "@/lib/supabase/server";
-import { maskPhone, setLiveStatus } from "@/lib/so/context";
+import { maskPhone, notify, setLiveStatus } from "@/lib/so/context";
 import { emitEvent } from "@/lib/so/events";
 import { signStreamToken } from "@/lib/so/stream-token";
 import { incomingCallTwiml, transferTwiml, unavailableTwiml, verifyTwilioRequest } from "@/lib/telephony/twilio";
@@ -37,6 +38,13 @@ export async function POST(req: Request) {
 
     const { data: sub } = await db.from("subscriptions").select("id").eq("organization_id", emp.organization_id).in("status", ["trialing", "active", "past_due"]).maybeSingle();
     if (!sub) return xml(unavailableTwiml(lang));
+    const allowance = await aiAllowance(db, emp.organization_id, "phone");
+    if (!allowance.ok) {
+      // Plan allowance used up: don't let the AI answer; hand the caller to a person when a number is set.
+      await notify(db, { orgId: emp.organization_id, kind: "usage", title: "AI calls paused: monthly plan allowance used up", body: "Upgrade or add minutes in Billing to resume.", link: "/dashboard/billing" });
+      const fb = (emp.call_settings as { transfer_number?: string | null })?.transfer_number || process.env.TWILIO_HUMAN_FALLBACK_NUMBER;
+      return xml(fb ? transferTwiml(fb, lang === "ar-XA" ? "لحظة من فضلك، جاري تحويلك." : "One moment, connecting you.", lang) : unavailableTwiml(lang));
+    }
 
     const { data: conv } = await db.from("conversations").insert({
       organization_id: emp.organization_id, employee_id: emp.id, branch_id: emp.branch_id, channel: "phone",

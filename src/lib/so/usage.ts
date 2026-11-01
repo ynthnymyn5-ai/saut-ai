@@ -40,3 +40,11 @@ export async function checkUsageAlerts(db: DB, orgId: string) {
   }
   return u;
 }
+
+import { allowanceDecision } from "@/lib/allowance";
+export { allowanceDecision };
+
+/** Live-channel quota check: no live subscription, or usage beyond plan + grace → the AI pauses and staff are told. */
+export async function aiAllowance(db: DB, orgId: string, channel: "whatsapp" | "phone" | "web_chat") {
+  return allowanceDecision(await usageVsLimits(db, orgId), channel);
+}

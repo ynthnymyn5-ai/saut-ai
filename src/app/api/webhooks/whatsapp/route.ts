@@ -1,3 +1,4 @@
+import { aiAllowance } from "@/lib/so/usage";
 import crypto from "node:crypto";
 import { providerStatus } from "@/lib/env";
 import { inboundText, splitWhatsAppText, type WaInbound } from "@/lib/messaging/wa-core";
@@ -107,10 +108,12 @@ async function handleValue(db: DB, v: WaValue) {
     }
     await emitEvent(orgId, "whatsapp_message", { conversation_id: conv.id, customer_id: cust.id, phone, channel: "whatsapp", text, customer_is_new: !existing }, { branchId: conv.branch_id as string | null });
 
-    // Human has taken over, or AI unavailable → record only and alert staff.
-    if (conv.handled_by === "human" || !providerStatus("openai").configured) {
+    // Human has taken over, AI unavailable, or the plan's allowance is used up → record only and alert staff.
+    const allowance = conv.handled_by === "human" ? { ok: true as const } : await aiAllowance(db, orgId, "whatsapp");
+    if (conv.handled_by === "human" || !providerStatus("openai").configured || !allowance.ok) {
       await db.from("messages").insert({ conversation_id: conv.id, organization_id: orgId, role: "customer", content: note.slice(0, 10000), provider_message_id: m.id });
-      if (conv.handled_by !== "human") await notify(db, { orgId, kind: "task", title: "New WhatsApp message needs a reply", body: note.slice(0, 200), link: "/dashboard/live" });
+      const why = !allowance.ok ? (allowance.reason === "no_subscription" ? " (AI paused: no active subscription)" : " (AI paused: monthly plan allowance used up)") : "";
+      if (conv.handled_by !== "human") await notify(db, { orgId, kind: "task", title: `New WhatsApp message needs a reply${why}`, body: note.slice(0, 200), link: "/dashboard/conversations" });
       continue;
     }
 

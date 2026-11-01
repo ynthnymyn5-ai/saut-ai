@@ -308,3 +308,15 @@ test("auth: existing account detection and in-app detection", () => {
   assert.ok(isInApp("Mozilla/5.0 (Linux; Android 14; wv) Chrome/130 Mobile Safari/537.36 SautAIApp/1.1"));
   assert.ok(!isInApp("Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile Safari/537.36"));
 });
+
+// ── Plan allowance on live channels ──────────────────────────────────────
+import { allowanceDecision } from "../src/lib/allowance";
+test("allowance: AI pauses without a subscription or past plan + 10 % grace", () => {
+  const u = (plan: string | null, conv: number, voice = 0) => ({ plan, conversations: { used: conv, limit: 1000 }, voiceMinutes: { used: voice, limit: 300 } });
+  assert.deepEqual(allowanceDecision(u(null, 0), "whatsapp"), { ok: false, reason: "no_subscription" });
+  assert.deepEqual(allowanceDecision(u("starter", 1000), "whatsapp"), { ok: true }, "at 100 % still answering (grace)");
+  assert.deepEqual(allowanceDecision(u("starter", 1100), "whatsapp"), { ok: false, reason: "conversations_limit" });
+  assert.deepEqual(allowanceDecision(u("starter", 10, 330), "phone"), { ok: false, reason: "voice_limit" });
+  assert.deepEqual(allowanceDecision(u("starter", 10, 330), "whatsapp"), { ok: true }, "voice minutes don't block WhatsApp");
+  assert.deepEqual(allowanceDecision({ plan: "custom", conversations: { used: 99999, limit: 0 }, voiceMinutes: { used: 0, limit: 0 } }, "phone"), { ok: true }, "0 = not capped");
+});
