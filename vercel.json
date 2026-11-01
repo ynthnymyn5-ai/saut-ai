@@ -5,7 +5,8 @@
   "buildCommand": "npm run build",
   "git": {
     "deploymentEnabled": {
-      "ci-logs": false
+      "ci-logs": false,
+      "android-build": false
     }
   }
 }

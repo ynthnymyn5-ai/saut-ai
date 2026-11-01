@@ -1,0 +1,16 @@
+{
+  "appId": "com.sautai.app",
+  "appName": "SAUT AI",
+  "webDir": "www",
+  "backgroundColor": "#080812",
+  "server": {
+    "url": "https://saut-ai-lons.vercel.app/dashboard",
+    "cleartext": false,
+    "allowNavigation": ["saut-ai-lons.vercel.app", "*.supabase.co", "checkout.stripe.com", "*.myfatoorah.com", "accounts.google.com"]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}

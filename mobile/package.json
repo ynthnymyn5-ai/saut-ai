@@ -1,0 +1,20 @@
+{
+  "name": "saut-ai-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SAUT AI Android/iOS shell (Capacitor) around the live web app.",
+  "scripts": {
+    "android:add": "cap add android",
+    "android:sync": "cap sync android",
+    "assets": "capacitor-assets generate --android --iconBackgroundColor '#080812' --splashBackgroundColor '#080812'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}
