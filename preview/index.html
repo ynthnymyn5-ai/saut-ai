@@ -1,0 +1,921 @@
+<title>SAUT AI Preview</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap">
+<style>
+/* Layout: dark glass product shell — sticky bar, three hash-routed views (home / dashboard / create). Single dark look by brand. */
+:root{
+  --ink:#080812; --ink2:#111121; --ink3:#181830; --violet:#8B5CF6; --violet-soft:#A78BFA; --blue:#38BDF8;
+  --fg:#FFFFFF; --muted:#A1A1B5; --line:rgba(255,255,255,.09); --glass:rgba(255,255,255,.035);
+  --green:#6EE7B7; --amber:#FCD34D; --rose:#FDA4AF;
+  --display:"Sora","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --body:"Manrope","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --grad:linear-gradient(135deg,var(--violet),var(--blue));
+  color-scheme:dark;
+}
+html[lang="ar"]{--display:"IBM Plex Sans Arabic","Sora",system-ui,sans-serif;--body:"IBM Plex Sans Arabic","Manrope",system-ui,sans-serif}
+*{box-sizing:border-box}
+body{background:var(--ink);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--ink)}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.02em;text-wrap:balance;margin:0}
+html[lang="ar"] h1,html[lang="ar"] h2,html[lang="ar"] h3{letter-spacing:0}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--violet-soft);outline-offset:2px}
+.grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.glass{background:var(--glass);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(18px)}
+.muted{color:var(--muted)}
+.tag{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--line);padding:2px 10px;font-size:11px;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+.tag.violet{background:rgba(139,92,246,.14);border-color:rgba(139,92,246,.35);color:var(--violet-soft)}
+.tag.blue{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.3);color:var(--blue)}
+.tag.green{background:rgba(110,231,183,.1);border-color:rgba(110,231,183,.3);color:var(--green)}
+.tag.amber{background:rgba(252,211,77,.1);border-color:rgba(252,211,77,.35);color:var(--amber)}
+.tag.rose{background:rgba(253,164,175,.1);border-color:rgba(253,164,175,.3);color:var(--rose)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:13px;border:1px solid transparent;padding:11px 18px;font-weight:700;font-size:14px;transition:transform .15s,box-shadow .2s,background .2s;text-decoration:none}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.primary{background:var(--violet);color:#fff;box-shadow:0 0 0 1px rgba(139,92,246,.5),0 10px 40px -10px rgba(139,92,246,.8)}
+.btn.primary:hover{background:var(--violet-soft)}
+.btn.ghost{border-color:var(--line);background:rgba(255,255,255,.03)}
+.btn.ghost:hover{border-color:rgba(139,92,246,.5)}
+.btn.lg{padding:14px 24px;font-size:15px}
+
+/* top bar */
+header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:rgba(8,8,18,.78);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+header.bar .wrap{display:flex;align-items:center;justify-content:space-between;height:62px;gap:10px}
+.logo{display:inline-flex;align-items:center;gap:10px;direction:ltr;text-decoration:none;color:var(--fg)}
+.logo b{font-family:"Sora",sans-serif;font-weight:600;letter-spacing:.18em;font-size:16px}
+.tabs{display:flex;gap:2px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:13px;padding:3px}
+.tabs a{padding:6px 12px;border-radius:10px;font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;white-space:nowrap}
+.tabs a[aria-current="page"]{background:var(--violet);color:#fff}
+.lang{border:1px solid var(--line);background:none;border-radius:11px;padding:7px 11px;font-size:12px;font-weight:700}
+.tabs{overflow-x:auto;scrollbar-width:none;min-width:0}
+.tabs::-webkit-scrollbar{display:none}
+@media (max-width:900px){header.bar .wrap{flex-wrap:wrap;height:auto;padding-block:10px;row-gap:8px}.tabs{order:3;flex:1 1 100%}}
+@media (max-width:640px){.tabs a{padding:6px 10px;font-size:12px}}
+/* Assistant SO (preview) */
+.as-btn{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom));inset-inline-end:16px;z-index:60;width:58px;height:58px;border-radius:50%;border:0;background:var(--grad);box-shadow:0 0 0 1px rgba(139,92,246,.45),0 8px 40px -6px rgba(139,92,246,.7);display:grid;place-items:center;cursor:pointer}
+.as-btn::before{content:"";position:absolute;inset:0;border-radius:50%;background:rgba(139,92,246,.3);animation:asPing 3s infinite}
+@keyframes asPing{0%{transform:scale(1);opacity:.8}70%,100%{transform:scale(1.5);opacity:0}}
+.as-panel{padding:0;position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));inset-inline-end:12px;z-index:61;width:min(380px,calc(100vw - 24px));max-height:min(640px,calc(100dvh - 28px));display:flex;flex-direction:column;border:1px solid var(--line);border-radius:26px;background:rgba(17,17,33,.96);backdrop-filter:blur(18px);box-shadow:0 30px 80px -20px rgba(139,92,246,.55);overflow:hidden}
+.as-panel[hidden],.as-btn[hidden]{display:none}
+.as-h{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.as-h div{flex:1;min-width:0}.as-h b{font-size:14px;display:block}.as-h small{font-size:11px;color:var(--muted)}
+.as-ic{background:none;border:0;color:#cfcfe0;padding:8px;border-radius:10px;cursor:pointer;font-size:15px}
+.as-stage{display:grid;place-items:center;padding:14px 0;background:radial-gradient(120% 90% at 50% 0%,rgba(139,92,246,.2),transparent 70%)}
+.as-face{width:170px;height:170px;position:relative}
+.as-face svg{width:100%;height:100%;animation:asBob 5s ease-in-out infinite;filter:drop-shadow(0 24px 50px rgba(139,92,246,.45))}
+@keyframes asBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-4px) rotate(-1deg)}}
+.as-face .glow{position:absolute;inset:-14%;border-radius:50%;filter:blur(30px);opacity:.6;transition:background .6s}
+.as-face.listen::after{content:"";position:absolute;inset:-6%;border-radius:50%;border:2px solid rgba(56,189,248,.6);animation:asPing 1.2s infinite}
+.as-list{flex:1;min-height:90px;overflow-y:auto;padding:0 14px 8px;display:flex;flex-direction:column;gap:8px}
+.as-m{max-width:88%;padding:8px 12px;border-radius:16px;font-size:14px;line-height:1.6;background:rgba(255,255,255,.05);align-self:flex-start}
+.as-m.u{background:rgba(139,92,246,.25);align-self:flex-end}
+.as-note{font-size:12px;color:#fde68a;background:rgba(252,211,77,.1);border:1px solid rgba(252,211,77,.25);border-radius:12px;padding:7px 10px}
+.as-chips{display:flex;gap:6px;overflow-x:auto;padding:0 14px 8px;scrollbar-width:none}
+.as-chips button{flex:none;border:1px solid var(--line);background:none;color:#ddd;border-radius:99px;padding:6px 12px;font:inherit;font-size:12px;cursor:pointer}
+.as-f{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+.as-f input{flex:1;min-width:0;height:44px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#fff;font:inherit;font-size:14px;padding:0 12px}
+.as-mic{width:44px;height:44px;border-radius:50%;border:0;background:var(--grad);color:#fff;font-size:18px;cursor:pointer;flex:none}
+.as-mic.rec{background:#f43f5e}
+.as-send{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:none;color:#ddd;font-size:16px;cursor:pointer;flex:none}
+body.as-tabbar .as-btn{bottom:calc(18px + env(safe-area-inset-bottom))}
+/* Phase 2: live channels */
+.live2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.live2{grid-template-columns:minmax(0,1fr)}}
+.wa{background:#0b141a;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;min-height:360px}
+.wa-h{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.06)}
+.wa-h i{width:34px;height:34px;border-radius:50%;background:var(--grad);display:grid;place-items:center;font-style:normal;font-weight:700;font-size:13px}
+.wa-h p{font-size:11px;color:#8696a0}
+.bub{max-width:85%;padding:8px 10px 6px;border-radius:10px;font-size:14px;line-height:1.55;position:relative;opacity:0;transform:translateY(6px);transition:.35s}
+.bub.on{opacity:1;transform:none}
+.bub.in{background:#202c33;align-self:flex-start}
+.bub.out{background:#005c4b;align-self:flex-end}
+.bub small{display:flex;gap:4px;justify-content:flex-end;font-size:10.5px;color:#8696a0;margin-top:2px}
+.bub small b{color:#53bdeb;font-weight:600}
+.vn{display:flex;align-items:center;gap:8px;font-size:12px;color:#8696a0}
+.vn span{flex:1;height:18px;background:repeating-linear-gradient(90deg,#8696a0 0 2px,transparent 2px 5px);opacity:.6;border-radius:2px;min-width:90px}
+.tr{font-size:12.5px;color:#d1d7db;border-inline-start:2px solid #53bdeb;padding-inline-start:8px;margin-top:6px}
+.typing{align-self:flex-start;font-size:12px;color:#8696a0;padding:4px 10px;display:none}.typing.on{display:block}
+.call{display:flex;flex-direction:column;gap:10px}
+.call-top{display:flex;align-items:center;gap:12px}
+.pulse{width:44px;height:44px;border-radius:50%;background:var(--grad);display:grid;place-items:center;position:relative;flex:none}
+.pulse::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(139,92,246,.5);animation:pl 1.6s infinite}
+@keyframes pl{from{transform:scale(.9);opacity:1}to{transform:scale(1.25);opacity:0}}
+.st{font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(56,189,248,.14);color:#7dd3fc}
+.steps3{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.steps3 li{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;opacity:.35;transition:.35s}
+.steps3 li.on{opacity:1;border-color:rgba(139,92,246,.45);background:rgba(139,92,246,.07)}
+.steps3 li em{font-style:normal;font-size:11px;color:var(--muted);display:block;margin-top:2px}
+.steps3 li b.n{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:rgba(255,255,255,.07)}
+.steps3 li.on b.n{background:var(--grad)}
+/* Phase 1 views */
+.appt{display:flex;align-items:center;gap:12px;padding:12px 14px;flex-wrap:wrap}
+.appt time{font-family:"Sora",sans-serif;font-weight:600;font-size:17px;width:62px;font-variant-numeric:tabular-nums}
+.appt div{flex:1;min-width:150px}.appt p{font-size:12px;color:var(--muted)}
+.appt select,.mem select,.ob select,.ob input{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;color:var(--fg);font:inherit;font-size:13px;padding:8px 10px}
+.day{font-size:13px;color:var(--muted);font-weight:600;margin:16px 0 8px}
+.mem{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px;border:1px solid var(--line);border-radius:14px}
+.mem div{flex:1;min-width:150px}.mem p{font-size:12px;color:var(--muted)}
+.roles{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px;color:var(--muted);margin-top:14px}
+@media (max-width:560px){.roles{grid-template-columns:1fr}}
+.ob{max-width:560px;margin:0 auto}
+.ob .steps2{display:flex;gap:8px;margin-bottom:22px}
+.ob .steps2 span{flex:1;height:5px;border-radius:5px;background:rgba(255,255,255,.08)}
+.ob .steps2 span.on{background:var(--grad)}
+.ob label{display:grid;gap:6px;font-size:12px;color:var(--muted);font-weight:600}
+.ob input,.ob select{width:100%;font-size:15px;padding:11px 12px}
+.ob .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.ob .grid2{grid-template-columns:1fr}}
+/* OS views */
+.cc-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:760px){.cc-tiles{grid-template-columns:1fr 1fr}}
+.cc-tile{padding:14px}.cc-tile p{font-size:12px;color:var(--muted)}.cc-tile b{display:block;font-family:"Sora",sans-serif;font-size:24px;font-weight:600;margin-top:6px;font-variant-numeric:tabular-nums}
+.agents{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:560px){.agents{grid-template-columns:1fr}}
+.agent{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02)}
+.agent .so{width:42px;height:42px;overflow:hidden;border-radius:50%}.agent .so svg{overflow:hidden}.agent div{flex:1;min-width:0}.agent p{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sdot{width:9px;height:9px;border-radius:50%;flex:none}
+.appr{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px;border:1px solid rgba(252,211,77,.25);background:rgba(252,211,77,.04);border-radius:14px}
+.appr div{flex:1;min-width:180px}.appr p{font-size:12px;color:var(--muted)}
+.btn.sm{padding:7px 12px;font-size:12px}
+.feed{list-style:none;margin:0;padding:0}
+.feed li{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:13px}.feed li:first-child{border-top:0}
+.feed i{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+.feed time{margin-inline-start:auto;font-size:11px;color:var(--muted);white-space:nowrap}
+.board{overflow-x:auto;padding-bottom:8px}
+.cols{display:grid;grid-template-columns:repeat(6,220px);gap:10px;min-width:max-content}
+.col{border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.015);padding:10px;min-height:300px}
+.col h3{font-size:13px;font-family:var(--body);display:flex;justify-content:space-between;margin-bottom:8px}
+.lead{width:100%;text-align:start;border:1px solid var(--line);background:var(--glass);border-radius:14px;padding:10px;margin-bottom:8px;display:block}
+.lead b{font-size:13px}.lead p{font-size:12px;color:var(--muted);margin-top:4px}
+.score{float:inline-end;font-size:11px;font-weight:800;border-radius:6px;padding:0 6px;font-variant-numeric:tabular-nums}
+.lead select{margin-top:8px;width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;color:var(--fg);font:inherit;font-size:12px;padding:6px}
+.flow{display:grid;gap:10px}
+.node{border:1px solid var(--line);border-radius:14px;padding:12px;background:rgba(255,255,255,.03);display:flex;gap:10px;align-items:center;font-size:14px}
+.node.cond{border-color:rgba(252,211,77,.35);background:rgba(252,211,77,.04);display:block}
+.node .k{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:800;flex:none;background:rgba(139,92,246,.18);color:var(--violet-soft)}
+.trig{border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.08);color:var(--blue)}
+.branches{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+@media (max-width:640px){.branches{grid-template-columns:1fr}}
+.lane{border:1px dashed var(--line);border-radius:12px;padding:10px;display:grid;gap:8px}
+.toggle-sw{display:inline-flex;align-items:center;gap:8px;font-size:13px}
+.log{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:6px;font-size:12px}
+.log li{display:flex;gap:8px;align-items:flex-start}
+.note{font-size:12px;color:var(--muted)}
+
+/* mascot */
+.so{position:relative;display:inline-block;flex:none}
+.so svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 24px 50px rgba(139,92,246,.45))}
+.so .float{animation:float 6s ease-in-out infinite;transform-origin:center}
+.so .ring{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(167,139,250,.5);opacity:0}
+.so.live .ring{animation:ring 2.2s ease-out infinite}
+.so.live .ring:nth-child(2){animation-delay:.7s;border-color:rgba(56,189,248,.45)}
+.so.live .ring:nth-child(3){animation-delay:1.4s}
+.so .eyes{animation:blink 4.5s infinite;transform-origin:100px 102px}
+.so .mbar{transform-box:fill-box;transform-origin:center;animation:talk .9s ease-in-out infinite}
+.so .orbit{transform-origin:100px 100px;animation:spin 18s linear infinite}
+@keyframes float{50%{transform:translateY(-9px)}}
+@keyframes ring{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.45);opacity:0}}
+@keyframes blink{0%,46%,54%,100%{transform:scaleY(1)}50%{transform:scaleY(.1)}}
+@keyframes talk{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1.2)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes wave{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+.wave{display:flex;align-items:center;gap:3px;height:26px}
+.wave i{width:3px;border-radius:3px;background:var(--grad);transform:scaleY(.25);opacity:.45}
+.wave.on i{animation:wave 1.1s ease-in-out infinite;opacity:1}
+
+/* home */
+.hero{position:relative;padding-block:56px 40px}
+.hero::before{content:"";position:absolute;inset:-120px 0 auto;height:520px;background:radial-gradient(ellipse at 50% 0,rgba(139,92,246,.28),transparent 65%);pointer-events:none}
+.hero .grid{position:relative;display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center}
+.hero h1{font-size:clamp(2.3rem,6vw,4rem);line-height:1.08;margin-top:18px}
+.hero .sub{font-size:17px;color:var(--muted);max-width:34em;margin-top:18px}
+.ctas{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+.hero .note{font-size:12px;color:var(--muted);margin-top:14px}
+.stage{position:relative;justify-self:center;width:min(340px,80vw);aspect-ratio:1;max-width:100%}
+.stage .so{width:100%;height:100%}
+.chip{position:absolute;padding:10px 14px;font-size:12px;display:flex;align-items:center;gap:10px;background:rgba(17,17,33,.85)}
+.chip small{display:block;color:var(--muted);font-size:11px}
+.chip.a{bottom:-6%;inset-inline-start:-6%}.chip.b{top:0;inset-inline-end:-4%}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(110,231,183,.18)}
+@media (max-width:820px){.hero .grid{grid-template-columns:1fr}.stage{order:-1;width:min(260px,70vw)}.chip.a{inset-inline-start:-10%}.chip.b{inset-inline-end:-10%}}
+section{padding-block:56px}
+.sh{max-width:640px;margin:0 auto 32px;text-align:center}
+.sh h2{font-size:clamp(1.7rem,3.6vw,2.4rem)}
+.sh p{margin-top:10px;color:var(--muted)}
+
+.demo{display:grid;grid-template-columns:.9fr 1.1fr;gap:28px;align-items:center}
+@media (max-width:820px){.demo{grid-template-columns:1fr}}
+.states{display:grid;gap:8px;margin-top:20px;padding:0;list-style:none}
+.states li{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.states li.on{color:var(--fg)}
+.states li span{width:10px;height:10px;border-radius:50%;background:var(--ink3);border:1px solid var(--line)}
+.states li.on span{background:var(--c);box-shadow:0 0 12px var(--c)}
+
+.chat{display:flex;flex-direction:column;height:500px;overflow:hidden;background:rgba(17,17,33,.7)}
+.chat-h{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.chat-h .so{width:44px;height:44px}
+.chat-h .who{flex:1;min-width:0}
+.chat-h .who b{font-size:14px;display:block}
+.chat-h .st{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.chat-h .st i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.m{max-width:84%;padding:9px 13px;border-radius:16px;font-size:14px;line-height:1.55}
+.m.u{align-self:flex-end;background:var(--violet);border-end-end-radius:5px}
+.m.a{align-self:flex-start;background:rgba(255,255,255,.07);border-end-start-radius:5px}
+.m.sys{align-self:center;font-size:12px;background:rgba(253,164,175,.1);color:var(--rose);border:1px solid rgba(253,164,175,.3);border-radius:999px;padding:4px 12px}
+.sugg{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:auto 0}
+.sugg button{border:1px solid var(--line);background:rgba(255,255,255,.03);border-radius:999px;padding:7px 13px;font-size:13px}
+.sugg button:hover{border-color:rgba(139,92,246,.6)}
+.chat-f{border-top:1px solid var(--line);padding:10px;display:grid;gap:8px}
+.chat-f .wave{justify-content:center;height:18px}
+.chat-f form{display:flex;gap:8px}
+.in{flex:1;min-width:0;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:var(--fg);font:inherit;font-size:14px}
+.in:focus{border-color:rgba(139,92,246,.7);outline:none}
+.send{width:42px;border:0;border-radius:12px;background:var(--violet);font-weight:800}
+
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.steps .glass{padding:22px}
+.steps .n{font-family:"Sora",sans-serif;font-size:13px;font-weight:600;color:var(--violet-soft)}
+.steps h3{font-size:16px;margin-top:10px}
+.steps p{font-size:14px;color:var(--muted);margin-top:6px}
+@media (max-width:900px){.steps{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.steps{grid-template-columns:1fr}}
+
+.feat{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.feat .glass{padding:22px;transition:transform .2s,border-color .2s}
+.feat .glass:hover{transform:translateY(-3px);border-color:rgba(139,92,246,.4)}
+.feat .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(139,92,246,.14);color:var(--violet-soft);font-weight:800;font-family:"Sora",sans-serif}
+.feat h3{font-size:16px;margin-top:14px}.feat p{font-size:14px;color:var(--muted);margin-top:4px}
+@media (max-width:820px){.feat{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.feat{grid-template-columns:1fr}}
+
+.team{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.team .glass{padding:26px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.team .so{width:120px;height:120px;margin-bottom:6px}
+.team h3{font-size:19px}
+@media (max-width:720px){.team{grid-template-columns:1fr}}
+
+.toggle{display:flex;justify-content:center;margin-bottom:26px}
+.toggle div{display:inline-flex;padding:4px;gap:4px}
+.toggle button{border:0;background:none;border-radius:10px;padding:8px 16px;font-weight:700;font-size:14px;color:var(--muted)}
+.toggle button[aria-pressed="true"]{background:var(--violet);color:#fff}
+.toggle small{color:var(--blue);font-size:11px;margin-inline-start:6px}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+.plan{padding:26px;display:flex;flex-direction:column;gap:6px;position:relative}
+.plan.hi{background:rgba(139,92,246,.07);border-color:rgba(139,92,246,.55);box-shadow:0 0 60px -20px rgba(139,92,246,.6)}
+.plan .tag{position:absolute;top:-11px;inset-inline-start:22px;background:var(--ink2)}
+.plan h3{font-size:18px}
+.price{font-family:"Sora",sans-serif;font-size:36px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:8px;direction:ltr;text-align:start}
+html[dir="rtl"] .price{text-align:right}
+.price span{font-size:14px;color:var(--muted);font-weight:500;font-family:var(--body)}
+.plan ul{list-style:none;padding:0;margin:14px 0 18px;display:grid;gap:8px;font-size:14px}
+.plan li{display:flex;gap:9px}.plan li::before{content:"✓";color:var(--blue);font-weight:800}
+@media (max-width:860px){.plans{grid-template-columns:1fr}}
+.fine{text-align:center;font-size:12px;color:var(--muted);margin-top:16px}
+
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.quotes figure{margin:0;padding:22px}
+.quotes blockquote{margin:0;font-size:15px}
+.quotes figcaption{margin-top:14px;font-size:13px;color:var(--muted)}
+@media (max-width:820px){.quotes{grid-template-columns:1fr}}
+
+.faq{max-width:760px;margin:0 auto;display:grid;gap:10px}
+.faq details{padding:0}
+.faq summary{list-style:none;cursor:pointer;padding:16px 18px;font-weight:600;display:flex;justify-content:space-between;gap:12px}
+.faq summary::after{content:"+";color:var(--violet-soft);font-size:20px;line-height:1}
+.faq details[open] summary::after{content:"–"}
+.faq p{padding:0 18px 16px;color:var(--muted);font-size:14px}
+.final{text-align:center;padding:48px 20px;background:radial-gradient(ellipse at top,rgba(139,92,246,.25),transparent 60%),var(--glass)}
+.final .so{width:96px;height:96px}
+.final h2{font-size:clamp(1.7rem,4vw,2.5rem);margin-top:14px}
+footer{border-top:1px solid var(--line);padding-block:30px;margin-top:40px;font-size:13px;color:var(--muted)}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+
+/* dashboard */
+.view{padding-block:28px 60px}
+.ph{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:20px}
+.ph h1{font-size:26px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stat{padding:18px}
+.stat p{font-size:13px;color:var(--muted);display:flex;justify-content:space-between}
+.stat b{display:block;font-family:"Sora",sans-serif;font-weight:600;font-size:28px;margin-top:8px;font-variant-numeric:tabular-nums}
+.stat .k{width:8px;height:8px;border-radius:50%;margin-top:6px}
+@media (max-width:760px){.stats{grid-template-columns:1fr 1fr}}
+.two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px;margin-top:12px}
+@media (max-width:900px){.two{grid-template-columns:minmax(0,1fr)}}
+.panel{padding:18px;min-width:0;overflow:hidden}
+.panel h2{font-size:15px;font-family:var(--body);font-weight:700;letter-spacing:0;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);font-weight:500}
+.legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-inline-end:5px;vertical-align:middle}
+.chartbox{overflow-x:auto;max-width:100%}
+.chartbox svg{display:block;width:100%;min-width:420px;height:auto}
+.rows{display:grid}
+.row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.av{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:rgba(255,255,255,.06)}
+.row .tx{flex:1;min-width:0}
+.row .tx b{font-size:14px}
+.row .tx p{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row time{font-size:11px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.emp{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02)}
+.emp .so{width:46px;height:46px}
+.emp div{flex:1;min-width:0}.emp p{font-size:12px;color:var(--muted)}
+.emps{display:grid;gap:10px}
+.demo-banner{display:flex;gap:10px;align-items:center;padding:10px 14px;border:1px solid rgba(252,211,77,.3);background:rgba(252,211,77,.06);border-radius:14px;font-size:13px;color:#fde68a;margin-bottom:18px}
+
+/* creator */
+.cr{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:900px){.cr{grid-template-columns:minmax(0,1fr)}.cr aside{order:-1}}
+.prog{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px}
+.prog button{flex:none;display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:none;border-radius:999px;padding:5px 11px 5px 5px;font-size:12px;color:var(--muted)}
+html[dir="rtl"] .prog button{padding:5px 5px 5px 11px}
+.prog button b{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10px;background:rgba(255,255,255,.06)}
+.prog button.cur{border-color:rgba(139,92,246,.6);background:rgba(139,92,246,.14);color:var(--fg)}
+.prog button.cur b{background:var(--violet)}
+.prog button.done{color:var(--fg)}.prog button.done b{background:rgba(110,231,183,.2);color:var(--green)}
+.card{padding:22px;min-height:360px}
+.card h2{font-size:20px;margin-bottom:16px}
+.opts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:560px){.opts{grid-template-columns:1fr 1fr}}
+.opt{border:1px solid var(--line);background:rgba(255,255,255,.02);border-radius:14px;padding:14px 10px;font-size:13px;font-weight:600;text-align:center}
+.opt[aria-pressed="true"]{border-color:var(--violet);background:rgba(139,92,246,.15);box-shadow:0 0 30px -10px rgba(139,92,246,.8)}
+.list{display:grid;gap:8px}
+.list .opt{text-align:start;padding:12px 14px;display:flex;justify-content:space-between}
+.field{display:grid;gap:6px;margin-bottom:14px}
+.field label{font-size:12px;color:var(--muted);font-weight:600}
+.hues{display:flex;gap:8px}
+.hues button{width:34px;height:34px;border-radius:50%;border:2px solid transparent}
+.hues button[aria-pressed="true"]{border-color:#fff}
+input[type=range]{width:100%;accent-color:var(--violet)}
+.nav2{display:flex;justify-content:space-between;margin-top:12px}
+aside.pv{padding:22px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;background:radial-gradient(circle at 50% 0,rgba(139,92,246,.22),transparent 65%),var(--glass)}
+aside.pv .so{width:150px;height:150px}
+aside.pv h3{font-size:20px;margin-top:6px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:6px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="logo" href="#home" aria-label="SAUT AI">
+      <svg width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#38BDF8"/></linearGradient><linearGradient id="lb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1A1834"/><stop offset="1" stop-color="#0B0B18"/></linearGradient></defs><rect x="1" y="1" width="62" height="62" rx="17" fill="url(#lb)" stroke="url(#lg)" stroke-opacity=".55" stroke-width="1.5"/><path d="M44 19 C41 14 23 13 20 21 C18 27 23 29.5 27 30.5 L29 27 L32 36.5 L35 27.5 L37.5 33.5 C41 34.5 46 37 44 43 C41 51 23 50 20 45" fill="none" stroke="url(#lg)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <b>SAUT <span class="grad">AI</span></b>
+    </a>
+    <nav class="tabs" aria-label="Views">
+      <a href="#home" data-t="tHome">Product</a>
+      <a href="#dashboard" data-t="tDash">Dashboard</a>
+      <a href="#live" data-t="tLive">Live</a>
+      <a href="#command" data-t="tCommand">Command</a>
+      <a href="#pipeline" data-t="tPipe">Pipeline</a>
+      <a href="#automations" data-t="tAuto">Automations</a>
+      <a href="#appointments" data-t="tAppt">Appointments</a>
+      <a href="#team" data-t="tTeam">Team</a>
+      <a href="#onboarding" data-t="tOnb">Onboarding</a>
+      <a href="#create" data-t="tCreate">Create</a>
+    </nav>
+    <button class="lang" id="lang" type="button">English</button>
+  </div>
+</header>
+
+<main>
+<!-- HOME -->
+<div id="v-home" class="viewroot">
+  <div class="hero"><div class="wrap grid">
+    <div>
+      <span class="tag violet" data-t="eyebrow">AI employees for Gulf businesses</span>
+      <h1 data-h="heroTitle"></h1>
+      <p class="sub" data-t="heroSub"></p>
+      <div class="ctas">
+        <a class="btn primary lg" href="#create" data-t="cta">Start for Free</a>
+        <a class="btn ghost lg" href="#talk" data-t="watch">▶ Watch Demo</a>
+      </div>
+      <p class="note" data-t="heroNote"></p>
+    </div>
+    <div class="stage">
+      <div class="so live" data-so="speaking" data-hue="265"></div>
+      <div class="chip a glass"><span class="dot"></span><div><b data-t="liveCall">Live call</b><small dir="ltr">+965 •••• 0101 · 01:42</small></div><div class="wave on" data-wave="10"></div></div>
+      <div class="chip b glass"><div><b data-t="booked">Appointment booked</b><small data-t="bookedSub"></small></div></div>
+    </div>
+  </div></div>
+
+  <section id="talk"><div class="wrap demo">
+    <div>
+      <h2 style="font-size:clamp(1.7rem,3.6vw,2.4rem)" data-t="demoTitle">Talk to SO</h2>
+      <p class="muted" style="margin-top:10px" data-t="demoSub"></p>
+      <ul class="states" id="stateList"></ul>
+    </div>
+    <div class="glass chat" id="chat"></div>
+  </div></section>
+
+  <section><div class="wrap">
+    <div class="sh"><h2 data-t="howTitle"></h2></div>
+    <div class="steps" id="steps"></div>
+  </div></section>
+
+  <section><div class="wrap">
+    <div class="sh"><h2 data-t="featTitle"></h2></div>
+    <div class="feat" id="feat"></div>
+  </div></section>
+
+  <section><div class="wrap">
+    <div class="sh"><h2 data-t="teamTitle"></h2><p data-t="teamSub"></p></div>
+    <div class="team" id="team"></div>
+  </div></section>
+
+  <section id="pricing"><div class="wrap">
+    <div class="sh"><h2 data-t="priceTitle"></h2></div>
+    <div class="toggle"><div class="glass"><button type="button" id="pm" aria-pressed="true" data-t="monthly">Monthly</button><button type="button" id="pa" aria-pressed="false"><span data-t="annual">Annual</span><small data-t="save"></small></button></div></div>
+    <div class="plans" id="plans"></div>
+    <p class="fine" data-t="priceNote"></p>
+  </div></section>
+
+  <section><div class="wrap">
+    <div class="sh"><h2 data-t="quoteTitle"></h2><p><span class="tag amber" data-t="quoteBadge"></span></p></div>
+    <div class="quotes" id="quotes"></div>
+  </div></section>
+
+  <section><div class="wrap">
+    <div class="sh"><h2 data-t="faqTitle"></h2></div>
+    <div class="faq" id="faq"></div>
+  </div></section>
+
+  <section><div class="wrap">
+    <div class="glass final">
+      <div class="so" data-so="completed" data-hue="265"></div>
+      <h2 data-t="finalTitle"></h2>
+      <p class="muted" style="margin-top:8px" data-t="finalSub"></p>
+      <a class="btn primary lg" style="margin-top:22px" href="#create" data-t="cta">Start for Free</a>
+    </div>
+  </div></section>
+  <footer><div class="wrap"><span><b class="grad" data-t="tagline"></b> · <span data-t="philo"></span></span><span>© 2026 SAUT AI</span></div></footer>
+</div>
+
+<!-- DASHBOARD -->
+<div id="v-dashboard" class="viewroot wrap view" hidden>
+  <div class="demo-banner"><span class="tag amber" data-t="demoData">Demo data</span><span data-t="demoBanner"></span></div>
+  <div class="ph"><div><h1 data-t="overview">Overview</h1><p class="muted" data-t="last30"></p></div><a class="btn primary" href="#create" data-t="createBtn">+ Create AI Employee</a></div>
+  <div class="stats" id="stats"></div>
+  <div class="two">
+    <div class="glass panel"><h2><span data-t="daily">Daily usage</span><span class="legend"><span><i style="background:var(--violet)"></i><span data-t="calls">Calls</span></span><span><i style="background:var(--blue)"></i><span data-t="convs">Conversations</span></span></span></h2><div class="chartbox" id="chart"></div></div>
+    <div class="glass panel"><h2 data-t="activity">AI employee activity</h2><div class="emps" id="emps"></div></div>
+  </div>
+  <div class="glass panel" style="margin-top:12px"><h2 data-t="recent">Recent conversations</h2><div class="rows" id="recent"></div></div>
+</div>
+
+<!-- LIVE CHANNELS -->
+<div id="v-live" class="viewroot wrap view" hidden>
+  <div class="demo-banner"><span class="tag amber" data-t="simulated">Simulated</span><span data-t="lvBanner"></span></div>
+  <div class="ph"><div><h1 data-t="lvTitle">Live channels</h1><p class="muted" data-t="lvSub"></p></div><button class="btn primary" type="button" id="lvPlay" data-t="lvPlay">▶ Play</button></div>
+  <div class="live2">
+    <section class="glass panel"><h3 style="margin-bottom:12px" data-t="lvWa">WhatsApp</h3><div class="wa" id="lvWa"></div></section>
+    <section class="glass panel call"><h3 data-t="lvCall">Phone call</h3><div class="call-top"><div class="pulse" aria-hidden="true">📞</div><div style="flex:1;min-width:0"><b id="lvCaller"></b><p class="muted" style="font-size:12px" id="lvAgent"></p></div><span class="st" id="lvSt"></span></div><ol class="steps3" id="lvSteps"></ol></section>
+  </div>
+</div>
+
+<!-- APPOINTMENTS -->
+<div id="v-appointments" class="viewroot wrap view" hidden>
+  <div class="demo-banner"><span class="tag amber" data-t="demoData">Demo data</span><span data-t="apBanner"></span></div>
+  <div class="ph"><div><h1 data-t="apTitle">Appointments</h1><p class="muted" data-t="apSub"></p></div><button class="btn primary" type="button" id="apNew" data-t="apNew">+ New appointment</button></div>
+  <div id="apList"></div>
+  <p class="note" id="apMsg" style="margin-top:10px"></p>
+</div>
+
+<!-- TEAM -->
+<div id="v-team" class="viewroot wrap view" hidden>
+  <div class="demo-banner"><span class="tag amber" data-t="demoData">Demo data</span><span data-t="tmBanner"></span></div>
+  <div class="ph"><div><h1 data-t="tmTitle">Team & roles</h1><p class="muted" data-t="tmSub"></p></div></div>
+  <div class="glass panel"><div id="tmList" style="display:grid;gap:8px"></div><div class="roles" id="tmRoles"></div></div>
+</div>
+
+<!-- ONBOARDING -->
+<div id="v-onboarding" class="viewroot wrap view" hidden>
+  <div class="demo-banner"><span class="tag amber" data-t="simulated">Simulated</span><span data-t="obBanner"></span></div>
+  <div class="glass panel ob"><div class="steps2" id="obBar"><span></span><span></span><span></span></div><div id="obBody"></div></div>
+</div>
+
+<!-- COMMAND -->
+<div id="v-command" class="viewroot wrap view" hidden>
+  <div class="demo-banner"><span class="tag amber" data-t="demoData">Demo data</span><span data-t="ccBanner"></span></div>
+  <div class="ph"><div><h1 data-t="ccTitle">SO Command Center</h1><p class="muted" data-t="ccSub"></p></div></div>
+  <div class="cc-tiles" id="ccTiles"></div>
+  <div class="two">
+    <div style="display:grid;gap:12px;min-width:0">
+      <div class="glass panel"><h2 data-t="ccWorkforce">AI workforce</h2><div class="agents" id="ccAgents"></div><p class="note" style="margin-top:10px" data-t="ccStatusNote"></p></div>
+      <div class="glass panel"><h2 data-t="ccApprovals">Waiting for your approval</h2><div id="ccAppr" style="display:grid;gap:8px"></div></div>
+    </div>
+    <div class="glass panel"><h2 data-t="ccFeed">Activity feed</h2><ul class="feed" id="ccFeed"></ul></div>
+  </div>
+</div>
+
+<!-- PIPELINE -->
+<div id="v-pipeline" class="viewroot wrap view" hidden>
+  <div class="demo-banner"><span class="tag amber" data-t="demoData">Demo data</span><span data-t="plBanner"></span></div>
+  <div class="ph"><div><h1 data-t="plTitle">Sales pipeline</h1><p class="muted" data-t="plSub"></p></div></div>
+  <div class="board"><div class="cols" id="plCols"></div></div>
+  <div class="glass panel" id="plDetail" style="margin-top:12px" hidden></div>
+</div>
+
+<!-- AUTOMATIONS -->
+<div id="v-automations" class="viewroot wrap view" hidden>
+  <div class="demo-banner"><span class="tag amber" data-t="demoData">Demo data</span><span data-t="auBanner"></span></div>
+  <div class="ph"><div><h1 data-t="auTitle">Automation Studio</h1><p class="muted" data-t="auSub"></p></div><label class="toggle-sw"><input type="checkbox" id="auOn"><span data-t="auEnabled">Enabled</span></label></div>
+  <div class="two">
+    <div class="glass panel"><h2 id="auName"></h2><div class="flow" id="auFlow"></div></div>
+    <div class="glass panel"><h2 data-t="auTest">Test run</h2><p class="note" data-t="auTestNote"></p>
+      <div style="display:grid;gap:8px;margin-top:10px"><select class="in" id="auIntent" aria-label="intent"></select><button class="btn primary sm" id="auRun" type="button" data-t="auRunBtn">Run test</button></div>
+      <ul class="log" id="auLog"></ul>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE -->
+<div id="v-create" class="viewroot wrap view" hidden>
+  <div class="ph"><h1 data-t="createBtn2">Create AI Employee</h1><span class="tag amber" data-t="previewOnly"></span></div>
+  <div class="cr">
+    <div>
+      <div class="prog" id="prog"></div>
+      <div class="glass card" id="stepCard"></div>
+      <div class="nav2"><button class="btn ghost" id="back" type="button" data-t="back">Back</button><button class="btn primary" id="next" type="button" data-t="next">Next</button></div>
+    </div>
+    <aside class="glass pv" id="pv"></aside>
+  </div>
+</div>
+</main>
+<button class="as-btn" id="asBtn" type="button" hidden><svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true"><circle cx="32" cy="32" r="26" fill="#0D0B22" fill-opacity=".85"/><ellipse cx="24" cy="29" rx="3.2" ry="4.2" fill="#fff"/><ellipse cx="40" cy="29" rx="3.2" ry="4.2" fill="#fff"/><path d="M24 40 Q32 46 40 40" stroke="#F0ABFC" stroke-width="3" stroke-linecap="round" fill="none"/></svg></button>
+<section class="as-panel" id="asPanel" role="dialog" hidden>
+  <div class="as-h"><div><b data-t="asTitle">SO</b><small id="asSt"></small></div><button class="as-ic" id="asMute" type="button">🔊</button><button class="as-ic" id="asClose" type="button">✕</button></div>
+  <div class="as-stage"><div class="as-face" id="asFace"><div class="glow" id="asGlow"></div>
+    <svg viewBox="0 0 200 200"><defs><radialGradient id="asb" cx="35%" cy="28%" r="78%"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".2" stop-color="#A78BFA"/><stop offset=".64" stop-color="#6D4BD8"/><stop offset="1" stop-color="#120F2E"/></radialGradient><linearGradient id="ase" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#38BDF8"/></linearGradient></defs>
+    <circle cx="100" cy="100" r="86" fill="url(#asb)"/><circle id="asRing" cx="100" cy="100" r="85" fill="none" stroke="#38BDF8" stroke-opacity=".5" stroke-width="1.5"/><ellipse cx="72" cy="54" rx="30" ry="16" fill="#fff" opacity=".25" transform="rotate(-28 72 54)"/><rect x="46" y="66" width="108" height="88" rx="44" fill="#0D0B22" fill-opacity=".92"/>
+    <path id="asBl" d="M70 80 Q80 74 90 78" stroke="#C4B5FD" stroke-width="3" stroke-linecap="round" fill="none"/><path id="asBr" d="M110 78 Q120 74 130 80" stroke="#C4B5FD" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <g id="asEyes" style="transform-origin:100px 100px"></g><path id="asMouth" fill="#F0ABFC" fill-opacity=".9" stroke="#F5D0FE" stroke-width="1"/></svg></div></div>
+  <div class="as-list" id="asList" aria-live="polite"></div>
+  <div class="as-chips" id="asChips"></div>
+  <form class="as-f" id="asForm"><button class="as-mic" id="asMic" type="button">🎙</button><input id="asIn" dir="auto" maxlength="300"><button class="as-send" type="submit">➤</button></form>
+</section>
+
+<script>
+const T={
+en:{asTitle:"SO · Your assistant",asOpen:"Talk to SO, your assistant",asHello:"Hi! I'm SO. Ask about your business or say “open appointments”.",asNote:"Preview: demo answers and your phone's built-in voice. In the app, answers come from your real data and the face can be a photoreal human (Simli).",asSt:{idle:"Ready",listening:"Listening…",thinking:"Thinking…",speaking:"Speaking…"},asFace:"Built-in face",asPh:"Type a question or command…",asChips:["How are things right now?","Today's appointments","Open appointments","Calls this month?"],asNoMic:"Voice input isn't supported in this browser — type instead.",
+asA:{status:"Right now 3 AI employees are online, one call is live, and 2 actions are waiting for your approval.",appts:"You have 4 appointments today; the next is at 1:00 PM for Abdullah, party of 4.",calls:"This month: 312 calls, 287 answered by your AI employees, and 41 bookings from calls.",hello:"Hello! How can I help you today?",nav:"Sure, here it is.",other:"In the full app I'd answer that from your real data. In this preview I can show status, appointments, call numbers, or open a screen."},tLive:"Live",lvTitle:"Live channels",lvSub:"How your AI employee handles WhatsApp and phone calls in real time",lvBanner:"A simulated walkthrough of the real flow. No message or call is made.",lvPlay:"▶ Play",lvReplay:"↻ Replay",lvWa:"WhatsApp",lvCall:"Phone call",
+lvCust:"Fatima",lvAgentName:"Noura · Receptionist",lvVoice:"Voice note 0:07",lvHeard:"Transcribed",lvVoiceTx:"Hi, do you have a table for 4 tonight at 8:30?",lvReply1:"Hello Fatima! Yes, we have a table for 4 at 8:30 PM tonight. Shall I book it under your name?",lvYes:"Yes please 🙏",lvReply2:"Done ✅ Your table for 4 is booked for tonight at 8:30 PM. See you soon!",lvTyping:"typing…",
+lvCaller:"+965 •••• 0142",lvStatus:{listening:"Listening",thinking:"Thinking",speaking:"Speaking",transfer:"Transferring",done:"With staff"},
+lvSteps:[["Call verified","Signed one-time token checked before the AI connects"],["AI greets the caller","“Layali Café, Noura speaking, how can I help?”"],["Caller: “I want to speak to the manager about an order”","Live transcript saved to the conversation"],["Guarded tool: transfer_to_human","Same permission engine as chat; escalation logged"],["AI: “One moment, I'm connecting you”","The transfer waits until the AI finishes speaking"],["Call handed to the manager","Twilio confirmed the redirect to the transfer number"]],tAppt:"Appointments",tTeam:"Team",tOnb:"Onboarding",apTitle:"Appointments",apSub:"Bookings made by your team and your AI employees",apBanner:"Sample bookings. In the app these come from your database.",apNew:"+ New appointment",apNewMsg:"Preview: in the app this opens the booking form and saves to your database.",apStatus:{pending:"Pending",confirmed:"Confirmed",completed:"Completed",no_show:"No-show",canceled:"Cancelled"},
+tmTitle:"Team & roles",tmSub:"Invite people and choose what each one can do",tmBanner:"Sample team. Role rules here are the real ones enforced by the database.",you:"you",roleNames:{owner:"Owner",admin:"Admin",manager:"Manager",employee:"Employee",viewer:"Viewer"},roleDesc:[["owner","Everything, including ownership and billing"],["admin","Business profile, team, integrations, billing"],["manager","AI employees, automations, analytics, approvals"],["employee","Customers, conversations, appointments"],["viewer","Read-only"]],
+obBanner:"Walk through sign-up onboarding. Nothing is created.",obT:["Let's set up your business","What industry are you in?","Contact details and preferences"],obName:"Business name",obCountry:"Country",obEmail:"Business email",obPhone:"Business phone",obTz:"Time zone",obLang:"Preferred language",obTrial:"You'll start on a free trial with no card required.",obFinish:"Create business & continue",obDone:"Preview: in the app your business, owner account and free trial are created here, then you land on the dashboard.",countries:[["KW","Kuwait"],["SA","Saudi Arabia"],["AE","UAE"],["QA","Qatar"],["BH","Bahrain"],["OM","Oman"]],tCommand:"Command",tPipe:"Pipeline",tAuto:"Automations",ccTitle:"SO Command Center",ccSub:"Your whole AI workforce on one screen",ccBanner:"Preview with sample data. In the real app every number and status comes from your live calls and messages.",ccWorkforce:"AI workforce",ccApprovals:"Waiting for your approval",ccFeed:"Activity feed",ccStatusNote:"In the app, statuses come from backend events and fall back to Online/Offline after 2 minutes.",ccTiles:["Active AI employees","Current calls","Active conversations","Tasks done today","Pending tasks","New leads today","Booked today","Escalated today"],stat:{online:"Online",speaking:"Speaking",listening:"Listening",thinking:"Thinking",needs_attention:"Needs attention",offline:"Offline"},approve:"Approve & run",reject:"Reject",approved:"Preview: approved (nothing ran)",rejected:"Preview: rejected",noAppr:"Nothing waiting.",
+plTitle:"Sales pipeline",plSub:"Tap a lead for details. Move it with the stage menu.",plBanner:"Sample leads for presentation. Real scores are computed from recorded interactions.",stages:["New lead","Contacted","Interested","Qualified","Converted","Lost"],why:"Why this score",follow:"Suggested follow-up",
+auTitle:"Automation Studio",auSub:"When something happens → check conditions → run actions",auBanner:"Sample automation. In the app it runs on real events and logs each run.",auEnabled:"Enabled",auTest:"Test run",auTestNote:"Pick what the caller wants and see which steps would run. Nothing is sent.",auRunBtn:"Run test",yes:"If yes",no:"If no",wfName:"Book from a call",trig:"When: new customer call",cond:"Customer wants a booking or reschedule",acts:["Identify customer","Check availability","Confirm the appointment","Save customer information","Send WhatsApp confirmation (if connected)","Notify the business owner"],noActs:["Create follow-up task for staff"],intents:[["booking","Booking"],["reschedule","Reschedule"],["faq","Question"],["complaint","Complaint"]],ok:"would run",skip:"skipped",condYes:"condition: yes",condNo:"condition: no",tHome:"Product",tDash:"Dashboard",tCreate:"Create",eyebrow:"AI employees for Gulf businesses",heroTitle:'Meet Your New <span class="grad">AI Employee.</span>',heroSub:"SAUT AI transforms the way businesses communicate with customers. Automate calls, answer questions, book appointments, and grow your business with intelligent AI employees.",cta:"Start for Free",watch:"▶ Watch Demo",heroNote:"14-day free trial · No card required · Arabic & English",liveCall:"Live call",booked:"Appointment booked",bookedSub:"Fri 8:30 PM · party of 4",demoTitle:"Talk to SO",demoSub:"A simulated conversation. No real call is placed and nothing is booked.",states:["Listening","Thinking","Speaking","Completed","Transfer to human"],idle:"Ready",simulated:"Simulated demo",ph:"Ask about a booking, opening hours…",sugg:["Book a table for 4 on Friday","What are your opening hours?","I want to speak to a manager"],
+howTitle:"Live in minutes, not months",how:[["Create your AI employee","Pick an industry, a name, a voice and a dialect: Kuwaiti, Saudi, Emirati, MSA or English."],["Teach it your business","Upload menus, price lists and FAQs. It learns your policies and tone."],["Connect your channels","Forward your phone line, link WhatsApp Business and your calendar."],["Watch it work","Every call answered, summarised and logged in your CRM, 24/7."]],
+featTitle:"Everything a great employee does. Without the overtime.",feat:[["Answers every call","Natural, real-time voice conversations in Gulf dialects."],["Books appointments","Reservations synced to Google Calendar."],["WhatsApp follow-ups","Confirmations and reminders from your WhatsApp Business number."],["Knows your business","Answers grounded in your own knowledge base."],["Hands off gracefully","Escalates complex requests to your team with full context."],["Summaries & insights","Every conversation summarised, tagged and searchable."]],
+teamTitle:"Meet the team you don't have to hire",teamSub:"Each AI employee has its own voice, dialect and personality.",team:[["Noura","Restaurant","Kuwaiti dialect"],["Fahad","Customer support","Saudi dialect"],["Mira","Clinic","English · العربية"]],
+priceTitle:"Simple pricing in Kuwaiti Dinar",monthly:"Monthly",annual:"Annual",save:"2 months free",perM:"/ month",perY:"/ year",popular:"Most popular",choose:"Start free trial",priceNote:"Proposed launch prices. VAT may apply where required.",
+plans:[["Starter",["1 AI employee","Basic AI conversations","Basic analytics","Knowledge base","300 voice minutes / month","Email support"]],["Business",["Up to 3 AI employees","Advanced AI conversations","Arabic dialect selection","Call summaries","Appointment booking","WhatsApp integration (when connected)","Advanced analytics","Priority support"]],["Pro",["Up to 10 AI employees","Advanced automation","Multiple business locations","Advanced reporting","Custom AI instructions","Team management","Priority assistance","Higher monthly usage allowance"]]],
+quoteTitle:"What businesses say",quoteBadge:"Sample testimonials, demo content",quotes:[["We haven't missed a booking call since, even during the Friday rush.","Restaurant manager · Kuwait City"],["Patients like that it answers in their dialect and books in under a minute.","Clinic director · Riyadh"],["We save hours every day not answering the same questions.","Online store owner · Dubai"]],
+faqTitle:"Questions, answered",faq:[["Does it really speak Kuwaiti dialect?","Yes. Each AI employee can be set to Kuwaiti, Saudi, Emirati, Modern Standard Arabic or English, and switches language when the caller does."],["Can I keep my existing phone number?","Yes. Forward your number to a SAUT AI line, or port it through our telephony partner."],["What happens with difficult requests?","Your AI employee recognises when a person is needed and transfers the call or creates a follow-up with a full summary."],["Is call recording optional?","Recording is off by default. When enabled, callers hear your consent message first and recordings follow your retention policy."],["Which payment methods are supported?","KNET, Visa, Mastercard, Apple Pay and Google Pay via MyFatoorah or Stripe, billed in KWD by default."]],
+finalTitle:"Hire your first AI employee today.",finalSub:"Set up in minutes. Cancel anytime.",tagline:"Your Business. Our Intelligence.",philo:"SAUT AI is not another chatbot. It is the future of digital employees.",
+demoData:"Demo data",demoBanner:"Fictional café data for presentation. Real accounts show your own numbers.",overview:"Overview",last30:"Layali Café (Demo) · last 30 days",createBtn:"+ Create AI Employee",createBtn2:"Create AI Employee",stats:["Total calls","Answered calls","Missed calls","AI-handled conversations","Appointments booked","Est. time saved"],hrs:"hrs",daily:"Daily usage",calls:"Calls",convs:"Conversations",activity:"AI employee activity",recent:"Recent conversations",today:"calls today",
+previewOnly:"Preview only, nothing is saved",back:"Back",next:"Next",stepNames:["Industry","Name","Voice & dialect","Personality","Business info","Tasks","Test","Activate"],industries:["Restaurant","Clinic","Real estate","Online store","Beauty salon","Hotel","Customer support","Other"],nameLbl:"AI employee name",colorLbl:"Mascot colour",dialects:["Kuwaiti Arabic","Saudi Arabic","Emirati Arabic","Modern Standard Arabic","English"],voices:["Coral, bright","Ash, warm","Sage, calm","Shimmer, soft"],tones:["Friendly","Professional","Luxury concierge","Energetic"],sliders:["Warmth","Formality","Speaking pace"],biz:["Business name","Opening hours","FAQs & answers"],bizPh:["Layali Café","Daily 8 AM – midnight","Q: Is there parking? A: Yes, behind the building."],tasks:["Answer incoming calls","Answer FAQs","Book appointments","Restaurant reservations","Collect customer info","WhatsApp follow-ups (when connected)","Summarise conversations","Escalate to a human"],testHint:"Try the conversation above, or type here. Replies are scripted in this preview.",ready:" is ready to work",readySub:"In the real app, activating starts answering on connected channels only. Here it does nothing.",activate:"Activate employee",activated:"Preview: in the app this would ask you to confirm, then activate.",tasksOn:"tasks enabled",yourEmp:"Your AI employee"},
+ar:{asTitle:"SO · مساعدك الذكي",asOpen:"تحدّث مع SO مساعدك الذكي",asHello:"هلا! أنا SO. اسألني عن نشاطك أو قل «افتح المواعيد».",asNote:"معاينة: إجابات تجريبية وصوت جهازك المدمج. في التطبيق تأتي الإجابات من بياناتك الحقيقية ويمكن أن يكون الوجه بشرياً واقعياً (Simli).",asSt:{idle:"جاهز",listening:"أستمع…",thinking:"أفكر…",speaking:"أتكلم…"},asFace:"الوجه المدمج",asPh:"اكتب سؤالك أو أمرك…",asChips:["كيف الوضع الحين؟","مواعيد اليوم","افتح المواعيد","كم مكالمة هالشهر؟"],asNoMic:"المتصفح ما يدعم الإدخال الصوتي — اكتب سؤالك.",
+asA:{status:"الحين عندك ٣ موظفين أذكياء متصلين، ومكالمة وحدة شغالة، وإجراءين ينتظرون موافقتك.",appts:"عندك اليوم ٤ مواعيد، أولها الساعة وحدة الظهر لعبدالله، ٤ أشخاص.",calls:"هالشهر ٣١٢ مكالمة، رد الموظفون الأذكياء على ٢٨٧ منها، و٤١ حجز جا من المكالمات.",hello:"هلا والله! شلون أقدر أساعدك؟",nav:"حاضر، هذي هي.",other:"في التطبيق الكامل أجاوبك من بياناتك الحقيقية. هني في المعاينة أقدر أعطيك الحالة، المواعيد، أرقام المكالمات، أو أفتح لك أي شاشة."},tLive:"مباشر",lvTitle:"القنوات المباشرة",lvSub:"كيف يتعامل موظفك الذكي مع واتساب والمكالمات لحظة بلحظة",lvBanner:"عرض محاكى لنفس المسار الحقيقي. لا تُرسل رسالة ولا تتم مكالمة.",lvPlay:"▶ تشغيل",lvReplay:"↻ إعادة",lvWa:"واتساب",lvCall:"مكالمة هاتفية",
+lvCust:"فاطمة",lvAgentName:"نورة · الاستقبال",lvVoice:"رسالة صوتية 0:07",lvHeard:"تم تحويلها لنص",lvVoiceTx:"هلا، عندكم طاولة لـ ٤ أشخاص الليلة الساعة ٨:٣٠؟",lvReply1:"هلا فيج فاطمة! إي نعم، عندنا طاولة لـ ٤ الليلة الساعة ٨:٣٠. أحجزها باسمج؟",lvYes:"إي الله يخليج 🙏",lvReply2:"تم ✅ حجزت لج طاولة لـ ٤ الليلة الساعة ٨:٣٠. ننتظرج!",lvTyping:"يكتب الآن…",
+lvCaller:"+965 •••• 0142",lvStatus:{listening:"يستمع",thinking:"يفكر",speaking:"يتكلم",transfer:"جاري التحويل",done:"مع الموظف"},
+lvSteps:[["تم التحقق من المكالمة","رمز موقّع لمرة واحدة يُفحص قبل اتصال الذكاء الاصطناعي"],["الموظف الذكي يرحب بالمتصل","«مقهى ليالي، معك نورة، شلون أقدر أخدمك؟»"],["المتصل: «أبي أكلم المدير بخصوص طلب»","النص المباشر يُحفظ في المحادثة"],["أداة محمية: التحويل لموظف","نفس محرك الصلاحيات في الدردشة، والتصعيد مسجّل"],["الموظف الذكي: «لحظة، أحولك الحين»","التحويل ينتظر حتى ينتهي من الكلام"],["المكالمة عند المدير","Twilio أكّد التحويل إلى رقم الموظف"]],tAppt:"المواعيد",tTeam:"الفريق",tOnb:"الإعداد",apTitle:"المواعيد",apSub:"الحجوزات التي يسجّلها فريقك وموظفوك الأذكياء",apBanner:"حجوزات نموذجية. في التطبيق تأتي من قاعدة بياناتك.",apNew:"+ موعد جديد",apNewMsg:"معاينة: في التطبيق يفتح نموذج الحجز ويحفظ في قاعدة بياناتك.",apStatus:{pending:"بانتظار التأكيد",confirmed:"مؤكد",completed:"تم",no_show:"لم يحضر",canceled:"ملغي"},
+tmTitle:"الفريق والصلاحيات",tmSub:"ادعُ أعضاء فريقك واختر صلاحيات كل واحد",tmBanner:"فريق نموذجي. قواعد الصلاحيات هنا هي نفسها التي تطبّقها قاعدة البيانات.",you:"أنت",roleNames:{owner:"المالك",admin:"مدير النظام",manager:"مدير",employee:"موظف",viewer:"مشاهد"},roleDesc:[["owner","كل شيء، بما فيه الملكية والفوترة"],["admin","ملف النشاط، الفريق، التكاملات، الفوترة"],["manager","الموظفون الأذكياء، الأتمتة، التحليلات، الموافقات"],["employee","العملاء، المحادثات، المواعيد"],["viewer","قراءة فقط"]],
+obBanner:"جرّب خطوات الإعداد بعد التسجيل. لا يُنشأ أي شيء.",obT:["لنبدأ بنشاطك التجاري","ما هو قطاع نشاطك؟","معلومات التواصل والتفضيلات"],obName:"اسم النشاط التجاري",obCountry:"الدولة",obEmail:"بريد النشاط",obPhone:"هاتف النشاط",obTz:"المنطقة الزمنية",obLang:"اللغة المفضلة",obTrial:"ستبدأ بتجربة مجانية بدون بطاقة.",obFinish:"إنشاء النشاط والدخول",obDone:"معاينة: في التطبيق يُنشأ نشاطك وحساب المالك والتجربة المجانية هنا، ثم تدخل لوحة التحكم.",countries:[["KW","الكويت"],["SA","السعودية"],["AE","الإمارات"],["QA","قطر"],["BH","البحرين"],["OM","عُمان"]],tCommand:"القيادة",tPipe:"المبيعات",tAuto:"الأتمتة",ccTitle:"مركز قيادة سو",ccSub:"فريق الذكاء الاصطناعي كاملاً في شاشة واحدة",ccBanner:"معاينة ببيانات نموذجية. في التطبيق الفعلي كل رقم وحالة مصدرها مكالماتك ورسائلك الحقيقية.",ccWorkforce:"فريق الذكاء الاصطناعي",ccApprovals:"بانتظار موافقتك",ccFeed:"سجل النشاط",ccStatusNote:"في التطبيق، الحالات مصدرها أحداث الخادم وترجع إلى متصل/غير متصل بعد دقيقتين.",ccTiles:["الموظفون النشطون","مكالمات جارية","محادثات نشطة","مهام منجزة اليوم","مهام معلّقة","عملاء محتملون اليوم","حجوزات اليوم","تصعيدات اليوم"],stat:{online:"متصل",speaking:"يتحدث",listening:"يستمع",thinking:"يفكّر",needs_attention:"يحتاج متابعة",offline:"غير متصل"},approve:"موافقة وتنفيذ",reject:"رفض",approved:"معاينة: تمت الموافقة (لم يُنفّذ شيء)",rejected:"معاينة: تم الرفض",noAppr:"لا شيء بالانتظار.",
+plTitle:"مسار المبيعات",plSub:"اضغط على العميل للتفاصيل، وانقله من قائمة المرحلة.",plBanner:"عملاء نموذجيون للعرض. التقييم الفعلي محسوب من التفاعلات المسجّلة.",stages:["عميل جديد","تم التواصل","مهتم","مؤهّل","تم التحويل","مفقود"],why:"سبب التقييم",follow:"المتابعة المقترحة",
+auTitle:"استوديو الأتمتة",auSub:"عندما يحدث شيء ← تحقّق من الشروط ← نفّذ الإجراءات",auBanner:"أتمتة نموذجية. في التطبيق تعمل على أحداث حقيقية وتسجّل كل تشغيل.",auEnabled:"مفعّلة",auTest:"تشغيل تجريبي",auTestNote:"اختر ما يريده المتصل لترى الخطوات التي ستُنفّذ. لا يُرسل شيء.",auRunBtn:"تشغيل الاختبار",yes:"إذا نعم",no:"إذا لا",wfName:"حجز من مكالمة",trig:"عندما: مكالمة جديدة من عميل",cond:"العميل يريد حجزاً أو تغيير موعد",acts:["التعرّف على العميل","التحقق من التوفر","تأكيد الموعد","حفظ بيانات العميل","إرسال تأكيد واتساب (عند الربط)","تنبيه صاحب النشاط"],noActs:["إنشاء مهمة متابعة للموظفين"],intents:[["booking","حجز"],["reschedule","تغيير موعد"],["faq","استفسار"],["complaint","شكوى"]],ok:"سيُنفّذ",skip:"متجاوز",condYes:"الشرط: نعم",condNo:"الشرط: لا",tHome:"المنتج",tDash:"لوحة التحكم",tCreate:"إنشاء",eyebrow:"موظفون أذكياء لأعمال الخليج",heroTitle:'موظفك الذكي <span class="grad">الذي لا يتوقف</span> عن العمل.',heroSub:"استقبل عملاءك، أجب عن استفساراتهم، واحجز مواعيدهم تلقائياً. موظفك الذكي يعمل 24 ساعة طوال أيام الأسبوع.",cta:"ابدأ مجاناً",watch:"▶ شاهد العرض",heroNote:"تجربة مجانية ١٤ يوماً · بدون بطاقة · عربي وإنجليزي",liveCall:"مكالمة مباشرة",booked:"تم حجز موعد",bookedSub:"الجمعة ٨:٣٠ م · ٤ أشخاص",demoTitle:"تحدّث مع سو",demoSub:"محادثة تجريبية. لا يتم إجراء أي مكالمة حقيقية ولا يُحجز شيء.",states:["يستمع","يفكّر","يتحدث","اكتملت","تحويل لموظف"],idle:"جاهز",simulated:"عرض تجريبي",ph:"اسأل عن حجز، أوقات الدوام…",sugg:["أبي أحجز طاولة لأربعة يوم الجمعة","شنو أوقات الدوام؟","أبي أكلم المدير"],
+howTitle:"جاهز خلال دقائق، مو شهور",how:[["أنشئ موظفك الذكي","اختر القطاع والاسم والصوت واللهجة: كويتية، سعودية، إماراتية، فصحى أو إنجليزية."],["علّمه عن عملك","ارفع المنيو والأسعار والأسئلة الشائعة. يتعلّم سياساتك وأسلوبك."],["اربط قنواتك","حوّل خط الهاتف واربط واتساب للأعمال والتقويم."],["خلّه يشتغل","كل مكالمة يُرد عليها وتُلخّص وتُحفظ في نظام العملاء، على مدار الساعة."]],
+featTitle:"كل ما يسويه الموظف المميز. بدون ساعات إضافية.",feat:[["يرد على كل مكالمة","محادثات صوتية طبيعية باللهجات الخليجية."],["يحجز المواعيد","حجوزات متزامنة مع تقويم Google."],["متابعة عبر واتساب","رسائل تأكيد وتذكير من رقم واتساب الأعمال."],["يعرف عملك","إجابات من قاعدة المعرفة الخاصة بك."],["يحوّل بسلاسة","يحوّل الطلبات المعقدة لفريقك مع كامل التفاصيل."],["ملخصات ورؤى","كل محادثة ملخّصة ومصنّفة وقابلة للبحث."]],
+teamTitle:"تعرّف على فريق ما تحتاج توظفه",teamSub:"لكل موظف ذكي صوته ولهجته وشخصيته.",team:[["نورة","مطعم","لهجة كويتية"],["فهد","خدمة العملاء","لهجة سعودية"],["ميرا","عيادة","English · العربية"]],
+priceTitle:"أسعار واضحة بالدينار الكويتي",monthly:"شهري",annual:"سنوي",save:"شهرين مجاناً",perM:"/ شهرياً",perY:"/ سنوياً",popular:"الأكثر طلباً",choose:"ابدأ التجربة المجانية",priceNote:"أسعار إطلاق مقترحة. قد تُطبّق ضريبة القيمة المضافة حيثما يلزم.",
+plans:[["المبتدئ",["موظف ذكي واحد","محادثات ذكية أساسية","تحليلات أساسية","قاعدة معرفة","٣٠٠ دقيقة صوتية شهرياً","دعم عبر البريد"]],["الأعمال",["حتى ٣ موظفين أذكياء","محادثات ذكية متقدمة","اختيار اللهجة العربية","ملخصات المكالمات","حجز المواعيد","ربط واتساب (عند التفعيل)","تحليلات متقدمة","دعم بأولوية"]],["الاحترافي",["حتى ١٠ موظفين أذكياء","أتمتة متقدمة","فروع متعددة","تقارير متقدمة","تعليمات مخصصة","إدارة الفريق","مساعدة بأولوية","حد استخدام شهري أعلى"]]],
+quoteTitle:"ماذا يقول أصحاب الأعمال",quoteBadge:"آراء نموذجية، محتوى تجريبي",quotes:[["ما عاد تفوتنا أي مكالمة حجز، حتى وقت الذروة يوم الجمعة.","مدير مطعم · الكويت"],["المرضى يحبون إنها ترد بلهجتهم وتحجز الموعد خلال دقيقة.","مديرة عيادة · الرياض"],["وفّرنا ساعات يومياً من الرد على نفس الأسئلة.","صاحب متجر إلكتروني · دبي"]],
+faqTitle:"أسئلة وأجوبتها",faq:[["هل يتكلم فعلاً باللهجة الكويتية؟","نعم. يمكن ضبط كل موظف ذكي على الكويتية أو السعودية أو الإماراتية أو الفصحى أو الإنجليزية، ويغيّر اللغة إذا غيّرها المتصل."],["أقدر أحتفظ برقمي الحالي؟","نعم. حوّل رقمك إلى خط SAUT AI، أو انقله عبر شريك الاتصالات."],["شنو يصير مع الطلبات الصعبة؟","يعرف متى يحتاج تدخّل بشري، فيحوّل المكالمة أو ينشئ متابعة مع ملخص كامل."],["هل تسجيل المكالمات اختياري؟","التسجيل مقفل افتراضياً. عند تفعيله يسمع المتصل رسالة الموافقة أولاً، وتُحفظ التسجيلات حسب سياسة الاحتفاظ."],["شنو طرق الدفع المتاحة؟","كي نت، فيزا، ماستركارد، Apple Pay و Google Pay عبر MyFatoorah أو Stripe، والفوترة بالدينار الكويتي."]],
+finalTitle:"وظّف أول موظف ذكي لك اليوم.",finalSub:"إعداد خلال دقائق. إلغاء في أي وقت.",tagline:"عملك. ذكاؤنا.",philo:"SAUT AI ليس مجرد روبوت محادثة. إنه مستقبل الموظفين الرقميين.",
+demoData:"بيانات تجريبية",demoBanner:"بيانات مقهى وهمي لأغراض العرض. الحسابات الحقيقية تعرض أرقامك.",overview:"نظرة عامة",last30:"مقهى ليالي (تجريبي) · آخر ٣٠ يوماً",createBtn:"+ إنشاء موظف ذكي",createBtn2:"إنشاء موظف ذكي",stats:["إجمالي المكالمات","مكالمات تم الرد عليها","مكالمات فائتة","محادثات تولّاها الذكاء الاصطناعي","مواعيد محجوزة","الوقت الموفَّر تقريباً"],hrs:"ساعة",daily:"الاستخدام اليومي",calls:"مكالمات",convs:"محادثات",activity:"نشاط الموظفين الأذكياء",recent:"أحدث المحادثات",today:"مكالمة اليوم",
+previewOnly:"معاينة فقط، لا يُحفظ شيء",back:"السابق",next:"التالي",stepNames:["القطاع","الاسم","الصوت واللهجة","الشخصية","معلومات النشاط","المهام","الاختبار","التفعيل"],industries:["مطعم","عيادة","عقار","متجر إلكتروني","صالون تجميل","فندق","خدمة العملاء","أخرى"],nameLbl:"اسم الموظف الذكي",colorLbl:"لون الشخصية",dialects:["اللهجة الكويتية","اللهجة السعودية","اللهجة الإماراتية","العربية الفصحى","الإنجليزية"],voices:["كورال، مشرق","آش، دافئ","سيج، هادئ","شيمر، ناعم"],tones:["ودود","مهني","فخم وراقٍ","حيوي"],sliders:["الدفء","الرسمية","سرعة الكلام"],biz:["اسم النشاط","أوقات العمل","أسئلة شائعة وإجاباتها"],bizPh:["مقهى ليالي","يومياً من ٨ الصبح إلى ١٢ الليل","س: فيه مواقف؟ ج: نعم، خلف المبنى."],tasks:["الرد على المكالمات","الإجابة عن الأسئلة الشائعة","حجز المواعيد","حجوزات المطاعم","جمع بيانات العملاء","متابعة واتساب (عند الربط)","تلخيص المحادثات","التحويل لموظف بشري"],testHint:"جرّب المحادثة هنا. الردود في هذه المعاينة مُعدّة مسبقاً.",ready:" جاهز للعمل",readySub:"في التطبيق الفعلي يبدأ بالرد على القنوات المربوطة فقط. هنا لا يحدث شيء.",activate:"تفعيل الموظف",activated:"معاينة: في التطبيق يُطلب منك التأكيد ثم يتم التفعيل.",tasksOn:"مهام مفعّلة",yourEmp:"موظفك الذكي"}};
+
+let L=(navigator.language||"").startsWith("en")?"en":"ar";
+try{const s=localStorage.getItem("saut_lang");if(s==="ar"||s==="en")L=s}catch(e){}
+const t=k=>T[L][k];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const num=n=>new Intl.NumberFormat(L==="ar"?"ar-KW":"en-US").format(n);
+
+/* SO mascot */
+function so(state,hue){
+  hue=hue||265;const c1=`hsl(${hue} 90% 66%)`,c2=`hsl(${(hue+295)%360} 92% 60%)`,id="g"+Math.random().toString(36).slice(2,7);
+  let eyes=`<g class="eyes" fill="${c1}" style="filter:drop-shadow(0 0 6px ${c1})"><rect x="72" y="${state==="thinking"?90:94}" width="13" height="18" rx="6.5"/><rect x="115" y="${state==="thinking"?90:94}" width="13" height="18" rx="6.5"/></g>`;
+  if(state==="completed")eyes=`<g stroke="${c1}" stroke-width="5" stroke-linecap="round" fill="none"><path d="M70 104 q8 -10 16 0"/><path d="M114 104 q8 -10 16 0"/></g>`;
+  let mouth=`<path d="M89 116 q11 10 22 0" stroke="${c1}" stroke-width="3.5" stroke-linecap="round" fill="none"/>`;
+  if(state==="speaking")mouth=`<g fill="${c1}">${[0,1,2,3,4].map(i=>`<rect class="mbar" style="animation-delay:${i*.08}s" x="${88+i*5.5}" y="114" width="3" height="10" rx="1.5"/>`).join("")}</g>`;
+  if(state==="thinking")mouth=`<circle cx="100" cy="120" r="3" fill="${c1}"/>`;
+  if(state==="listening")mouth=`<ellipse cx="100" cy="120" rx="5" ry="4" fill="none" stroke="${c1}" stroke-width="3"/>`;
+  if(state==="transfer")mouth=`<path d="M90 120 h20" stroke="${c1}" stroke-width="3.5" stroke-linecap="round"/>`;
+  return `<span class="ring"></span><span class="ring"></span><span class="ring"></span><svg viewBox="0 0 200 200" class="float" aria-label="SO ${state}" role="img"><defs><radialGradient id="b${id}" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".18" stop-color="${c1}"/><stop offset=".62" stop-color="${c2}"/><stop offset="1" stop-color="#120F2E"/></radialGradient><clipPath id="c${id}"><circle cx="100" cy="100" r="84"/></clipPath></defs><circle cx="100" cy="100" r="96" fill="${c1}" opacity=".08"/><circle cx="100" cy="100" r="84" fill="url(#b${id})"/><g clip-path="url(#c${id})" opacity=".5"><ellipse class="orbit" cx="100" cy="132" rx="120" ry="24" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.5"/></g><circle cx="100" cy="100" r="83" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="1.4"/><ellipse cx="72" cy="56" rx="30" ry="17" fill="#fff" opacity=".28" transform="rotate(-28 72 56)"/><rect x="46" y="78" width="108" height="56" rx="28" fill="#0D0B22" fill-opacity=".85" stroke="#fff" stroke-opacity=".12"/>${eyes}${mouth}</svg>`;
+}
+function paintSO(root=document){root.querySelectorAll("[data-so]").forEach(el=>{el.classList.add("so");el.innerHTML=so(el.dataset.so,+el.dataset.hue);el.classList.toggle("live",["speaking","listening"].includes(el.dataset.so))})}
+function waves(root=document){root.querySelectorAll("[data-wave]").forEach(el=>{const n=+el.dataset.wave;el.innerHTML=Array.from({length:n},(_,i)=>`<i style="height:${30+Math.abs(Math.sin(i*1.7))*70}%;animation-delay:${(i%8)*.09}s"></i>`).join("")})}
+
+/* chat */
+const COLORS={listening:"#38BDF8",thinking:"#FCD34D",speaking:"#A78BFA",completed:"#6EE7B7",transfer:"#FDA4AF",idle:"#A1A1B5"};
+function reply(q){const ar=/[؀-ۿ]/.test(q);q=q.toLowerCase();
+  if(/(manager|human|person|مدير|موظف|أكلم)/.test(q))return{tr:1,x:ar?"أكيد، لحظة وحدة أحوّلك لمدير الفرع مع ملخص طلبك.":"Of course. I'm transferring you to the branch manager with a summary of your request."};
+  if(/(book|table|reserv|appoint|أحجز|حجز|طاولة|موعد)/.test(q))return{x:ar?"هلا والله! عندي طاولة لأربعة يوم الجمعة الساعة ٨:٣٠ عند الشباك. أأكد الحجز؟":"Wonderful! I have a table for four this Friday at 8:30 PM by the window. Shall I confirm it?"};
+  if(/(hour|open|close|دوام|تفتح|أوقات)/.test(q))return{x:ar?"مقهى ليالي مفتوح يومياً من ٨ الصبح إلى ١٢ الليل، والجمعة من ١ الظهر.":"Layali Café is open daily 8 AM to midnight, and from 1 PM on Fridays."};
+  if(/(yes|confirm|sure|ok|إي|نعم|أكد|تمام)/.test(q))return{x:ar?"تم ✅ الحجز مؤكد. (عرض تجريبي، لم يُحجز شيء فعلياً)":"Done ✅ Your booking is confirmed. (Simulated, nothing was actually booked.)"};
+  return{x:ar?"أكيد! أقدر أساعدك بالحجوزات، أوقات الدوام، أو المنيو. شنو تحتاج؟":"Happy to help! I can handle bookings, opening hours or our menu. What do you need?"}}
+function mountChat(el,hue,name){
+  let msgs=[],st="idle",busy=false;
+  const draw=()=>{
+    el.innerHTML=`<div class="chat-h"><div data-so="${st==="idle"?"idle":st}" data-hue="${hue}"></div><div class="who"><b>${esc(name||t("demoTitle"))}</b><span class="st"><i style="background:${COLORS[st]}"></i>${st==="idle"?t("idle"):t("states")[["listening","thinking","speaking","completed","transfer"].indexOf(st)]}</span></div><span class="tag amber">${t("simulated")}</span></div>
+    <div class="msgs">${msgs.length?msgs.map(m=>`<div class="m ${m.r}" dir="auto">${esc(m.x)}</div>`).join(""):`<div class="sugg">${t("sugg").map(s=>`<button type="button">${esc(s)}</button>`).join("")}</div>`}</div>
+    <div class="chat-f"><div class="wave ${st==="speaking"||st==="listening"?"on":""}" data-wave="32"></div><form><input class="in" id="in-${hue}" dir="auto" maxlength="300" placeholder="${esc(t("ph"))}" aria-label="${esc(t("ph"))}"><button class="send" type="submit" aria-label="Send">↑</button></form></div>`;
+    paintSO(el);waves(el);const box=el.querySelector(".msgs");box.scrollTop=box.scrollHeight;
+    el.querySelectorAll(".sugg button").forEach(b=>b.onclick=()=>send(b.textContent));
+    el.querySelector("form").onsubmit=e=>{e.preventDefault();send(el.querySelector(".in").value)};
+    if(el.id==="chat")syncStates(st);
+  };
+  const set=s=>{st=s;draw()};
+  function send(q){q=q.trim();if(!q||busy)return;busy=true;msgs.push({r:"u",x:q});set("listening");
+    setTimeout(()=>set("thinking"),500);
+    setTimeout(()=>{const r=reply(q);msgs.push({r:"a",x:r.x});set("speaking");
+      setTimeout(()=>{if(r.tr){msgs.push({r:"sys",x:t("states")[4]});set("transfer")}else set("completed");busy=false},Math.min(2600,700+r.x.length*22))},1400)}
+  draw();return{redraw:draw};
+}
+function syncStates(st){const keys=["listening","thinking","speaking","completed","transfer"];$("#stateList").innerHTML=t("states").map((s,i)=>`<li class="${keys[i]===st?"on":""}" style="--c:${COLORS[keys[i]]}"><span></span>${s}</li>`).join("")}
+
+/* home sections */
+let annual=false;
+function renderHome(){
+  $("#steps").innerHTML=t("how").map((s,i)=>`<div class="glass"><span class="n">${L==="ar"?"الخطوة":"Step"} ${num(i+1)}</span><h3>${s[0]}</h3><p>${s[1]}</p></div>`).join("");
+  const icons=["☎","◷","✆","❖","⇄","≡"];
+  $("#feat").innerHTML=t("feat").map((f,i)=>`<div class="glass"><div class="ic">${icons[i]}</div><h3>${f[0]}</h3><p>${f[1]}</p></div>`).join("");
+  const hues=[265,200,310];
+  $("#team").innerHTML=t("team").map((m,i)=>`<div class="glass"><div data-so="${i===1?"listening":"idle"}" data-hue="${hues[i]}"></div><h3>${m[0]}</h3><p class="muted">${m[1]}</p><span class="tag blue">${m[2]}</span></div>`).join("");
+  const prices=[[19,190],[49,490],[99,990]];
+  $("#plans").innerHTML=t("plans").map((p,i)=>`<div class="glass plan ${i===1?"hi":""}">${i===1?`<span class="tag violet">${t("popular")}</span>`:""}<h3>${p[0]}</h3><div class="price">${prices[i][annual?1:0]} KWD <span>${annual?t("perY"):t("perM")}</span></div><ul>${p[1].map(f=>`<li>${f}</li>`).join("")}</ul><a class="btn ${i===1?"primary":"ghost"}" href="#create">${t("choose")}</a></div>`).join("");
+  $("#quotes").innerHTML=t("quotes").map(q=>`<figure class="glass"><blockquote>“${q[0]}”</blockquote><figcaption>${q[1]}</figcaption></figure>`).join("");
+  $("#faq").innerHTML=t("faq").map((f,i)=>`<details class="glass" ${i===0?"open":""}><summary>${f[0]}</summary><p>${f[1]}</p></details>`).join("");
+  $("#pm").setAttribute("aria-pressed",!annual);$("#pa").setAttribute("aria-pressed",annual);
+}
+$("#pm").onclick=()=>{annual=false;renderHome();paintSO($("#team"))};
+$("#pa").onclick=()=>{annual=true;renderHome();paintSO($("#team"))};
+
+/* dashboard */
+const daily=(()=>{let s=7;const r=()=>(s=(s*9301+49297)%233280)/233280;return Array.from({length:30},(_,i)=>{const w=(i+3)%7>=5;const c=Math.round(60+r()*50+(w?35:0)+i*1.4);return{d:i+1,c,a:Math.round(c*(.9+r()*.08)),ch:Math.round(c*(1.3+r()*.5))}})})();
+function renderDash(){
+  const tot=daily.reduce((a,x)=>a+x.c,0),ans=daily.reduce((a,x)=>a+x.a,0),ch=daily.reduce((a,x)=>a+x.ch,0);
+  const vals=[num(tot),num(ans),num(tot-ans),num(ch),num(412),num(Math.round((ans*3.2+ch*1.5)/60))+" "+t("hrs")];
+  const dots=["#A78BFA","#6EE7B7","#FDA4AF","#38BDF8","#FCD34D","#A78BFA"];
+  $("#stats").innerHTML=t("stats").map((s,i)=>`<div class="glass stat"><p>${s}<span class="k" style="background:${dots[i]}"></span></p><b>${vals[i]}</b></div>`).join("");
+  // chart
+  const W=640,H=230,P={l:40,r:12,t:12,b:26},max=Math.ceil(Math.max(...daily.map(x=>x.ch))/100)*100;
+  const x=i=>P.l+i*(W-P.l-P.r)/(daily.length-1),y=v=>P.t+(H-P.t-P.b)*(1-v/max);
+  const line=k=>daily.map((d,i)=>`${i?"L":"M"}${x(i).toFixed(1)} ${y(d[k]).toFixed(1)}`).join(" ");
+  const area=k=>`${line(k)} L${x(daily.length-1)} ${y(0)} L${x(0)} ${y(0)} Z`;
+  let grid="";for(let v=0;v<=max;v+=max/4){grid+=`<line x1="${P.l}" x2="${W-P.r}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(255,255,255,.06)"/><text x="${P.l-8}" y="${y(v)+4}" fill="#A1A1B5" font-size="11" text-anchor="end">${v}</text>`}
+  let xl="";[1,8,15,22,30].forEach(d=>{xl+=`<text x="${x(d-1)}" y="${H-6}" fill="#A1A1B5" font-size="11" text-anchor="middle">${L==="ar"?"أكتوبر":"Oct"} ${d}</text>`});
+  const last=daily.length-1;
+  $("#chart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("daily")}" dir="ltr"><defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8B5CF6" stop-opacity=".45"/><stop offset="1" stop-color="#8B5CF6" stop-opacity="0"/></linearGradient><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38BDF8" stop-opacity=".3"/><stop offset="1" stop-color="#38BDF8" stop-opacity="0"/></linearGradient></defs>${grid}${xl}<path d="${area("ch")}" fill="url(#gb)"/><path d="${line("ch")}" fill="none" stroke="#38BDF8" stroke-width="2"/><path d="${area("c")}" fill="url(#ga)"/><path d="${line("c")}" fill="none" stroke="#8B5CF6" stroke-width="2.5"/><circle cx="${x(last)}" cy="${y(daily[last].c)}" r="4.5" fill="#8B5CF6" stroke="#fff" stroke-width="2"/><circle cx="${x(last)}" cy="${y(daily[last].ch)}" r="4" fill="#38BDF8" stroke="#fff" stroke-width="2"/></svg>`;
+  const ar=L==="ar";
+  const emps=[[ar?"نورة":"Noura",84,"active",265],[ar?"فهد":"Fahad",51,"active",200],[ar?"ميرا":"Mira",0,"paused",310]];
+  $("#emps").innerHTML=emps.map(e=>`<div class="emp"><div data-so="${e[2]==="active"?"listening":"idle"}" data-hue="${e[3]}"></div><div><b>${e[0]}</b><p>${num(e[1])} ${t("today")}</p></div><span class="tag ${e[2]==="active"?"green":"amber"}">${ar?(e[2]==="active"?"نشط":"متوقف"):e[2]}</span></div>`).join("");
+  const rec=ar?[["عبدالله المطيري","هاتف","مكتملة","green","حجز طاولة لـ٤ يوم الجمعة ٨:٣٠ م عند الشباك.","١:١٢ م"],["سارة الكندري","واتساب","مكتملة","green","سألت عن الخيارات النباتية والمواقف.","١١:٤٠ ص"],["خالد العتيبي","هاتف","محوّلة","violet","طلب عرض ضيافة لـ٤٠ ضيف، حُوّل للمدير.","أمس"],["مريم الهاشمي","هاتف","مكتملة","green","غيّرت الحجز من الخميس إلى السبت.","أمس"]]
+    :[["Abdullah Al-Mutairi","phone","completed","green","Booked a table for 4 on Friday 8:30 PM, window seat.","1:12 PM"],["Sara Al-Kandari","whatsapp","completed","green","Asked about vegan options and parking.","11:40 AM"],["Khalid Al-Otaibi","phone","transferred","violet","Catering quote for 40 guests, transferred to manager.","Yesterday"],["Maryam Al-Hashemi","phone","completed","green","Moved reservation from Thursday to Saturday.","Yesterday"]];
+  $("#recent").innerHTML=rec.map(r=>`<div class="row"><div class="av">${r[0][0]}</div><div class="tx"><b>${r[0]}</b> <span class="tag ${r[3]}">${r[2]}</span> <span class="muted" style="font-size:12px">${r[1]}</span><p>${r[4]}</p></div><time>${r[5]}</time></div>`).join("");
+}
+
+/* creator */
+const W={step:0,ind:0,name:"",hue:265,dia:0,voice:0,tone:0,sl:[75,40,50],biz:["","",""],tasks:[0,1,3,4,6,7]};
+let testChat=null;
+function renderCreate(){
+  const names=t("stepNames");
+  $("#prog").innerHTML=names.map((n,i)=>`<button type="button" class="${i===W.step?"cur":i<W.step?"done":""}" data-go="${i}"><b>${i<W.step?"✓":num(i+1)}</b>${n}</button>`).join("");
+  $("#prog").querySelectorAll("button").forEach(b=>b.onclick=()=>{const g=+b.dataset.go;if(g<=W.step){W.step=g;renderCreate()}});
+  const c=$("#stepCard"),s=W.step;let h=`<h2>${names[s]}</h2>`;
+  const opts=(arr,cur,key,cls="opts")=>`<div class="${cls}">${arr.map((o,i)=>`<button type="button" class="opt" aria-pressed="${i===cur}" data-k="${key}" data-v="${i}">${o}${cls==="list"&&i===cur?" ✓":""}</button>`).join("")}</div>`;
+  if(s===0)h+=opts(t("industries"),W.ind,"ind");
+  if(s===1)h+=`<div class="field"><label for="ename">${t("nameLbl")}</label><input class="in" id="ename" dir="auto" maxlength="60" value="${esc(W.name)}" placeholder="${L==="ar"?"مثال: نورة":"e.g. Noura"}"></div><div class="field"><label>${t("colorLbl")}</label><div class="hues">${[265,200,310,330,180,230].map(x=>`<button type="button" aria-pressed="${x===W.hue}" aria-label="hue ${x}" data-hue="${x}" style="background:linear-gradient(135deg,hsl(${x} 90% 66%),hsl(${(x+295)%360} 92% 60%))"></button>`).join("")}</div></div>`;
+  if(s===2)h+=`<div style="display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))"><div>${opts(t("dialects"),W.dia,"dia","list")}</div><div>${opts(t("voices"),W.voice,"voice","list")}</div></div>`;
+  if(s===3)h+=opts(t("tones"),W.tone,"tone")+t("sliders").map((l,i)=>`<div class="field" style="margin-top:16px"><label for="sl${i}">${l} · ${num(W.sl[i])}</label><input type="range" id="sl${i}" min="0" max="100" value="${W.sl[i]}" data-sl="${i}"></div>`).join("");
+  if(s===4)h+=t("biz").map((l,i)=>`<div class="field"><label for="biz${i}">${l}</label>${i===2?`<textarea class="in" id="biz${i}" rows="4" dir="auto" data-biz="${i}" placeholder="${esc(t("bizPh")[i])}">${esc(W.biz[i])}</textarea>`:`<input class="in" id="biz${i}" dir="auto" data-biz="${i}" value="${esc(W.biz[i])}" placeholder="${esc(t("bizPh")[i])}">`}</div>`).join("");
+  if(s===5)h+=`<div class="list" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">${t("tasks").map((x,i)=>`<button type="button" class="opt" aria-pressed="${W.tasks.includes(i)}" data-task="${i}">${x}${W.tasks.includes(i)?" ✓":""}</button>`).join("")}</div>`;
+  if(s===6)h+=`<p class="muted" style="margin-bottom:12px;font-size:13px">${t("testHint")}</p><div class="glass chat" id="testchat" style="height:420px"></div>`;
+  if(s===7)h+=`<div style="text-align:center;padding:20px 0"><div data-so="completed" data-hue="${W.hue}" style="width:140px;height:140px"></div><h3 style="font-size:22px;margin-top:14px">${esc(W.name||t("yourEmp"))}${t("ready")}</h3><p class="muted" style="margin:8px auto 0;max-width:30em">${t("readySub")}</p><button type="button" class="btn primary lg" style="margin-top:20px" id="act">${t("activate")}</button><p id="actmsg" class="muted" style="margin-top:12px;font-size:13px"></p></div>`;
+  c.innerHTML=h;paintSO(c);
+  c.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{W[b.dataset.k]=+b.dataset.v;renderCreate()});
+  c.querySelectorAll("[data-hue]").forEach(b=>b.onclick=()=>{W.hue=+b.dataset.hue;renderCreate()});
+  c.querySelectorAll("[data-sl]").forEach(r=>r.oninput=()=>{W.sl[+r.dataset.sl]=+r.value;r.previousElementSibling.textContent=`${t("sliders")[+r.dataset.sl]} · ${num(+r.value)}`});
+  c.querySelectorAll("[data-biz]").forEach(r=>r.oninput=()=>{W.biz[+r.dataset.biz]=r.value;renderPv()});
+  c.querySelectorAll("[data-task]").forEach(b=>b.onclick=()=>{const i=+b.dataset.task;W.tasks=W.tasks.includes(i)?W.tasks.filter(x=>x!==i):[...W.tasks,i];renderCreate()});
+  const en=$("#ename");if(en)en.oninput=()=>{W.name=en.value;renderPv()};
+  if(s===6)testChat=mountChat($("#testchat"),W.hue,W.name||t("yourEmp"));
+  const a=$("#act");if(a)a.onclick=()=>{$("#actmsg").textContent=t("activated")};
+  $("#back").disabled=s===0;$("#next").hidden=s===7;
+  renderPv();
+}
+function renderPv(){
+  $("#pv").innerHTML=`<div data-so="${W.step===2?"speaking":W.step===7?"completed":"idle"}" data-hue="${W.hue}"></div><h3>${esc(W.name||t("yourEmp"))}</h3><p class="muted">${esc(W.biz[0]||t("industries")[W.ind])}</p><div class="tags"><span class="tag violet">${t("dialects")[W.dia]}</span><span class="tag blue">${t("voices")[W.voice].split(/[,،]/)[0]}</span><span class="tag">${t("tones")[W.tone]}</span></div><p class="muted" style="font-size:12px;margin-top:8px">${num(W.tasks.length)} ${t("tasksOn")}</p>`;
+  paintSO($("#pv"));
+}
+$("#back").onclick=()=>{if(W.step>0){W.step--;renderCreate()}};
+$("#next").onclick=()=>{if(W.step<7){W.step++;renderCreate()}};
+
+
+/* OS preview views (sample data, clearly labelled) */
+const SCOL={online:"#6EE7B7",speaking:"#A78BFA",listening:"#38BDF8",thinking:"#FCD34D",needs_attention:"#FDA4AF",offline:"rgba(255,255,255,.25)"};
+let approvals=null;
+function renderCommand(){
+  const ar=L==="ar",vals=[3,2,5,18,6,4,11,1];
+  $("#ccTiles").innerHTML=t("ccTiles").map((l,i)=>`<div class="glass cc-tile"><p>${l}</p><b>${num(vals[i])}</b></div>`).join("");
+  const ag=[[ar?"نورة · الاستقبال":"Noura · Receptionist","speaking",265,ar?"مكالمة من •••• 0101":"Call from •••• 0101"],[ar?"فهد · المبيعات":"Fahad · Sales","thinking",200,ar?"يجهّز عرض سعر":"Preparing a quote"],[ar?"ريم · الحجوزات":"Reem · Booking","needs_attention",180,ar?"إلغاء بانتظار الموافقة":"Cancellation needs approval"],[ar?"ميرا · خدمة العملاء":"Mira · Support","online",310,""],[ar?"سو المدير":"SO Manager","offline",230,ar?"داخلي":"Internal"]];
+  const ms={speaking:"speaking",thinking:"thinking",needs_attention:"transfer",online:"idle",offline:"idle",listening:"listening"};
+  $("#ccAgents").innerHTML=ag.map(a=>`<div class="agent"><div data-so="${ms[a[1]]}" data-hue="${a[2]}"></div><div><b style="font-size:13px">${a[0]}</b><p><span class="sdot" style="background:${SCOL[a[1]]}"></span>${t("stat")[a[1]]}${a[3]?" · "+a[3]:""}</p></div></div>`).join("");
+  if(!approvals)approvals=[{id:1,tool:ar?"إلغاء موعد":"cancel appointment",who:ar?"ريم":"Reem",sum:ar?"الهاتف: •••• 0104 · السبت ٨:٠٠ م":"phone: •••• 0104 · Sat 8:00 PM"}];
+  $("#ccAppr").innerHTML=approvals.length?approvals.map(a=>`<div class="appr"><div><b style="font-size:14px">${a.tool}</b> <span class="muted">· ${a.who}</span><p>${a.sum}</p></div><button class="btn ghost sm" data-rej="${a.id}" type="button">${t("reject")}</button><button class="btn primary sm" data-ok="${a.id}" type="button">${t("approve")}</button></div>`).join(""):`<p class="note">${t("noAppr")}</p>`;
+  $("#ccAppr").querySelectorAll("[data-ok],[data-rej]").forEach(b=>b.onclick=()=>{const ok=!!b.dataset.ok;approvals=approvals.filter(a=>String(a.id)!==(b.dataset.ok||b.dataset.rej));renderCommand();paintSO($("#v-command"));const n=document.createElement("p");n.className="note";n.style.marginTop="6px";n.textContent=ok?t("approved"):t("rejected");$("#ccAppr").appendChild(n)});
+  const feed=ar?[["#6EE7B7","نورة","حجزت طاولة لـ٤ · الجمعة ٨:٣٠ م","منذ دقيقة"],["#38BDF8","فهد","محادثة واتساب · اهتمام بالشراء","منذ ٣ د"],["#FCD34D","ريم","طلبت موافقة: إلغاء موعد","منذ ٤ د"],["#6EE7B7","أتمتة","أرسلت تأكيد واتساب","منذ ٦ د"],["#FDA4AF","ميرا","حوّلت شكوى لمدير الفرع","منذ ١٢ د"],["#6EE7B7","نورة","حفظت تفضيل: طاولة عند الشباك","منذ ١٥ د"]]
+   :[["#6EE7B7","Noura","booked a table for 4 · Fri 8:30 PM","1m"],["#38BDF8","Fahad","WhatsApp conversation · purchase interest","3m"],["#FCD34D","Reem","requested approval: cancel appointment","4m"],["#6EE7B7","Automation","sent WhatsApp confirmation","6m"],["#FDA4AF","Mira","escalated a complaint to the branch manager","12m"],["#6EE7B7","Noura","remembered preference: window table","15m"]];
+  $("#ccFeed").innerHTML=feed.map(f=>`<li><i style="background:${f[0]}"></i><span><b>${f[1]}</b> <span class="muted">${f[2]}</span></span><time>${f[3]}</time></li>`).join("");
+}
+let leads=null,selLead=null;
+function renderPipeline(){
+  const ar=L==="ar";
+  if(!leads)leads=[
+    {id:1,st:0,score:23,n:ar?"خالد العتيبي":"Khalid Al-Otaibi",i:ar?"ضيافة لـ٤٠ ضيف":"Catering for 40 guests",src:"WhatsApp",why:[["stage:new",5],["inbound_whatsapp",3],["recent_contact",7],["asked_pricing",8]],fu:ar?"أرسل عرض سعر خلال يوم":"Send a quotation within a day"},
+    {id:2,st:1,score:41,n:ar?"سارة الكندري":"Sara Al-Kandari",i:ar?"اشتراك فطور شهري":"Monthly breakfast subscription",src:"Phone",why:[["stage:contacted",15],["conversations:2",10],["inbound_phone",3],["recent_contact",7],["asked_pricing",8]],fu:ar?"تابع معها خلال ٣ أيام":"Check in within 3 days"},
+    {id:3,st:2,score:58,n:ar?"عبدالله المطيري":"Abdullah Al-Mutairi",i:ar?"غرفة خاصة لغداء الفريق":"Private room for team lunch",src:"Phone",why:[["stage:interested",30],["conversations:3",15],["appointments:1",8],["inbound_phone",3]],fu:ar?"أكّد موعد الزيارة":"Confirm their visit"},
+    {id:4,st:3,score:81,n:ar?"حصة الصباح":"Hessa Al-Sabah",i:ar?"طاولة حلويات لحفل زفاف":"Wedding dessert table",src:"Phone",why:[["stage:qualified",45],["conversations:4",15],["attended_appointment",10],["value_known",5],["recent_contact",7]],fu:ar?"أرسل العقد":"Send the contract"},
+    {id:5,st:4,score:100,n:"James Carter",i:ar?"صناديق فطور للشركات":"Corporate breakfast boxes",src:"Web",why:[["converted",100]],fu:""},
+  ];
+  $("#plCols").innerHTML=t("stages").map((s,si)=>{const ls=leads.filter(l=>l.st===si);return `<div class="col"><h3><span>${s}</span><span class="muted">${num(ls.length)}</span></h3>${ls.map(l=>{const c=l.score>=70?"background:rgba(110,231,183,.15);color:#6EE7B7":l.score>=40?"background:rgba(252,211,77,.15);color:#FDE68A":"background:rgba(255,255,255,.06);color:#A1A1B5";return `<div class="lead" role="button" tabindex="0" data-lead="${l.id}"><span class="score" style="${c}">${num(l.score)}</span><b>${l.n}</b><p>${l.i}</p><p><span class="tag">${l.src}</span></p><select aria-label="stage" data-mv="${l.id}">${t("stages").map((x,xi)=>`<option value="${xi}" ${xi===l.st?"selected":""}>${x}</option>`).join("")}</select></div>`}).join("")}</div>`}).join("");
+  $("#plCols").querySelectorAll("[data-lead]").forEach(el=>el.onclick=e=>{if(e.target.tagName==="SELECT"||e.target.tagName==="OPTION")return;selLead=+el.dataset.lead;renderLeadDetail()});
+  $("#plCols").querySelectorAll("[data-mv]").forEach(sel=>sel.onchange=()=>{const l=leads.find(x=>x.id===+sel.dataset.mv);l.st=+sel.value;renderPipeline()});
+  renderLeadDetail();
+}
+function renderLeadDetail(){
+  const l=leads&&leads.find(x=>x.id===selLead),d=$("#plDetail");
+  if(!l){d.hidden=true;return}
+  d.hidden=false;
+  d.innerHTML=`<h2>${l.n} <span class="tag">${num(l.score)}</span></h2><p class="muted" style="font-size:13px">${l.i}</p><p style="font-size:12px;font-weight:700;margin-top:12px">${t("why")}</p><ul class="log">${l.why.map(w=>`<li style="justify-content:space-between"><span>${w[0].replace(/_/g," ")}</span><span style="font-variant-numeric:tabular-nums">+${w[1]}</span></li>`).join("")}</ul>${l.fu?`<p style="font-size:12px;font-weight:700;margin-top:12px">${t("follow")} <span class="tag blue">${L==="ar"?"قائم على القواعد":"Rule-based"}</span></p><p style="font-size:14px;margin-top:4px">${l.fu}</p>`:""}`;
+}
+let auOn=true;
+function renderAuto(){
+  $("#auName").textContent=t("wfName");
+  const n=(k,txt)=>`<div class="node"><span class="k">${k}</span>${txt}</div>`;
+  $("#auFlow").innerHTML=`<div class="node trig"><span class="k" style="background:rgba(56,189,248,.2);color:#38BDF8">⚡</span>${t("trig")}</div>
+  <div class="node cond"><div style="display:flex;gap:10px;align-items:center"><span class="k" style="background:rgba(252,211,77,.18);color:#FDE68A">?</span>${t("cond")}</div>
+   <div class="branches"><div class="lane"><span class="tag green">${t("yes")}</span>${t("acts").map((a,i)=>n(num(i+1),a)).join("")}</div><div class="lane"><span class="tag rose">${t("no")}</span>${t("noActs").map((a,i)=>n(num(i+1),a)).join("")}</div></div></div>`;
+  $("#auIntent").innerHTML=t("intents").map(([k,l])=>`<option value="${k}">${l}</option>`).join("");
+  $("#auOn").checked=auOn;$("#auOn").onchange=e=>{auOn=e.target.checked};
+  $("#auRun").onclick=()=>{
+    const yes=["booking","reschedule"].includes($("#auIntent").value);
+    const rows=[[yes?"#6EE7B7":"rgba(255,255,255,.4)",yes?t("condYes"):t("condNo")]].concat(t("acts").map(a=>[yes?"#6EE7B7":"rgba(255,255,255,.2)",`${a} · ${yes?t("ok"):t("skip")}`])).concat(t("noActs").map(a=>[yes?"rgba(255,255,255,.2)":"#6EE7B7",`${a} · ${yes?t("skip"):t("ok")}`]));
+    $("#auLog").innerHTML=rows.map(r=>`<li><span class="sdot" style="background:${r[0]};margin-top:4px"></span>${r[1]}</li>`).join("");
+  };
+  $("#auLog").innerHTML="";
+}
+
+
+
+
+/* Assistant SO — preview: demo answers + browser speech; mouth driven while speaking */
+const AS={open:false,muted:false,phase:"idle",emo:"happy",msgs:[],raf:0,rec:null,mouth:0};
+function asShape(o){const sm=AS.emo==="concerned"?-3:AS.emo==="thinking"?1:AS.emo==="happy"?7:4,w=15-o*3;return `M ${100-w} 128 Q 100 ${128+sm*.25-o*3} ${100+w} 128 Q 100 ${128+sm+o*16} ${100-w} 128 Z`}
+function asFace(){
+  const happy=AS.emo==="happy";
+  $("#asEyes").innerHTML=happy?'<path d="M72 102 Q80 92 88 102" stroke="url(#ase)" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M112 102 Q120 92 128 102" stroke="url(#ase)" stroke-width="5" stroke-linecap="round" fill="none"/>':'<ellipse cx="80" cy="100" rx="7.5" ry="10" fill="url(#ase)"/><ellipse cx="120" cy="100" rx="7.5" ry="10" fill="url(#ase)"/><circle cx="82.5" cy="96" r="2.4" fill="#fff"/><circle cx="122.5" cy="96" r="2.4" fill="#fff"/>';
+  const c=AS.emo==="concerned"?"#FCD34D":happy?"#38BDF8":"#8B5CF6";
+  $("#asGlow").style.background=`radial-gradient(circle,${c}55 0%,transparent 70%)`;$("#asRing").setAttribute("stroke",c);
+  $("#asBl").setAttribute("d",AS.emo==="concerned"?"M70 82 Q80 76 90 80":"M70 80 Q80 74 90 78");$("#asBr").setAttribute("d",AS.emo==="concerned"?"M110 80 Q120 76 130 82":AS.emo==="thinking"?"M110 76 Q120 72 130 77":"M110 78 Q120 74 130 80");
+  $("#asMouth").setAttribute("d",asShape(AS.mouth));
+  $("#asFace").classList.toggle("listen",AS.phase==="listening");
+  $("#asSt").textContent=t("asFace")+" · "+t("asSt")[AS.phase];
+}
+function asList(){$("#asList").innerHTML=AS.msgs.map(m=>m.note?`<p class="as-note">${esc(m.text)}</p>`:`<p class="as-m ${m.u?"u":""}" dir="auto">${esc(m.text)}</p>`).join("");$("#asList").scrollTop=1e6}
+function asReset(){AS.msgs=[{text:t("asNote"),note:true},{text:t("asHello")}];AS.emo="happy";AS.phase="idle";asList();asFace();
+  $("#asChips").innerHTML=t("asChips").map(c=>`<button type="button">${esc(c)}</button>`).join("");$("#asChips").querySelectorAll("button").forEach(b=>b.onclick=()=>asAsk(b.textContent));
+  $("#asIn").placeholder=t("asPh");$("#asBtn").setAttribute("aria-label",t("asOpen"));$("#asBtn").title=t("asOpen")}
+let asBlinkT;function asBlink(){if(AS.open){$("#asEyes").animate([{transform:"scaleY(1)"},{transform:"scaleY(.08)"},{transform:"scaleY(1)"}],{duration:160})}asBlinkT=setTimeout(asBlink,2500+Math.random()*3500)}
+function asAnswer(q){const A=t("asA"),x=q.toLowerCase();
+  if(/^(افتح|روح|ودني|اعرض|open|go to|show)/i.test(x.trim())){const m=[[/مواعيد|appointment/,"appointments"],[/فريق|team/,"team"],[/مباشر|live/,"live"],[/مبيعات|pipeline/,"pipeline"],[/أتمتة|automation/,"automations"],[/قيادة|command/,"command"],[/لوحة|dashboard/,"dashboard"]].find(([r])=>r.test(x));if(m)return{text:A.nav,emo:"happy",nav:m[1]}}
+  if(/وضع|حالة|status|right now|things/.test(x))return{text:A.status,emo:"happy"};
+  if(/موعد|مواعيد|appointment/.test(x))return{text:A.appts,emo:"happy"};
+  if(/مكالم|call/.test(x))return{text:A.calls,emo:"happy"};
+  if(/^(هلا|مرحبا|السلام|hi|hello|hey)/.test(x))return{text:A.hello,emo:"happy"};
+  return{text:A.other,emo:"neutral"}}
+function asSpeak(text){return new Promise(res=>{
+  if(AS.muted||!("speechSynthesis" in window)){return res()}
+  speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=L==="ar"?"ar-SA":"en-US";
+  const v=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith(L==="ar"?"ar":"en"));if(v)u.voice=v;u.rate=1;
+  let pulse=0;u.onboundary=()=>{pulse=1};
+  const tick=()=>{pulse*=.86;const target=AS.phase==="speaking"?Math.min(1,.25+.55*Math.abs(Math.sin(performance.now()/90))+.3*pulse):0;AS.mouth=AS.mouth*.5+target*.5;$("#asMouth").setAttribute("d",asShape(AS.mouth));AS.raf=requestAnimationFrame(tick)};
+  u.onstart=()=>{AS.phase="speaking";asFace();cancelAnimationFrame(AS.raf);tick()};
+  const end=()=>{cancelAnimationFrame(AS.raf);AS.mouth=0;asFace();res()};u.onend=end;u.onerror=end;
+  speechSynthesis.speak(u);setTimeout(()=>{if(!speechSynthesis.speaking&&AS.phase!=="speaking")end()},1500)})}
+async function asAsk(q){q=(q||"").trim();if(!q)return;$("#asIn").value="";AS.msgs.push({text:q,u:true});AS.phase="thinking";AS.emo="thinking";asList();asFace();
+  await new Promise(r=>setTimeout(r,550));const a=asAnswer(q);AS.msgs.push({text:a.text});AS.emo=a.emo;asList();asFace();
+  if(a.nav)setTimeout(()=>{location.hash="#"+a.nav},400);
+  await asSpeak(a.text);AS.phase="idle";asFace()}
+function asMic(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(AS.rec){AS.rec.stop();return}
+  if(!SR){AS.msgs.push({text:t("asNoMic"),note:true});asList();return}
+  speechSynthesis?.cancel();const r=new SR();r.lang=L==="ar"?"ar-KW":"en-US";r.interimResults=false;r.maxAlternatives=1;AS.rec=r;AS.phase="listening";AS.emo="neutral";asFace();$("#asMic").classList.add("rec");
+  r.onresult=e=>{const txt=e.results[0][0].transcript;asAsk(txt)};
+  r.onerror=()=>{AS.msgs.push({text:t("asNoMic"),note:true});asList()};
+  r.onend=()=>{AS.rec=null;$("#asMic").classList.remove("rec");if(AS.phase==="listening"){AS.phase="idle";asFace()}};r.start()}
+function asInit(){
+  $("#asBtn").onclick=()=>{AS.open=true;$("#asPanel").hidden=false;$("#asBtn").hidden=true;if(!AS.msgs.length)asReset();clearTimeout(asBlinkT);asBlink()};
+  $("#asClose").onclick=()=>{AS.open=false;$("#asPanel").hidden=true;asRoute();try{speechSynthesis.cancel()}catch(e){}AS.rec?.stop()};
+  $("#asMute").onclick=()=>{AS.muted=!AS.muted;$("#asMute").textContent=AS.muted?"🔇":"🔊";try{speechSynthesis.cancel()}catch(e){}};
+  $("#asMic").onclick=asMic;$("#asForm").onsubmit=e=>{e.preventDefault();asAsk($("#asIn").value)};
+}
+function asRoute(){const h=(location.hash||"#home").slice(1);$("#asBtn").hidden=AS.open||h==="home"||h==="talk"||h==="pricing"||h===""}
+/* Phase 2 preview: live channels (simulated) */
+let lvTimers=[];
+function renderLive(play){
+  lvTimers.forEach(clearTimeout);lvTimers=[];
+  const tk='<small>9:41 <b>✓✓</b></small>',tm='<small>9:41</small>';
+  $("#lvWa").innerHTML=`<div class="wa-h"><i>${t("lvCust").slice(0,1)}</i><div><b style="font-size:14px">${t("lvCust")}</b><p>${t("lvAgentName")}</p></div></div>
+  <div class="bub in" data-s="0"><div class="vn">▶ <span></span> ${t("lvVoice")}</div><div class="tr">🎤 ${t("lvHeard")}: ${t("lvVoiceTx")}</div>${tm}</div>
+  <div class="typing" data-s="1">${t("lvTyping")}</div>
+  <div class="bub out" data-s="2">${t("lvReply1")}${tk}</div>
+  <div class="bub in" data-s="3">${t("lvYes")}${tm}</div>
+  <div class="bub out" data-s="4">${t("lvReply2")}${tk}</div>`;
+  $("#lvCaller").textContent=t("lvCaller");$("#lvCaller").dir="ltr";
+  $("#lvAgent").textContent=t("lvAgentName");
+  $("#lvSteps").innerHTML=t("lvSteps").map(([a,b],i)=>`<li data-c="${i}"><b class="n">${i+1}</b><span>${a}<em>${b}</em></span></li>`).join("");
+  const st=t("lvStatus"),stOf=[ "listening","speaking","listening","thinking","speaking","done"];
+  const show=(n)=>{
+    document.querySelectorAll("#lvWa [data-s]").forEach(el=>el.classList.toggle("on",+el.dataset.s<=n&&!(el.classList.contains("typing")&&n>1)));
+    document.querySelectorAll("#lvSteps [data-c]").forEach(el=>el.classList.toggle("on",+el.dataset.c<=n));
+    $("#lvSt").textContent=st[n>=5?"done":n===4?"transfer":stOf[Math.min(n,5)]];
+  };
+  $("#lvPlay").textContent=t("lvPlay");
+  if(!play){show(5);$("#lvPlay").textContent=t("lvReplay");return}
+  show(-1);
+  for(let i=0;i<=5;i++)lvTimers.push(setTimeout(()=>{show(i);if(i===5)$("#lvPlay").textContent=t("lvReplay")},400+i*1300));
+}
+/* Phase 1 preview views */
+let appts=null;
+function renderAppts(){
+  const ar=L==="ar";
+  if(!appts)appts=[
+    {d:0,t:"13:00",n:ar?"عبدالله المطيري":"Abdullah Al-Mutairi",ph:"+965 5000 0101",k:ar?"حجز · ٤ أشخاص":"Reservation · party of 4",by:ar?"حجزته نورة":"booked by Noura",st:"confirmed"},
+    {d:0,t:"18:30",n:ar?"سارة الكندري":"Sara Al-Kandari",ph:"+965 5000 0102",k:ar?"حجز · شخصان":"Reservation · party of 2",by:ar?"حجزه الفريق":"booked by staff",st:"pending"},
+    {d:1,t:"20:00",n:ar?"حصة الصباح":"Hessa Al-Sabah",ph:"+965 5000 0106",k:ar?"حجز · ٨ أشخاص · غرفة خاصة":"Reservation · party of 8 · private room",by:ar?"حجزته نورة":"booked by Noura",st:"confirmed"},
+    {d:2,t:"11:00",n:"James Carter",ph:"+965 5000 0105",k:ar?"معاودة اتصال":"Callback",by:ar?"حجزه فهد":"booked by Fahad",st:"pending"}];
+  const days=[ar?"اليوم":"Today",ar?"غداً":"Tomorrow",ar?"بعد غد":"In 2 days"];
+  let h="";[0,1,2].forEach(d=>{const ls=appts.filter(a=>a.d===d);if(!ls.length)return;h+=`<p class="day">${days[d]}</p><div style="display:grid;gap:8px">`+ls.map((a,i)=>{const idx=appts.indexOf(a);return `<div class="glass appt"><time dir="ltr">${a.t}</time><div><b style="font-size:14px">${a.n}</b> <span class="muted" style="font-size:12px" dir="ltr">${a.ph}</span><p>${a.k} · ${a.by}</p></div><select aria-label="status" data-ap="${idx}">${Object.entries(t("apStatus")).map(([k,v])=>`<option value="${k}" ${k===a.st?"selected":""}>${v}</option>`).join("")}</select></div>`}).join("")+"</div>"});
+  $("#apList").innerHTML=h;
+  $("#apList").querySelectorAll("[data-ap]").forEach(sel=>sel.onchange=()=>{appts[+sel.dataset.ap].st=sel.value});
+  $("#apNew").onclick=()=>{$("#apMsg").textContent=t("apNewMsg")};
+}
+let team=null;
+function renderTeam(){
+  const ar=L==="ar";
+  if(!team)team=[{n:ar?"مالك تجريبي":"Demo Owner",e:"owner@layali.kw",r:"owner",me:true},{n:ar?"منى · مديرة الفرع":"Mona · Branch manager",e:"mona@layali.kw",r:"manager"},{n:ar?"يوسف · الاستقبال":"Yousef · Front desk",e:"yousef@layali.kw",r:"employee"},{n:ar?"المحاسب":"Accountant",e:"accounts@layali.kw",r:"viewer"}];
+  const rn=t("roleNames");
+  $("#tmList").innerHTML=team.map((m,i)=>`<div class="mem"><div><b style="font-size:14px">${m.n}${m.me?` <span class="muted">· ${t("you")}</span>`:""}</b><p dir="ltr">${m.e}</p></div>${m.me?`<span class="tag violet">${rn[m.r]}</span>`:`<select aria-label="role" data-tm="${i}">${["admin","manager","employee","viewer"].map(r=>`<option value="${r}" ${r===m.r?"selected":""}>${rn[r]}</option>`).join("")}</select>`}</div>`).join("")+`<form id="tmInv" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><input class="in" type="email" required dir="ltr" placeholder="name@company.com" aria-label="email" style="flex:1;min-width:180px"><button class="btn primary sm" type="submit">${ar?"دعوة":"Invite"}</button></form><p class="note" id="tmMsg"></p>`;
+  $("#tmList").querySelectorAll("[data-tm]").forEach(sel=>sel.onchange=()=>{team[+sel.dataset.tm].r=sel.value});
+  $("#tmInv").onsubmit=e=>{e.preventDefault();$("#tmMsg").textContent=ar?"معاينة: في التطبيق تُرسل دعوة بالبريد ويُضاف العضو.":"Preview: in the app an email invitation is sent and the member is added."};
+  $("#tmRoles").innerHTML=t("roleDesc").map(([r,d])=>`<div><b style="color:#fff">${rn[r]}:</b> ${d}</div>`).join("");
+}
+const OB={step:0,name:"",country:"KW",industry:0,email:"",phone:"",tz:"Asia/Kuwait",lang:"ar"};
+function renderOnb(){
+  const ar=L==="ar",s=OB.step;
+  $("#obBar").innerHTML=[0,1,2].map(i=>`<span class="${i<=s?"on":""}"></span>`).join("");
+  let h=`<h2 style="font-size:24px;margin-bottom:18px">${t("obT")[s]}</h2>`;
+  if(s===0)h+=`<div style="display:grid;gap:14px"><label>${t("obName")}<input id="obName" dir="auto" value="${esc(OB.name)}" placeholder="${ar?"مثال: مقهى ليالي":"e.g. Layali Café"}"></label><label>${t("obCountry")}<select id="obCountry">${t("countries").map(([v,l])=>`<option value="${v}" ${v===OB.country?"selected":""}>${l}</option>`).join("")}</select></label></div>`;
+  if(s===1)h+=`<div class="opts">${t("industries").map((x,i)=>`<button type="button" class="opt" aria-pressed="${i===OB.industry}" data-ind="${i}">${x}</button>`).join("")}</div>`;
+  if(s===2)h+=`<div class="grid2"><label>${t("obEmail")}<input id="obEmail" type="email" dir="ltr" value="${esc(OB.email)}"></label><label>${t("obPhone")}<input id="obPhone" dir="ltr" value="${esc(OB.phone)}" placeholder="+965 ..."></label><label>${t("obTz")}<select id="obTz">${["Asia/Kuwait","Asia/Riyadh","Asia/Dubai","Asia/Qatar","Asia/Bahrain","Asia/Muscat"].map(z=>`<option ${z===OB.tz?"selected":""}>${z}</option>`).join("")}</select></label><label>${t("obLang")}<select id="obLang"><option value="ar" ${OB.lang==="ar"?"selected":""}>العربية</option><option value="en" ${OB.lang==="en"?"selected":""}>English</option></select></label></div><p class="note" style="margin-top:12px">${t("obTrial")}</p>`;
+  h+=`<p class="note" id="obMsg" style="margin-top:10px"></p><div class="nav2" style="margin-top:18px"><button class="btn ghost" type="button" id="obBack" ${s===0?"disabled":""}>${t("back")}</button><button class="btn primary" type="button" id="obNext">${s<2?t("next"):t("obFinish")}</button></div>`;
+  $("#obBody").innerHTML=h;
+  const keep=()=>{const v=id=>{const el=$("#"+id);return el?el.value:null};if(v("obName")!==null)OB.name=v("obName");if(v("obCountry"))OB.country=v("obCountry");if(v("obEmail")!==null)OB.email=v("obEmail");if(v("obPhone")!==null)OB.phone=v("obPhone");if(v("obTz"))OB.tz=v("obTz");if(v("obLang"))OB.lang=v("obLang")};
+  $("#obBody").querySelectorAll("[data-ind]").forEach(b=>b.onclick=()=>{OB.industry=+b.dataset.ind;renderOnb()});
+  $("#obBack").onclick=()=>{keep();OB.step--;renderOnb()};
+  $("#obNext").onclick=()=>{keep();if(s===0&&OB.name.trim().length<2){$("#obMsg").textContent=ar?"أدخل اسم النشاط (حرفان على الأقل).":"Enter a business name (at least 2 characters).";return}if(s<2){OB.step++;renderOnb()}else $("#obMsg").textContent=t("obDone")};
+}
+
+/* i18n + routing */
+let homeChat=null;
+function applyLang(){
+  document.documentElement.lang=L;document.documentElement.dir=L==="ar"?"rtl":"ltr";
+  document.querySelectorAll("[data-t]").forEach(el=>{const v=t(el.dataset.t);if(typeof v==="string")el.textContent=v});
+  document.querySelectorAll("[data-h]").forEach(el=>el.innerHTML=t(el.dataset.h));
+  $("#lang").textContent=L==="ar"?"English":"العربية";
+  renderHome();renderDash();renderCreate();renderCommand();renderPipeline();renderAuto();renderAppts();renderTeam();renderOnb();renderLive(false);$("#lvPlay").onclick=()=>renderLive(true);AS.msgs=[];if(AS.open)asReset();$("#asTitle")&&0;homeChat=mountChat($("#chat"),265);paintSO();waves();
+}
+$("#lang").onclick=()=>{L=L==="ar"?"en":"ar";try{localStorage.setItem("saut_lang",L)}catch(e){}applyLang()};
+function route(){
+  const h=(location.hash||"#home").slice(1);const v=["dashboard","live","create","command","pipeline","automations","appointments","team","onboarding"].includes(h)?h:"home";
+  document.querySelectorAll(".viewroot").forEach(x=>x.hidden=x.id!=="v-"+v);
+  document.querySelectorAll(".tabs a").forEach(a=>{if(a.getAttribute("href")==="#"+v)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
+  if(h==="talk"||h==="pricing")document.getElementById(h)?.scrollIntoView({behavior:"smooth"});else window.scrollTo(0,0);
+}
+window.addEventListener("hashchange",()=>{route();asRoute()});asInit();
+applyLang();route();asRoute();
+</script>

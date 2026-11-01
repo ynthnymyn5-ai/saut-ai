@@ -1,0 +1,14 @@
+# fly launch --copy-config --no-deploy   then:   fly secrets set OPENAI_API_KEY=… APP_URL=… INTERNAL_API_SECRET=…
+app = "saut-voice-bridge"
+primary_region = "fra"   # closest Fly region with good latency to the Gulf; "bom" is the alternative
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"   # calls need a warm, always-on process
+  min_machines_running = 1
+
+[[http_service.checks]]
+  path = "/health"
+  interval = "30s"
+  timeout = "5s"

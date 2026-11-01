@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" role="img" aria-label="SAUT AI">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#38BDF8"/></linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1A1834"/><stop offset="1" stop-color="#0B0B18"/></linearGradient>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="17" fill="url(#bg)" stroke="url(#g)" stroke-opacity=".55" stroke-width="1.5"/>
+  <path d="M44 19 C41 14 23 13 20 21 C18 27 23 29.5 27 30.5 L29 27 L32 36.5 L35 27.5 L37.5 33.5 C41 34.5 46 37 44 43 C41 51 23 50 20 45" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="82" y="43" font-family="Sora, Manrope, sans-serif" font-size="30" font-weight="600" letter-spacing="5.4" fill="#FFFFFF">SAUT</text>
+  <text x="208" y="43" font-family="Sora, Manrope, sans-serif" font-size="30" font-weight="600" letter-spacing="5.4" fill="url(#g)">AI</text>
+</svg>
