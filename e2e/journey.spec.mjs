@@ -224,9 +224,9 @@ test.describe.serial("SAUT AI journey", () => {
     const rated = (await (await api.get("/api/conversations?channel=web_chat")).json()).conversations.find((c) => c.id === conv.id);
     expect(rated.rating).toBe(-1);
 
-    // weekly report is computed from real records (this business: 1 order, ≥1 conversation, 1 rating 👎)
+    // weekly report is computed from real records (this business: 2 orders incl. the delivery one, ≥1 conversation, 1 rating 👎)
     const week = await (await api.get("/api/reports/weekly")).json();
-    expect(week.orders).toBe(1);
+    expect(week.orders).toBe(2);
     expect(week.conversations).toBeGreaterThanOrEqual(1);
     expect(week.ratingsDown).toBe(1);
     expect(week.satisfaction).toBe(0);
