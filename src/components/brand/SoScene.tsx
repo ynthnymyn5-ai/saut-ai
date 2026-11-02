@@ -38,14 +38,14 @@ export function SoScene({ size = 320, state = "speaking", className }: { size?: 
         <motion.div className={card} style={{ left: 0, top: size * 0.12, width: size * 0.42 }} {...float(0)}>
           {[0.8, 0.55, 0.65].map((w, i) => <div key={i} className="mb-1.5 flex items-center gap-1.5 last:mb-0"><span className="h-2 w-2 rounded-full bg-electric/80" /><span className="h-1.5 rounded-full bg-white/25" style={{ width: `${w * 100}%` }} /></div>)}
         </motion.div>
-        <motion.div className={cn(card, "flex gap-1.5 rounded-bl-sm")} style={{ right: size * 0.02, top: size * 0.05 }} {...float(0.8, 10)}>
+        <motion.div className={cn(card, "flex gap-1.5 rounded-bl-sm")} style={{ left: size * 0.02, top: size * 0.58 }} {...float(0.8, 10)}>
           {[0, 1, 2].map((i) => <motion.span key={i} className="h-2.5 w-2.5 rounded-full bg-electric" animate={reduce ? undefined : { opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }} />)}
         </motion.div>
-        <motion.div className={card} style={{ right: 0, top: size * 0.48, width: size * 0.44 }} {...float(1.4)}>
+        <motion.div className={card} style={{ right: 0, top: size * 0.84, width: size * 0.42 }} {...float(1.4)}>
           <svg viewBox="0 0 100 36" className="h-auto w-full"><motion.path d="M0 30 L12 24 L24 27 L38 14 L50 19 L64 8 L78 13 L100 3" fill="none" stroke="#38BDF8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
             initial={{ pathLength: reduce ? 1 : 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2, ease: "easeOut" }} /><path d="M0 30 L12 24 L24 27 L38 14 L50 19 L64 8 L78 13 L100 3 L100 36 L0 36Z" fill="#38BDF8" opacity=".12" /></svg>
         </motion.div>
-        <motion.div className={cn(card, "flex gap-1.5 rounded-br-sm")} style={{ left: size * 0.05, top: size * 0.62 }} {...float(2.1, 6)}>
+        <motion.div className={cn(card, "flex gap-1.5 rounded-br-sm")} style={{ right: size * 0.04, top: size * 0.34 }} {...float(2.1, 6)}>
           {[0, 1, 2].map((i) => <span key={i} className="h-2.5 w-2.5 rounded-full bg-violet-soft" />)}
         </motion.div>
       </div>
