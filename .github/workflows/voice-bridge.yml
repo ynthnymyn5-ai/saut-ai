@@ -1,0 +1,47 @@
+name: voice-bridge
+# Deploys the phone-call voice bridge (services/voice-bridge) to Fly.io — no command line needed.
+# One-time: add repository secrets FLY_API_TOKEN, OPENAI_API_KEY, INTERNAL_API_SECRET
+# (Settings → Secrets and variables → Actions). Optional variable FLY_APP (default saut-voice-bridge-<owner>).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["services/voice-bridge/**", ".github/workflows/voice-bridge.yml"]
+concurrency:
+  group: voice-bridge
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: services/voice-bridge
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP: ${{ vars.FLY_APP || format('saut-voice-bridge-{0}', github.repository_owner) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check secrets
+        run: |
+          missing=""
+          [ -n "$FLY_API_TOKEN" ] || missing="$missing FLY_API_TOKEN"
+          [ -n "${{ secrets.OPENAI_API_KEY }}" ] || missing="$missing OPENAI_API_KEY"
+          [ -n "${{ secrets.INTERNAL_API_SECRET }}" ] || missing="$missing INTERNAL_API_SECRET"
+          if [ -n "$missing" ]; then echo "::error::Add these repository secrets first:$missing"; exit 1; fi
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Create the app (first run only)
+        run: flyctl apps create "$APP" --org personal 2>&1 | grep -v "already been taken" || true
+      - name: Set the bridge's secrets
+        run: |
+          flyctl secrets set --stage -a "$APP" \
+            OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+            INTERNAL_API_SECRET="${{ secrets.INTERNAL_API_SECRET }}" \
+            APP_URL="https://saut-ai-lons.vercel.app" > /dev/null
+      - name: Deploy
+        run: flyctl deploy --remote-only -a "$APP" --config fly.toml --ha=false
+      - name: Health check
+        run: |
+          for i in $(seq 1 20); do curl -sf "https://$APP.fly.dev/health" && break; sleep 5; done
+          echo
+          echo "::notice::Voice bridge ready. In Vercel set VOICE_BRIDGE_WSS_URL=wss://$APP.fly.dev/twilio"

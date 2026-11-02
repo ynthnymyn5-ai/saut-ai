@@ -1,5 +1,5 @@
 # fly launch --copy-config --no-deploy   then:   fly secrets set OPENAI_API_KEY=… APP_URL=… INTERNAL_API_SECRET=…
-app = "saut-voice-bridge"
+app = "saut-voice-bridge"   # overridden by the deploy workflow (-a)
 primary_region = "fra"   # closest Fly region with good latency to the Gulf; "bom" is the alternative
 
 [http_service]
