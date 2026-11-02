@@ -440,3 +440,14 @@ test("security: no open redirects after sign-in, no webhooks to internal address
   assert.ok(isPublicHost("https://hooks.example.com/x"));
   for (const bad of ["https://localhost/x", "https://127.0.0.1/", "https://10.0.0.5/", "https://169.254.169.254/latest", "https://192.168.1.1/", "https://[::1]/", "https://2130706433/", "https://metadata.internal/"]) assert.equal(isPublicHost(bad), false, bad);
 });
+
+import { buildAgentPrompt, FOCUSED_CHAT, GENERAL_CHAT, generalChatEnabled } from "../src/lib/so/templates";
+test("AI employee: general questions on by default, owner can keep it on-business", () => {
+  const base = { name: "Sara", role: "receptionist" as const, dialect: "kuwaiti", safetyProfile: "standard", businessName: "Cafe", industry: "restaurant", instructions: "", knowledge: [], memory: [] };
+  assert.ok(buildAgentPrompt(base).includes(GENERAL_CHAT));
+  assert.ok(buildAgentPrompt({ ...base, generalChat: false }).includes(FOCUSED_CHAT));
+  assert.ok(!buildAgentPrompt({ ...base, generalChat: false }).includes(GENERAL_CHAT));
+  assert.equal(generalChatEnabled(undefined), true);
+  assert.equal(generalChatEnabled({ general_chat: false }), false);
+  assert.match(GENERAL_CHAT, /only from the business information/); // business facts still grounded
+});

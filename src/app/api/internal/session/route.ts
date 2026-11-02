@@ -5,7 +5,7 @@ import { engineDb } from "@/lib/so/context";
 import { agentToolKeys } from "@/lib/so/engine";
 import { internalAuthorized } from "@/lib/so/internal-auth";
 import { loadMemory } from "@/lib/so/memory";
-import { buildAgentPrompt } from "@/lib/so/templates";
+import { buildAgentPrompt, generalChatEnabled } from "@/lib/so/templates";
 import { openAiToolSpecs } from "@/lib/so/tools";
 import { verifyStreamToken } from "@/lib/so/stream-token";
 import type { AgentRole } from "@/lib/so/permissions";
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   try {
     const db = engineDb();
     const { data: a } = await db.from("ai_employees")
-      .select("id, organization_id, branch_id, name, role, industry, dialect, voice, speaking_rate, status, safety_profile, business_info, call_settings")
+      .select("id, organization_id, branch_id, name, role, industry, dialect, voice, speaking_rate, status, safety_profile, business_info, call_settings, personality")
       .eq("id", claims.e).eq("organization_id", claims.o).maybeSingle();
     if (!a || a.status !== "active") return Response.json({ ok: false, error: "agent_unavailable" }, { status: 409 });
     const { data: conv } = await db.from("conversations").select("id, customer_id").eq("id", claims.c).eq("organization_id", claims.o).maybeSingle();
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     const bi = (a.business_info ?? {}) as { businessName?: string; description?: string; hours?: string; faqs?: string };
     const instructions = buildAgentPrompt({
       name: a.name, role: a.role as AgentRole, dialect: a.dialect, safetyProfile: a.safety_profile, industry: a.industry,
-      businessName: bi.businessName ?? "the business", channel: "phone",
+      businessName: bi.businessName ?? "the business", channel: "phone", generalChat: generalChatEnabled(a.personality),
       instructions: [instr, bi.description && `About: ${bi.description}`, bi.hours && `Hours: ${bi.hours}`, bi.faqs && `FAQs:\n${bi.faqs}`].filter(Boolean).join("\n"),
       knowledge: [], memory: memory.facts,
       branch: branch ? { name: branch.name as string, address: branch.address as string | undefined } : null,

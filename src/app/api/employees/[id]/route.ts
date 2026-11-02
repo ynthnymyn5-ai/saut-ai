@@ -21,7 +21,7 @@ const patch = z.object({
   dialect: z.enum(DIALECTS).optional(),
   language: z.enum(["ar", "en", "ar+en"]).optional(),
   speaking_rate: z.number().min(0.7).max(1.3).optional(),
-  personality: z.object({ warmth: z.number().int().min(0).max(100), formality: z.number().int().min(0).max(100), pace: z.number().int().min(0).max(100), tone: z.enum(["friendly", "professional", "luxury", "energetic"]) }).optional(),
+  personality: z.object({ warmth: z.number().int().min(0).max(100), formality: z.number().int().min(0).max(100), pace: z.number().int().min(0).max(100), tone: z.enum(["friendly", "professional", "luxury", "energetic"]), general_chat: z.boolean().optional() }).optional(),
   working_hours: z.object({ tz: z.string().max(60), days: hoursSchema }).optional(),
   instructions: z.string().max(20000).optional(),
   business_info: z.object({ businessName: z.string().trim().min(2).max(120), description: z.string().max(2000).default(""), address: z.string().max(300).default(""), hours: z.string().max(300).default(""), faqs: z.string().max(8000).default("") }).optional(),

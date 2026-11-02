@@ -1,4 +1,5 @@
 import type { EmployeeInput } from "@/lib/validation";
+import { FOCUSED_CHAT, GENERAL_CHAT } from "@/lib/so/templates";
 
 const DIALECT_GUIDE: Record<string, string> = {
   kuwaiti: "Speak in natural Kuwaiti Arabic (e.g. شلونك، أبي، وايد، إي نعم، تامر أمر). Keep it warm and hospitable.",
@@ -32,6 +33,7 @@ export function buildSystemPrompt(e: Partial<EmployeeInput>, knowledge: string[]
     "Never invent prices, availability or policies. If you don't know, say so and offer to transfer or take a message.",
     "Never claim an action succeeded (booking, message sent) unless the tool result confirms it.",
     "You are an AI — if asked, say so honestly.",
+    (p as { general_chat?: boolean }).general_chat === false ? FOCUSED_CHAT : GENERAL_CHAT,
     "",
     "Tasks:",
     ...(e.tasks ?? ["answer_faq"]).map((t) => `- ${TASK_GUIDE[t]}`),

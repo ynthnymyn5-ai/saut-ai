@@ -7,7 +7,7 @@ import { agentToolKeys, runTool } from "./engine";
 import { searchKnowledge } from "./knowledge";
 import { loadMemory } from "./memory";
 import { needsHumanHandoff, routeAgent } from "./router";
-import { buildAgentPrompt } from "./templates";
+import { buildAgentPrompt, generalChatEnabled } from "./templates";
 import { openAiToolSpecs } from "./tools";
 import type { AgentRole } from "./permissions";
 
@@ -54,7 +54,7 @@ export async function handleMessage(db: DB | null, input: Inbound): Promise<Orch
   if (input.draftAgent) {
     agent = { id: "draft", organization_id: input.orgId, branch_id: null, name: input.draftAgent.name ?? "SO", role: (input.draftAgent.role as AgentRole) ?? "receptionist", industry: input.draftAgent.industry ?? "other", dialect: input.draftAgent.dialect ?? "kuwaiti", voice: input.draftAgent.voice ?? "alloy", speaking_rate: 1, status: "active", safety_profile: input.draftAgent.safety_profile ?? (input.draftAgent.industry === "clinic" ? "medical" : "standard"), business_info: input.draftAgent.business_info ?? {}, call_settings: {}, working_hours: {} };
   } else if (db) {
-    const { data: agents } = await db.from("ai_employees").select("id, organization_id, branch_id, name, role, industry, dialect, voice, speaking_rate, status, safety_profile, business_info, call_settings, working_hours").eq("organization_id", input.orgId);
+    const { data: agents } = await db.from("ai_employees").select("id, organization_id, branch_id, name, role, industry, dialect, voice, speaking_rate, status, safety_profile, business_info, call_settings, working_hours, personality").eq("organization_id", input.orgId);
     const list = (agents ?? []) as AgentRecord[];
     const pinned = input.agentId ? list.find((a) => a.id === input.agentId && (a.status === "active" || input.test)) : null;
     // A pinned receptionist hands specialised intents to a specialist when one exists.
@@ -84,7 +84,7 @@ export async function handleMessage(db: DB | null, input: Inbound): Promise<Orch
   const bi = agent.business_info as { businessName?: string; description?: string; hours?: string; faqs?: string };
   const system = buildAgentPrompt({
     name: agent.name, role: agent.role, dialect: agent.dialect, safetyProfile: agent.safety_profile, industry: agent.industry,
-    businessName: bi.businessName ?? input.draftAgent?.businessName ?? "the business", channel: input.channel,
+    businessName: bi.businessName ?? input.draftAgent?.businessName ?? "the business", channel: input.channel, generalChat: generalChatEnabled(agent.personality),
     instructions: [instr, bi.description && `About: ${bi.description}`, bi.hours && `Hours: ${bi.hours}`, bi.faqs && `FAQs:\n${bi.faqs}`].filter(Boolean).join("\n"),
     knowledge: knowledge.map((k) => `${k.title}: ${k.excerpt}`), memory: memory.facts,
     branch: branch ? { name: branch.name as string, address: branch.address as string | undefined } : null,

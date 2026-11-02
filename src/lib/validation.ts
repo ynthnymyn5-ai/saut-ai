@@ -17,6 +17,7 @@ export const employeeSchema = z.object({
     formality: z.number().int().min(0).max(100),
     pace: z.number().int().min(0).max(100),
     tone: z.enum(["friendly", "professional", "luxury", "energetic"]),
+    general_chat: z.boolean().optional(),
   }),
   businessInfo: z.object({
     businessName: z.string().trim().min(2).max(120),

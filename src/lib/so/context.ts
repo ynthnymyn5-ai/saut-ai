@@ -32,6 +32,7 @@ export interface AgentRecord {
   business_info: Record<string, unknown>;
   call_settings: Record<string, unknown>;
   working_hours: Record<string, unknown>;
+  personality?: Record<string, unknown> | null;
 }
 
 export interface ToolCtx {

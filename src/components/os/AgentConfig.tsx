@@ -7,11 +7,11 @@ import { cn, formatDate } from "@/lib/utils";
 import { HARD_DENY } from "@/lib/so/permissions";
 import { ErrorNote, LiveDot, SourceTag, useApi, useMutate, useStatusLabel, useTr } from "./shared";
 
-const PERSONALITY_DEFAULTS = { warmth: 70, formality: 50, pace: 50, tone: "friendly" as const };
+const PERSONALITY_DEFAULTS = { warmth: 70, formality: 50, pace: 50, tone: "friendly" as const, general_chat: true };
 
 type Resp = {
   agent: { id: string; name: string; role: string; branch_id: string | null; status: string; live_status: string; live_detail: string | null; speaking_rate: number; language: string; safety_profile: string; dialect: string; voice: string;
-    personality: { warmth: number; formality: number; pace: number; tone: string }; business_info: { businessName?: string; description?: string; address?: string; hours?: string; faqs?: string } };
+    personality: { warmth: number; formality: number; pace: number; tone: string; general_chat?: boolean }; business_info: { businessName?: string; description?: string; address?: string; hours?: string; faqs?: string } };
   instructions: string;
   tools: { key: string; permission: string; description: string; enabled: boolean }[];
   permissions: { permission: string; override: string | null; effective: "allow" | "confirm" | "deny" }[];
@@ -30,7 +30,7 @@ export function AgentConfig({ id }: { id: string }) {
   const { data, error, loading, reload } = useApi<Resp>(`/api/employees/${id}/activity`);
   const { data: br } = useApi<{ branches: { id: string; name: string; name_ar: string | null }[] }>("/api/branches");
   const [tab, setTab] = useState<(typeof TABS)[number][0]>("details");
-  const [det, setDet] = useState({ name: "", dialect: "kuwaiti", voice: "coral", personality: { warmth: 70, formality: 50, pace: 50, tone: "friendly" }, business_info: { businessName: "", description: "", address: "", hours: "", faqs: "" } });
+  const [det, setDet] = useState({ name: "", dialect: "kuwaiti", voice: "coral", personality: { warmth: 70, formality: 50, pace: 50, tone: "friendly", general_chat: true } as { warmth: number; formality: number; pace: number; tone: string; general_chat?: boolean }, business_info: { businessName: "", description: "", address: "", hours: "", faqs: "" } });
   const [form, setForm] = useState({ role: "receptionist", branch_id: "", speaking_rate: 1, language: "ar" });
   const [tools, setTools] = useState<Record<string, boolean>>({});
   const [perms, setPerms] = useState<Record<string, string>>({});
@@ -86,6 +86,11 @@ export function AgentConfig({ id }: { id: string }) {
             <div key={k}><label className="label" htmlFor={`ad-${k}`}>{({ warmth: tr("Warmth", "الدفء"), formality: tr("Formality", "الرسمية"), pace: tr("Speaking pace", "سرعة الكلام") })[k]} · <span className="tabular-nums">{det.personality[k]}</span></label>
               <input id={`ad-${k}`} type="range" min={0} max={100} className="w-full accent-violet" value={det.personality[k]} onChange={(e) => setDet({ ...det, personality: { ...det.personality, [k]: Number(e.target.value) } })} /></div>
           ))}
+          <label className="flex items-start gap-3 rounded-xl border border-line p-3 text-sm sm:col-span-2">
+            <input type="checkbox" className="mt-1 accent-violet" checked={det.personality.general_chat !== false} onChange={(e) => setDet({ ...det, personality: { ...det.personality, general_chat: e.target.checked } })} />
+            <span><span className="font-medium">{tr("Chat naturally and answer general questions", "يسولف عادي ويرد على الأسئلة العامة")}</span>
+              <span className="block text-xs text-muted">{tr("Also answers questions outside your business (general knowledge, small talk). Business prices and policies still come only from your information. Turn off to keep it strictly on your business.", "يرد حتى على الأسئلة اللي برا شغلك (معلومات عامة وسوالف). أسعارك وسياساتك تظل من معلوماتك بس. طفّه إذا تبيه يلتزم بشغلك فقط.")}</span></span>
+          </label>
           <div className="sm:col-span-2 mt-2 border-t border-line pt-4"><p className="text-sm font-semibold">{tr("Business information", "معلومات النشاط")}</p></div>
           <div><label className="label" htmlFor="ad-biz">{tr("Business name", "اسم النشاط")}</label><input id="ad-biz" dir="auto" maxLength={120} className="input" value={det.business_info.businessName} onChange={(e) => setDet({ ...det, business_info: { ...det.business_info, businessName: e.target.value } })} /></div>
           <div><label className="label" htmlFor="ad-hours">{tr("Opening hours", "أوقات العمل")}</label><input id="ad-hours" dir="auto" maxLength={300} className="input" value={det.business_info.hours} onChange={(e) => setDet({ ...det, business_info: { ...det.business_info, hours: e.target.value } })} /></div>

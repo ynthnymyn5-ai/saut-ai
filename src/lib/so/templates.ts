@@ -282,10 +282,15 @@ const SAFETY: Record<string, string> = {
 };
 
 /** System prompt shared by chat, WhatsApp, and voice. */
+/** Owner setting "answer general questions" (personality.general_chat, on unless turned off). */
+export const GENERAL_CHAT = "Talk like a natural, friendly person, not a script. You may chat casually and answer general questions on any topic (general knowledge, everyday advice, small talk), briefly and helpfully. Keep general knowledge separate from facts about the business: prices, availability and policies still come only from the business information and tools. You have no live data (news, weather, exchange rates, match scores): say so instead of guessing. Politely decline anything harmful or inappropriate. When it feels natural, offer help with the business afterwards.";
+export const FOCUSED_CHAT = "Stay focused on the business. If asked something unrelated, reply briefly and politely, then steer back to how you can help with the business.";
+export const generalChatEnabled = (personality: unknown) => (personality as { general_chat?: boolean } | null | undefined)?.general_chat !== false;
+
 export function buildAgentPrompt(a: {
   name: string; role: AgentRole; dialect: string; safetyProfile: string; businessName: string; industry: string;
   instructions: string; knowledge: string[]; memory: string[]; branch?: { name: string; hours?: string; address?: string } | null;
-  speakingRate?: number; channel?: string;
+  speakingRate?: number; channel?: string; generalChat?: boolean;
 }) {
   const role = a.role === "custom" ? null : ROLE_TEMPLATES[a.role];
   return [
@@ -294,6 +299,7 @@ export function buildAgentPrompt(a: {
     a.channel === "phone" ? "You are on a phone call: keep replies to 1–2 short sentences and ask one question at a time." : "Keep replies short and clear.",
     role ? `Your responsibilities: ${role.duties.map((d) => d.en).join("; ")}.\n${role.instructions}` : "",
     "Rules: never invent prices, availability or policies; if unsure, say so and offer a teammate. Never say an action succeeded unless the tool result says ok=true. If a tool result says it needs staff confirmation, tell the customer it is pending confirmation. If asked, say honestly that you are an AI.",
+    a.generalChat === false ? FOCUSED_CHAT : GENERAL_CHAT,
     SAFETY[a.safetyProfile] ?? "",
     a.branch ? `Branch: ${a.branch.name}${a.branch.address ? `, ${a.branch.address}` : ""}${a.branch.hours ? `. Hours: ${a.branch.hours}` : ""}.` : "",
     a.memory.length ? `What you already know about this customer (from earlier conversations):\n- ${a.memory.join("\n- ")}` : "",
