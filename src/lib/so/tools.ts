@@ -248,8 +248,17 @@ export const TOOLS: ToolDef[] = [
       items: z.array(z.object({ product: z.string().trim().min(1).max(160), quantity: z.number().int().min(1).max(99) })).min(1).max(20),
       phone, customer_name: z.string().trim().max(120).optional(),
       fulfillment: z.enum(["pickup", "delivery", "dine_in"]).default("pickup"), notes: z.string().max(500).optional(),
+      address: z.object({
+        area: z.string().trim().max(80), block: z.string().trim().max(20), street: z.string().trim().max(120).optional(), avenue: z.string().trim().max(60).optional(),
+        house: z.string().trim().max(40).optional(), floor: z.string().trim().max(20).optional(), apartment: z.string().trim().max(20).optional(), notes: z.string().trim().max(300).optional(),
+      }).optional().describe("Required for delivery: Kuwait address — area, block, street, house (avenue/floor/apartment if any)."),
     }),
     run: async (ctx, a) => {
+      if (a.fulfillment === "delivery") {
+        const { missingAddressParts } = await import("@/lib/orders");
+        const miss = missingAddressParts(a.address);
+        if (miss.length) return { ok: false, note: `Ask the customer for their delivery address: ${miss.join(", ").replace("house_or_street", "house number or street")}. Nothing was ordered yet.` };
+      }
       const { data: catalogue } = await ctx.db.from("products").select("id, name").eq("organization_id", ctx.orgId).eq("is_active", true);
       const byName = (n: string) => (catalogue ?? []).find((p: { id: string; name: string }) => p.id === n || p.name.toLowerCase() === n.toLowerCase())
         ?? (catalogue ?? []).filter((p: { name: string }) => p.name.toLowerCase().includes(n.toLowerCase())).at(0);
@@ -259,11 +268,27 @@ export const TOOLS: ToolDef[] = [
       const { data: id, error } = await ctx.db.rpc("create_order", {
         p_org: ctx.orgId, p_items: a.items.map((i) => ({ product_id: byName(i.product)!.id, quantity: i.quantity })),
         p_customer: customerId, p_conversation: ctx.conversationId ?? null, p_fulfillment: a.fulfillment, p_notes: a.notes ?? null, p_agent: ctx.agent?.id ?? null, p_status: "pending",
+        p_address: a.fulfillment === "delivery" ? a.address ?? null : null,
       });
-      if (error) throw new PermanentError(error.message);
-      const { data: o } = await ctx.db.from("orders").select("order_no, total, currency").eq("id", id).eq("organization_id", ctx.orgId).single();
+      if (error) {
+        const { orderErrorMessage } = await import("@/lib/orders");
+        const friendly = orderErrorMessage(error.message);
+        if (friendly) return { ok: false, note: `${friendly} Nothing was ordered. Call list_delivery_areas if it's about the area.` };
+        throw new PermanentError(error.message);
+      }
+      const { data: o } = await ctx.db.from("orders").select("order_no, total, delivery_fee, currency").eq("id", id).eq("organization_id", ctx.orgId).single();
       await notify(ctx.db, { orgId: ctx.orgId, kind: "task", title: `New order #${o?.order_no} to confirm`, body: `${o?.total} ${o?.currency}`, link: "/dashboard/orders" });
-      return { ok: true, note: `Order #${o?.order_no} placed as PENDING, total ${o?.total} ${o?.currency}. Tell the customer staff will confirm it.`, data: { order_id: id, order_no: o?.order_no, total: o?.total } };
+      const fee = Number(o?.delivery_fee ?? 0) > 0 ? ` (includes delivery ${o?.delivery_fee} ${o?.currency})` : "";
+      return { ok: true, note: `Order #${o?.order_no} placed as PENDING, total ${o?.total} ${o?.currency}${fee}. Tell the customer staff will confirm it.`, data: { order_id: id, order_no: o?.order_no, total: o?.total, delivery_fee: o?.delivery_fee } };
+    },
+  }),
+  def({
+    key: "list_delivery_areas", permission: "orders.read", description: "Areas the business delivers to, with delivery fee and minimum order. Use before promising delivery or quoting a delivery fee.",
+    schema: z.object({}),
+    run: async (ctx) => {
+      const { data } = await ctx.db.from("delivery_zones").select("name, areas, fee, min_order").eq("organization_id", ctx.orgId).eq("is_active", true).order("name").limit(60);
+      if (!data?.length) return { ok: true, note: "No delivery zones are configured: delivery is possible anywhere without a fee unless staff say otherwise. Don't promise delivery times.", data: [] };
+      return { ok: true, note: `${data.length} delivery zones.`, data };
     },
   }),
   def({
@@ -271,7 +296,7 @@ export const TOOLS: ToolDef[] = [
     schema: z.object({ order_no: z.number().int().min(1).max(99999999) }),
     run: async (ctx, a) => {
       if (!ctx.customerId) return { ok: false, note: "I can't verify who the customer is in this conversation, so I can't share order details. Offer a staff callback." };
-      const { data: o } = await ctx.db.from("orders").select("order_no, status, total, currency, fulfillment, created_at, customer_id").eq("organization_id", ctx.orgId).eq("order_no", a.order_no).maybeSingle();
+      const { data: o } = await ctx.db.from("orders").select("order_no, status, total, currency, fulfillment, created_at, customer_id, out_for_delivery_at").eq("organization_id", ctx.orgId).eq("order_no", a.order_no).maybeSingle();
       if (!o || o.customer_id !== ctx.customerId) return { ok: false, note: "No order with that number for this customer." };
       return { ok: true, note: `Order #${o.order_no} is ${o.status}.`, data: { order_no: o.order_no, status: o.status, total: o.total, currency: o.currency, fulfillment: o.fulfillment, placed_at: o.created_at } };
     },

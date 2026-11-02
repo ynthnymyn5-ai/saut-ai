@@ -395,3 +395,20 @@ test("weekly report: real numbers, honest estimates, both languages", () => {
   assert.match(r.text, /تقديرياً/);
   assert.match(r.text, /Estimated time saved/);
 });
+
+import { canMove, formatAddress as fmtAddr, missingAddressParts, nextStatuses, orderErrorMessage as orderErr } from "../src/lib/orders";
+test("delivery: address validation, formatting and status flow", () => {
+  assert.deepEqual(missingAddressParts({ area: "Salmiya", block: "10", house: "5" }), []);
+  assert.deepEqual(missingAddressParts({ area: "Salmiya", block: "10", street: "Salem" }), []);
+  assert.deepEqual(missingAddressParts({ area: " ", block: "" }), ["area", "block", "house_or_street"]);
+  assert.deepEqual(missingAddressParts(null), ["area", "block", "house_or_street"]);
+  assert.equal(fmtAddr({ area: "Salmiya", block: "10", street: "Salem", house: "5" }), "Salmiya, Block 10, St Salem, House 5");
+  assert.equal(fmtAddr({ area: "السالمية", block: "10", house: "5" }, true), "السالمية، قطعة 10، منزل 5");
+  assert.ok(nextStatuses("ready", "delivery").includes("out_for_delivery"));
+  assert.ok(!nextStatuses("ready", "pickup").includes("out_for_delivery"));
+  assert.deepEqual([...nextStatuses("out_for_delivery", "delivery")].sort(), ["canceled", "delivered"]);
+  assert.equal(canMove("ready", "out_for_delivery", "pickup"), false);
+  assert.equal(canMove("out_for_delivery", "pending", "delivery"), false);
+  assert.ok(orderErr("Outside delivery area"));
+  assert.ok(orderErr("Below minimum order for this area: 5.000"));
+});

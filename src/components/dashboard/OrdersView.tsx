@@ -1,36 +1,46 @@
 "use client";
-import { Camera, Package, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { Bike, Camera, MapPin, Package, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { DeliveryZones } from "@/components/dashboard/DeliveryZones";
 import { MenuImport } from "@/components/dashboard/MenuImport";
 import { useMemo, useState } from "react";
 import { Badge, Button, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui/primitives";
 import { ErrorNote, useApi, useMutate, useTr } from "@/components/os/shared";
+import { useToast } from "@/components/ui/Toast";
 import { useI18n } from "@/lib/i18n/client";
 import { formatMoney } from "@/lib/payments/money";
-import { NEXT_STATUS, ORDER_STATUSES, type OrderStatus } from "@/lib/orders";
+import { formatAddress, missingAddressParts, nextStatuses, ORDER_STATUSES, type DeliveryAddress, type OrderStatus } from "@/lib/orders";
 import { cn, formatDate } from "@/lib/utils";
 
-type Order = { id: string; order_no: number; status: OrderStatus; fulfillment: string; total: number; currency: string; notes: string | null; created_at: string; customer: { id: string; name: string | null; phone: string | null } | null; takenBy: string | null };
+type Order = { id: string; order_no: number; status: OrderStatus; fulfillment: string; total: number; deliveryFee?: number; currency: string; notes: string | null; created_at: string; customer: { id: string; name: string | null; phone: string | null } | null; takenBy: string | null; address?: DeliveryAddress | null; zone?: string | null; driverUser?: string | null };
+type Zone = { id: string; name: string; areas: string[]; fee: number; min_order: number; is_active: boolean };
+type Member = { user_id: string; full_name: string | null; email: string };
 type Product = { id: string; name: string; description: string | null; sku: string | null; price: number; currency: string; is_active: boolean };
 type Detail = { order: Order & { subtotal: number }; items: { id: string; name: string; unit_price: number; quantity: number; line_total: number }[]; events: { from_status: string | null; to_status: string; created_at: string }[] };
 
-const STATUS_AR: Record<string, string> = { pending: "بانتظار التأكيد", confirmed: "مؤكد", preparing: "قيد التجهيز", ready: "جاهز", delivered: "تم التسليم", canceled: "ملغي" };
+const STATUS_AR: Record<string, string> = { pending: "بانتظار التأكيد", confirmed: "مؤكد", preparing: "قيد التجهيز", ready: "جاهز", out_for_delivery: "في الطريق", delivered: "تم التسليم", canceled: "ملغي" };
 const FUL_AR: Record<string, string> = { pickup: "استلام", delivery: "توصيل", dine_in: "داخل المحل" };
-const tone = (s: string) => (s === "canceled" ? "red" : s === "delivered" ? "green" : s === "pending" ? "amber" : "violet") as "red" | "green" | "amber" | "violet";
+const tone = (s: string) => (s === "canceled" ? "red" : s === "delivered" ? "green" : s === "pending" ? "amber" : s === "out_for_delivery" ? "blue" : "violet") as "red" | "green" | "amber" | "violet" | "blue";
 
 export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean; canEdit: boolean; canManageProducts: boolean }) {
   const tr = useTr();
   const { locale } = useI18n();
   const mutate = useMutate();
-  const [tab, setTab] = useState<"orders" | "products">("orders");
+  const toastApi = useToast();
+  const toast = (title: string) => toastApi({ kind: "success", title });
+  const [tab, setTab] = useState<"orders" | "products" | "zones">("orders");
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const orders = useApi<{ orders: Order[]; demo?: boolean }>(`/api/orders?${new URLSearchParams({ ...(filter !== "all" ? { status: filter } : {}), ...(q ? { q } : {}) })}`);
   const products = useApi<{ products: Product[]; demo?: boolean }>("/api/products");
+  const zones = useApi<{ zones: Zone[] }>("/api/delivery-zones");
+  const members = useApi<{ members: Member[]; me: string }>("/api/members");
+  const activeZones = (zones.data?.zones ?? []).filter((z) => z.is_active);
+  const memberName = (uid?: string | null) => { const m = members.data?.members.find((x) => x.user_id === uid); return m ? m.full_name ?? m.email : null; };
   const [open, setOpen] = useState<string | null>(null);
   const detail = useApi<Detail>(open ? `/api/orders/${open}` : null);
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [newOrder, setNewOrder] = useState<null | { customer_name: string; phone: string; fulfillment: string; notes: string; lines: { product_id: string; quantity: number }[] }>(null);
+  const [newOrder, setNewOrder] = useState<null | { customer_name: string; phone: string; fulfillment: string; notes: string; lines: { product_id: string; quantity: number }[]; zone_id: string; address: DeliveryAddress }>(null);
   const [prod, setProd] = useState<null | { id?: string; name: string; description: string; price: string; is_active: boolean }>(null);
 
   const label = (s: string) => (locale === "ar" ? STATUS_AR[s] ?? s : s.replace("_", " "));
@@ -38,23 +48,31 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
   const active = useMemo(() => (products.data?.products ?? []).filter((p) => p.is_active), [products.data]);
   const estimate = useMemo(() => (newOrder?.lines ?? []).reduce((sum, l) => sum + (active.find((p) => p.id === l.product_id)?.price ?? 0) * l.quantity, 0), [newOrder, active]);
   const isDemo = demo || orders.data?.demo;
+  const fee = newOrder?.fulfillment === "delivery" ? Number(activeZones.find((z) => z.id === newOrder.zone_id)?.fee ?? 0) : 0;
+  const zoneMin = newOrder?.fulfillment === "delivery" ? Number(activeZones.find((z) => z.id === newOrder.zone_id)?.min_order ?? 0) : 0;
+  const addrMissing = newOrder?.fulfillment === "delivery" ? missingAddressParts(newOrder.address) : [];
+  const setAddr = (k: keyof DeliveryAddress, v: string) => newOrder && setNewOrder({ ...newOrder, address: { ...newOrder.address, [k]: v } });
+  async function assign(id: string, driver: string) {
+    if (await mutate(`/api/orders/${id}`, "PATCH", { driver_user: driver || null }, tr("Driver assigned", "تم تعيين السائق"))) orders.reload();
+  }
 
   async function move(id: string, to: string) {
     if (to === "canceled" && !window.confirm(tr("Cancel this order? This can't be undone.", "إلغاء هذا الطلب؟ لا يمكن التراجع."))) return;
-    if (await mutate(`/api/orders/${id}`, "PATCH", { status: to }, tr("Order updated", "تم تحديث الطلب"))) { orders.reload(); if (open === id) detail.reload(); }
+    const res = await mutate(`/api/orders/${id}`, "PATCH", { status: to }, tr("Order updated", "تم تحديث الطلب"));
+    if (res) { if (res.customerNotified === "whatsapp") toast(tr("Customer notified on WhatsApp", "تم إبلاغ العميل على واتساب")); orders.reload(); if (open === id) detail.reload(); }
   }
 
   return (
     <>
       <PageHeader title={tr("Orders", "الطلبات")} subtitle={tr("Orders taken by your team and AI employees. Prices always come from your product list.", "الطلبات التي يأخذها فريقك وموظفوك الأذكياء. الأسعار تُحسب دائماً من قائمة منتجاتك.")} demo={demo}
-        actions={tab === "orders" ? canEdit && active.length > 0 && <Button onClick={() => setNewOrder({ customer_name: "", phone: "", fulfillment: "pickup", notes: "", lines: [{ product_id: active[0].id, quantity: 1 }] })}><Plus className="h-4 w-4" />{tr("New order", "طلب جديد")}</Button>
-          : canManageProducts && <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setImporting(true)}><Camera className="h-4 w-4" />{tr("Import from menu photo", "استيراد من صورة المنيو")}</Button><Button onClick={() => setProd({ name: "", description: "", price: "", is_active: true })}><Plus className="h-4 w-4" />{tr("Add product", "إضافة منتج")}</Button></div>} />
+        actions={tab === "orders" ? canEdit && active.length > 0 && <Button onClick={() => setNewOrder({ customer_name: "", phone: "", fulfillment: "pickup", notes: "", lines: [{ product_id: active[0].id, quantity: 1 }], zone_id: "", address: { area: "", block: "" } })}><Plus className="h-4 w-4" />{tr("New order", "طلب جديد")}</Button>
+          : tab === "zones" ? null : canManageProducts && <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setImporting(true)}><Camera className="h-4 w-4" />{tr("Import from menu photo", "استيراد من صورة المنيو")}</Button><Button onClick={() => setProd({ name: "", description: "", price: "", is_active: true })}><Plus className="h-4 w-4" />{tr("Add product", "إضافة منتج")}</Button></div>} />
       {importing && <MenuImport onClose={() => setImporting(false)} onAdded={() => { setImporting(false); products.reload(); }} />}
 
-      <div className="mb-4 flex gap-2 border-b border-line">
-        {(["orders", "products"] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={cn("-mb-px border-b-2 px-3 py-2 text-sm", tab === t ? "border-violet text-white" : "border-transparent text-muted")}>
-            {t === "orders" ? tr("Orders", "الطلبات") : tr("Products & menu", "المنتجات والقائمة")}
+      <div className="mb-4 flex gap-2 overflow-x-auto border-b border-line">
+        {(["orders", "products", "zones"] as const).map((t) => (
+          <button key={t} onClick={() => setTab(t)} className={cn("-mb-px shrink-0 border-b-2 px-3 py-2 text-sm", tab === t ? "border-violet text-white" : "border-transparent text-muted")}>
+            {t === "orders" ? tr("Orders", "الطلبات") : t === "products" ? tr("Products & menu", "المنتجات والقائمة") : tr("Delivery areas", "مناطق التوصيل")}
           </button>
         ))}
       </div>
@@ -80,13 +98,21 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
                     <button className="min-w-0 flex-1 text-start" onClick={() => setOpen(open === o.id ? null : o.id)}>
                       <p className="font-medium"><span dir="ltr" className="tabular-nums">#{o.order_no}</span> · {o.customer?.name ?? tr("Walk-in", "بدون اسم")} <span className="text-xs text-muted" dir="ltr">{o.customer?.phone}</span></p>
                       <p className="text-xs text-muted">{formatDate(o.created_at, locale)} · {locale === "ar" ? FUL_AR[o.fulfillment] : o.fulfillment.replace("_", " ")}{o.takenBy ? ` · ${tr("taken by", "أخذه")} ${o.takenBy}` : ""}</p>
+                      {o.fulfillment === "delivery" && o.address && <p className="mt-0.5 flex items-start gap-1 text-xs text-sky-200" dir="auto"><MapPin className="mt-0.5 h-3 w-3 shrink-0" />{formatAddress(o.address, locale === "ar")}{o.zone ? ` · ${o.zone}` : ""}</p>}
+                      {o.fulfillment === "delivery" && o.driverUser && <p className="mt-0.5 flex items-center gap-1 text-xs text-muted"><Bike className="h-3 w-3" />{memberName(o.driverUser) ?? tr("Driver", "السائق")}</p>}
                     </button>
                     <span className="font-display font-semibold tabular-nums" dir="ltr">{money(o.total, o.currency)}</span>
                     <Badge tone={tone(o.status)}>{label(o.status)}</Badge>
-                    {canEdit && NEXT_STATUS[o.status].length > 0 && (
+                    {canEdit && nextStatuses(o.status, o.fulfillment).length > 0 && (
                       <select aria-label={tr("Move to", "نقل إلى")} className="input w-auto py-1.5 text-xs" value="" onChange={(e) => e.target.value && move(o.id, e.target.value)}>
                         <option value="">{tr("Move to…", "نقل إلى…")}</option>
-                        {NEXT_STATUS[o.status].map((s) => <option key={s} value={s}>{label(s)}</option>)}
+                        {nextStatuses(o.status, o.fulfillment).map((s) => <option key={s} value={s}>{label(s)}</option>)}
+                      </select>
+                    )}
+                    {canEdit && o.fulfillment === "delivery" && !["delivered", "canceled"].includes(o.status) && (
+                      <select aria-label={tr("Driver", "السائق")} className="input w-auto py-1.5 text-xs" value={o.driverUser ?? ""} onChange={(e) => assign(o.id, e.target.value)}>
+                        <option value="">{tr("No driver", "بدون سائق")}</option>
+                        {(members.data?.members ?? []).map((m) => <option key={m.user_id} value={m.user_id}>🛵 {m.full_name ?? m.email}</option>)}
                       </select>
                     )}
                   </div>
@@ -97,6 +123,8 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
                           <ul className="space-y-1">
                             {detail.data.items.map((i) => <li key={i.id} className="flex justify-between gap-2"><span>{i.quantity} × {i.name}</span><span dir="ltr" className="tabular-nums text-muted">{money(i.line_total, o.currency)}</span></li>)}
                           </ul>
+                          {Number(o.deliveryFee ?? 0) > 0 && <p className="flex justify-between gap-2 text-muted"><span>{tr("Delivery fee", "رسوم التوصيل")}</span><span dir="ltr" className="tabular-nums">{money(Number(o.deliveryFee), o.currency)}</span></p>}
+                          {o.address?.notes && <p className="mt-1 text-xs text-muted" dir="auto">{tr("Address notes", "ملاحظات العنوان")}: {o.address.notes}</p>}
                           {o.notes && <p className="mt-2 text-xs text-muted">{tr("Notes", "ملاحظات")}: {o.notes}</p>}
                           <p className="mt-2 text-xs text-muted">{detail.data.events.map((e) => `${label(e.to_status)} ${formatDate(e.created_at, locale, { dateStyle: undefined, timeStyle: "short" })}`).join(" → ")}</p>
                         </>
@@ -108,6 +136,8 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
             </div>
           )}
         </>
+      ) : tab === "zones" ? (
+        <DeliveryZones canEdit={canManageProducts} zones={zones.data?.zones ?? null} error={zones.error} onChange={zones.reload} />
       ) : (
         <>
           <ErrorNote error={products.error} />
@@ -136,7 +166,10 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
           <form onClick={(e) => e.stopPropagation()} className="glass my-8 w-full max-w-md space-y-3 bg-ink-2 p-6" onSubmit={async (e) => {
             e.preventDefault(); if (busy) return; setBusy(true);
             try {
-              const r = await mutate("/api/orders", "POST", { items: newOrder.lines, customer_name: newOrder.customer_name || undefined, phone: newOrder.phone || undefined, fulfillment: newOrder.fulfillment, notes: newOrder.notes || undefined }, tr("Order created", "تم إنشاء الطلب"));
+              const delivery = newOrder.fulfillment === "delivery";
+              const clean = Object.fromEntries(Object.entries(newOrder.address).filter(([, v]) => typeof v === "string" && v.trim()));
+              const r = await mutate("/api/orders", "POST", { items: newOrder.lines, customer_name: newOrder.customer_name || undefined, phone: newOrder.phone || undefined, fulfillment: newOrder.fulfillment, notes: newOrder.notes || undefined,
+                ...(delivery ? { address: clean, zone_id: newOrder.zone_id || undefined } : {}) }, tr("Order created", "تم إنشاء الطلب"));
               if (r) { setNewOrder(null); orders.reload(); }
             } finally { setBusy(false); }
           }}>
@@ -157,9 +190,28 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
             </div>
             <div><label className="label" htmlFor="or-ful">{tr("Fulfillment", "طريقة الاستلام")}</label>
               <select id="or-ful" className="input" value={newOrder.fulfillment} onChange={(e) => setNewOrder({ ...newOrder, fulfillment: e.target.value })}>{["pickup", "delivery", "dine_in"].map((f) => <option key={f} value={f}>{locale === "ar" ? FUL_AR[f] : f.replace("_", " ")}</option>)}</select></div>
+            {newOrder.fulfillment === "delivery" && (
+              <div className="space-y-3 rounded-xl border border-line p-3">
+                {activeZones.length > 0 && (
+                  <div><label className="label" htmlFor="or-zone">{tr("Delivery area", "منطقة التوصيل")}</label>
+                    <select id="or-zone" required className="input" value={newOrder.zone_id} onChange={(e) => { const z = activeZones.find((x) => x.id === e.target.value); setNewOrder({ ...newOrder, zone_id: e.target.value, address: { ...newOrder.address, area: newOrder.address.area || (z?.name ?? "") } }); }}>
+                      <option value="">{tr("Choose…", "اختر…")}</option>
+                      {activeZones.map((z) => <option key={z.id} value={z.id}>{z.name} — {money(z.fee, "KWD")}</option>)}
+                    </select></div>
+                )}
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {([["area", tr("Area *", "المنطقة *")], ["block", tr("Block *", "القطعة *")], ["street", tr("Street", "الشارع")], ["avenue", tr("Avenue", "الجادة")], ["house", tr("House *", "المنزل *")], ["floor", tr("Floor", "الدور")], ["apartment", tr("Apt", "الشقة")]] as [keyof DeliveryAddress, string][]).map(([k, lbl]) => (
+                    <div key={k}><label className="label text-xs" htmlFor={`addr-${k}`}>{lbl}</label><input id={`addr-${k}`} dir="auto" maxLength={k === "street" ? 120 : 80} className="input py-1.5" value={newOrder.address[k] ?? ""} onChange={(e) => setAddr(k, e.target.value)} /></div>
+                  ))}
+                </div>
+                <div><label className="label text-xs" htmlFor="addr-notes">{tr("Directions for the driver", "إرشادات للسائق")}</label><input id="addr-notes" dir="auto" maxLength={300} className="input py-1.5" value={newOrder.address.notes ?? ""} onChange={(e) => setAddr("notes", e.target.value)} /></div>
+                {addrMissing.length > 0 && <p className="text-xs text-amber-200">{tr("Required: area, block, and house number or street.", "مطلوب: المنطقة والقطعة ورقم المنزل أو الشارع.")}</p>}
+                {zoneMin > 0 && estimate < zoneMin && <p className="text-xs text-amber-200">{tr(`Minimum order for this area: ${money(zoneMin, "KWD")}`, `الحد الأدنى للطلب لهذه المنطقة: ${money(zoneMin, "KWD")}`)}</p>}
+              </div>
+            )}
             <div><label className="label" htmlFor="or-notes">{tr("Notes", "ملاحظات")}</label><input id="or-notes" dir="auto" maxLength={1000} className="input" value={newOrder.notes} onChange={(e) => setNewOrder({ ...newOrder, notes: e.target.value })} /></div>
-            <p className="text-sm text-muted">{tr("Estimated total", "المجموع التقديري")}: <span dir="ltr" className="font-semibold text-white tabular-nums">{money(estimate, active[0]?.currency ?? "KWD")}</span> <span className="text-xs">({tr("final total is calculated by the server", "المجموع النهائي يحسبه الخادم")})</span></p>
-            <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="ghost" onClick={() => setNewOrder(null)}>{tr("Cancel", "إلغاء")}</Button><Button type="submit" disabled={busy}>{busy ? tr("Saving…", "جارٍ الحفظ…") : tr("Create order", "إنشاء الطلب")}</Button></div>
+            <p className="text-sm text-muted">{tr("Estimated total", "المجموع التقديري")}: <span dir="ltr" className="font-semibold text-white tabular-nums">{money(estimate + fee, active[0]?.currency ?? "KWD")}</span>{fee > 0 && <span className="text-xs"> ({tr("incl. delivery", "شامل التوصيل")} {money(fee, "KWD")})</span>} <span className="text-xs">({tr("final total is calculated by the server", "المجموع النهائي يحسبه الخادم")})</span></p>
+            <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="ghost" onClick={() => setNewOrder(null)}>{tr("Cancel", "إلغاء")}</Button><Button type="submit" disabled={busy || addrMissing.length > 0 || (newOrder.fulfillment === "delivery" && activeZones.length > 0 && !newOrder.zone_id)}>{busy ? tr("Saving…", "جارٍ الحفظ…") : tr("Create order", "إنشاء الطلب")}</Button></div>
           </form>
         </div>
       )}

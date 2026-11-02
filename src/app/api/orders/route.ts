@@ -16,7 +16,7 @@ export const GET = route("orders-list", async (req) => {
   const status = u.searchParams.get("status");
   const q = (u.searchParams.get("q") ?? "").trim().slice(0, 40);
   const sb = (await supabaseServer())!;
-  let query = sb.from("orders").select("id, order_no, status, fulfillment, total, currency, notes, created_at, customer_id, created_by_agent, customers(full_name, phone), ai_employees(name)")
+  let query = sb.from("orders").select("id, order_no, status, fulfillment, total, delivery_fee, currency, notes, created_at, customer_id, created_by_agent, delivery_address, driver_user, customers(full_name, phone), ai_employees(name), delivery_zones(name)")
     .eq("organization_id", s.org.id).order("created_at", { ascending: false }).limit(200);
   if (status && (ORDER_STATUSES as readonly string[]).includes(status)) query = query.eq("status", status);
   if (/^\d{1,9}$/.test(q)) query = query.eq("order_no", Number(q));
@@ -26,7 +26,8 @@ export const GET = route("orders-list", async (req) => {
     orders: (data ?? []).map((o) => {
       const c = o.customers as unknown as { full_name: string | null; phone: string | null } | null;
       const e = o.ai_employees as unknown as { name: string } | null;
-      return { id: o.id, order_no: o.order_no, status: o.status, fulfillment: o.fulfillment, total: o.total, currency: o.currency, notes: o.notes, created_at: o.created_at,
+      return { id: o.id, order_no: o.order_no, status: o.status, fulfillment: o.fulfillment, total: o.total, deliveryFee: o.delivery_fee, currency: o.currency, notes: o.notes, created_at: o.created_at,
+        address: o.delivery_address, zone: (o.delivery_zones as unknown as { name: string } | null)?.name ?? null, driverUser: o.driver_user,
         customer: c ? { id: o.customer_id, name: c.full_name, phone: c.phone } : null, takenBy: e?.name ?? null };
     }),
   });
@@ -39,6 +40,12 @@ const createSchema = z.object({
   fulfillment: z.enum(FULFILLMENTS).default("pickup"),
   notes: z.string().trim().max(1000).optional(),
   status: z.enum(["pending", "confirmed"]).default("confirmed"),
+  zone_id: z.string().uuid().optional(),
+  address: z.object({
+    area: z.string().trim().max(80), block: z.string().trim().max(20), street: z.string().trim().max(120).optional(),
+    avenue: z.string().trim().max(60).optional(), house: z.string().trim().max(40).optional(), floor: z.string().trim().max(20).optional(),
+    apartment: z.string().trim().max(20).optional(), notes: z.string().trim().max(300).optional(),
+  }).optional(),
 });
 
 /** Staff-created order. Prices and totals are computed in the database from the catalogue — the client only sends product ids and quantities. */
@@ -58,13 +65,14 @@ export const POST = route("orders-create", async (req) => {
   }
   const { data: id, error } = await sb.rpc("create_order", {
     p_org: s.org.id, p_items: b.items, p_customer: customerId, p_fulfillment: b.fulfillment, p_notes: b.notes ?? null, p_status: b.status,
+    p_address: b.fulfillment === "delivery" ? b.address ?? null : null, p_zone: b.fulfillment === "delivery" ? b.zone_id ?? null : null,
   });
   if (error) {
     const msg = orderErrorMessage(error.message);
     if (msg) return fail(422, "invalid_order", msg);
     throw error;
   }
-  const { data: o } = await sb.from("orders").select("order_no, total, currency").eq("id", id as string).single();
+  const { data: o } = await sb.from("orders").select("order_no, total, delivery_fee, currency").eq("id", id as string).single();
   await audit({ orgId: s.org.id, actorId: s.userId, action: "order.created", targetType: "order", targetId: id as string, metadata: { order_no: o?.order_no, total: o?.total } });
-  return ok({ id, order_no: o?.order_no, total: o?.total, currency: o?.currency }, 201);
+  return ok({ id, order_no: o?.order_no, total: o?.total, delivery_fee: o?.delivery_fee, currency: o?.currency }, 201);
 }, { limit: 30 });

@@ -135,6 +135,44 @@ test.describe.serial("SAUT AI journey", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
+  test("delivery: areas with fees, address required, out for delivery with a driver", async ({ page }) => {
+    await page.goto("/login");
+    await page.fill("#email", A.email); await page.fill("#password", A.password);
+    await page.locator('form button[type="submit"]').click();
+    await page.waitForURL(/\/dashboard/);
+    const api = page.request;
+    let r = await api.post("/api/delivery-zones", { data: { name: "Salmiya", areas: ["Hawally"], fee: 1, min_order: 2 } });
+    expect(r.status()).toBe(201);
+    const zone = (await r.json()).id;
+    const latte = (await (await api.get("/api/products")).json()).products.find((p) => p.name === "Latte").id;
+    // incomplete address refused
+    r = await api.post("/api/orders", { data: { items: [{ product_id: latte, quantity: 2 }], fulfillment: "delivery", zone_id: zone, address: { area: "Salmiya" } } });
+    expect(r.status()).toBeGreaterThanOrEqual(400);
+    // area not served refused
+    r = await api.post("/api/orders", { data: { items: [{ product_id: latte, quantity: 2 }], fulfillment: "delivery", address: { area: "Jahra", block: "1", house: "2" } } });
+    expect(r.status()).toBeGreaterThanOrEqual(400);
+    // below the area's minimum refused
+    r = await api.post("/api/orders", { data: { items: [{ product_id: latte, quantity: 1 }], fulfillment: "delivery", zone_id: zone, address: { area: "Salmiya", block: "10", house: "5" } } });
+    expect(r.status()).toBeGreaterThanOrEqual(400);
+    // matched by the zone's extra area name; fee added by the server
+    r = await api.post("/api/orders", { data: { items: [{ product_id: latte, quantity: 2 }], customer_name: "Noura", phone: "+96550003333", fulfillment: "delivery", address: { area: "hawally", block: "3", street: "Tunis", house: "12" } } });
+    expect(r.status()).toBe(201);
+    const order = await r.json();
+    expect(Number(order.total)).toBeCloseTo(4, 3);
+    for (const st of ["confirmed", "preparing", "ready"]) expect((await api.patch(`/api/orders/${order.id}`, { data: { status: st } })).status()).toBe(200);
+    const me = (await (await api.get("/api/members")).json()).me;
+    expect((await api.patch(`/api/orders/${order.id}`, { data: { driver_user: me } })).status()).toBe(200);
+    r = await api.patch(`/api/orders/${order.id}`, { data: { status: "out_for_delivery" } });
+    expect(r.status()).toBe(200);
+    expect((await r.json()).customerNotified).not.toBe("whatsapp"); // no WhatsApp connected: nothing claimed
+    // pickup orders cannot go out for delivery
+    expect((await api.patch(`/api/orders/${shared.orderId}`, { data: { status: "out_for_delivery" } })).status()).toBe(409);
+    await page.goto("/dashboard/orders");
+    await expect(page.getByText("Tunis").first()).toBeVisible();
+    await page.getByRole("button", { name: /Delivery areas|مناطق التوصيل/ }).click();
+    await expect(page.getByText("Salmiya").first()).toBeVisible();
+  });
+
   test("website widget: locked to the business domain, visitor messages reach the inbox, staff replies reach the visitor", async ({ page, request }) => {
     await page.goto("/login");
     await page.fill("#email", A.email); await page.fill("#password", A.password);
