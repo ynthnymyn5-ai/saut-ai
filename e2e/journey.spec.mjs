@@ -43,6 +43,18 @@ test.describe.serial("SAUT AI journey", () => {
     }
   });
 
+  test("landing page feature cards open details", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("#features button").first().click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("link", { name: /Start|ابدأ/ })).toHaveAttribute("href", "/signup");
+    await dialog.getByRole("button", { name: /Close|إغلاق/ }).click();
+    await expect(dialog).toBeHidden();
+    await page.locator("#how button").first().click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+  });
+
   test("Google button is hidden when Google sign-in isn't enabled in Supabase", async ({ page }) => {
     await page.goto("/login");
     await expect(page.locator("#email")).toBeVisible();

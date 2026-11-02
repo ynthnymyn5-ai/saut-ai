@@ -35,6 +35,8 @@ function Heading({ children, sub }: { children: React.ReactNode; sub?: string })
 export function Landing() {
   const { t, locale } = useI18n();
   const Arrow = locale === "ar" ? ArrowLeft : ArrowRight;
+  const [detail, setDetail] = useState<{ t: string; d: string; more: string; n?: string; icon?: number } | null>(null);
+  const DetailIcon = detail?.icon !== undefined ? [PhoneCall, CalendarCheck, MessageCircle, BookOpen, PhoneForwarded, FileText][detail.icon] : null;
   return (
     <div className="relative overflow-x-hidden">
       <Nav />
@@ -104,11 +106,13 @@ export function Landing() {
         <Heading>{t.how.title}</Heading>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {t.how.steps.map((s, i) => (
-            <motion.div key={i} {...fade} transition={{ ...fade.transition, delay: i * 0.08 }} className="glass relative p-6">
+            <motion.button type="button" key={i} {...fade} transition={{ ...fade.transition, delay: i * 0.08 }} onClick={() => setDetail({ t: s.t, d: s.d, more: s.more, n: `0${i + 1}` })}
+              className="glass relative p-6 text-start transition hover:-translate-y-1 hover:border-violet/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet">
               <span className="font-display text-5xl font-semibold text-white/[0.06]">0{i + 1}</span>
               <h3 className="mt-2 font-semibold">{s.t}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{s.d}</p>
-            </motion.div>
+              <span className="mt-3 inline-block text-xs text-violet-soft">{locale === "ar" ? "اعرف أكثر ←" : "Learn more →"}</span>
+            </motion.button>
           ))}
         </div>
       </Section>
@@ -120,11 +124,13 @@ export function Landing() {
           {t.features.items.map((f, i) => {
             const I = [PhoneCall, CalendarCheck, MessageCircle, BookOpen, PhoneForwarded, FileText][i];
             return (
-              <motion.div key={i} {...fade} className="glass group p-6 transition hover:-translate-y-1 hover:border-violet/40">
+              <motion.button type="button" key={i} {...fade} onClick={() => setDetail({ t: f.t, d: f.d, more: f.more, icon: i })}
+                className="glass group p-6 text-start transition hover:-translate-y-1 hover:border-violet/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet">
                 <div className="mb-4 grid h-11 w-11 place-items-center rounded-xl bg-violet/15 text-violet-soft transition group-hover:shadow-glow"><I className="h-5 w-5" /></div>
                 <h3 className="font-semibold">{f.t}</h3>
                 <p className="mt-1.5 text-sm text-muted">{f.d}</p>
-              </motion.div>
+                <span className="mt-3 inline-block text-xs text-violet-soft">{locale === "ar" ? "اعرف أكثر ←" : "Learn more →"}</span>
+              </motion.button>
             );
           })}
         </div>
@@ -182,6 +188,25 @@ export function Landing() {
       </Section>
 
       <Footer />
+      <AnimatePresence>
+        {detail && (
+          <motion.div className="fixed inset-0 z-50 grid place-items-end bg-black/60 backdrop-blur-sm sm:place-items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setDetail(null)} role="dialog" aria-modal="true" aria-labelledby="feature-title">
+            <motion.div onClick={(e) => e.stopPropagation()} initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+              className="glass m-0 w-full max-w-md rounded-b-none p-6 sm:m-4 sm:rounded-2xl">
+              <div className="flex items-start justify-between gap-3">
+                {DetailIcon ? <div className="grid h-11 w-11 place-items-center rounded-xl bg-violet/15 text-violet-soft"><DetailIcon className="h-5 w-5" /></div>
+                  : <span className="font-display text-4xl font-semibold text-white/20">{detail.n}</span>}
+                <button type="button" onClick={() => setDetail(null)} aria-label={locale === "ar" ? "إغلاق" : "Close"} className="rounded-lg p-1.5 text-muted hover:bg-white/5 hover:text-white"><X className="h-5 w-5" /></button>
+              </div>
+              <h3 id="feature-title" className="mt-3 text-lg font-semibold">{detail.t}</h3>
+              <p className="mt-2 text-sm text-muted">{detail.d}</p>
+              <p className="mt-3 text-sm leading-relaxed">{detail.more}</p>
+              <ButtonLink href="/signup" className="mt-5 w-full justify-center">{t.hero.cta}<Arrow className="h-4 w-4" /></ButtonLink>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
