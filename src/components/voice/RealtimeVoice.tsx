@@ -51,7 +51,12 @@ export function RealtimeVoice({ employee, hue }: { employee: Record<string, unkn
         body: offer.sdp,
         headers: { Authorization: `Bearer ${data.client_secret}`, "Content-Type": "application/sdp" },
       });
-      if (!sdp.ok) throw new Error(`Realtime connect failed (${sdp.status})`);
+      if (!sdp.ok) {
+        const body = await sdp.text().catch(() => "");
+        let why = "";
+        try { why = (JSON.parse(body) as { error?: { message?: string } }).error?.message ?? ""; } catch { why = body.slice(0, 200); }
+        throw new Error(`OpenAI (${sdp.status})${why ? `: ${why}` : ""}`);
+      }
       await conn.setRemoteDescription({ type: "answer", sdp: await sdp.text() });
       setState("listening");
     } catch (e) {

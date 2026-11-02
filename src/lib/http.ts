@@ -4,6 +4,7 @@ import { ZodError, type z, type ZodTypeAny } from "zod";
 import { maskSecrets, ProviderNotConfiguredError, ProviderRequestError } from "@/lib/env";
 import { checkRateLimit, clientKey } from "@/lib/rate-limit";
 import { reportError } from "@/lib/monitoring";
+import { APIError as OpenAIAPIError } from "openai";
 
 export const ok = (data: unknown, status = 200) => NextResponse.json(data, { status });
 export const fail = (status: number, code: string, message: string, extra?: object) =>
@@ -55,7 +56,9 @@ export function providerFailure(e: unknown): { provider: string; status: number;
   if (e instanceof ProviderRequestError) return { provider: e.provider, status: e.status, message: e.message };
   const x = e as { status?: unknown; message?: unknown; error?: { message?: unknown }; constructor?: { name?: string } } | null;
   const name = x?.constructor?.name ?? "";
-  if (x && typeof x.status === "number" && /APIError|AuthenticationError|RateLimitError|BadRequestError|NotFoundError|PermissionDeniedError|InternalServerError/.test(name)) {
+  // instanceof first: production builds minify class names, so the name check alone is not enough.
+  const isOpenAI = e instanceof OpenAIAPIError || /APIError|AuthenticationError|RateLimitError|BadRequestError|NotFoundError|PermissionDeniedError|InternalServerError/.test(name);
+  if (x && typeof x.status === "number" && isOpenAI) {
     const msg = typeof x.error?.message === "string" ? x.error.message : typeof x.message === "string" ? x.message : "request failed";
     return { provider: "OpenAI", status: x.status, message: maskSecrets(msg) };
   }
