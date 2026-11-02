@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/brand/Logo";
-import { SoMascot } from "@/components/brand/SoMascot";
+import { SoScene } from "@/components/brand/SoScene";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { Button, ButtonLink } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/Toast";
@@ -139,7 +139,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       <div className="relative hidden items-center justify-center overflow-hidden border-s border-line bg-ink-2 lg:flex">
         <div className="absolute h-[500px] w-[500px] rounded-full bg-violet/25 blur-[120px]" />
         <div className="relative text-center">
-          <SoMascot size={300} state="listening" />
+          <SoScene size={260} state="listening" />
           <p className="mt-8 font-display text-2xl font-semibold text-gradient">{t.brand.tagline}</p>
         </div>
       </div>

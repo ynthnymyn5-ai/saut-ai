@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export type VoiceState = "idle" | "listening" | "thinking" | "speaking" | "completed" | "transfer";
 
 /**
- * SO (سو) — SAUT AI's mascot: a floating glass orb with a friendly face.
+ * SO (سو) — SAUT AI's mascot: a floating pearl robot (antenna, ear pods, dark visor) with a friendly face.
  * Expression and light-waves change with the conversation state.
  */
 export function SoMascot({ state = "idle", size = 280, hue = 265, className }: { state?: VoiceState; size?: number; hue?: number; className?: string }) {
@@ -39,48 +39,59 @@ export function SoMascot({ state = "idle", size = 280, hue = 265, className }: {
       ))}
       <svg viewBox="0 0 200 200" className="relative h-full w-full drop-shadow-[0_30px_60px_rgba(139,92,246,.45)]">
         <defs>
-          <radialGradient id={`body${id}`} cx="35%" cy="30%" r="75%">
-            <stop offset="0" stopColor="#ffffff" stopOpacity=".95" />
-            <stop offset=".18" stopColor={c1} />
-            <stop offset=".62" stopColor={c2} />
-            <stop offset="1" stopColor="#120F2E" />
+          {/* pearl shell: bright glossy white, tinted by the brand colours at the edges */}
+          <radialGradient id={`body${id}`} cx="38%" cy="30%" r="78%">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset=".45" stopColor="#EEF0FF" />
+            <stop offset=".8" stopColor={`hsl(${hue} 60% 82%)`} />
+            <stop offset="1" stopColor={`hsl(${hue} 55% 62%)`} />
           </radialGradient>
-          <radialGradient id={`face${id}`} cx="50%" cy="50%" r="50%">
-            <stop offset="0" stopColor="#0D0B22" stopOpacity=".92" />
-            <stop offset="1" stopColor="#0D0B22" stopOpacity=".55" />
+          <radialGradient id={`face${id}`} cx="50%" cy="40%" r="70%">
+            <stop offset="0" stopColor="#14112E" />
+            <stop offset="1" stopColor="#05040F" />
           </radialGradient>
           <linearGradient id={`rim${id}`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#fff" stopOpacity=".9" />
-            <stop offset=".5" stopColor="#fff" stopOpacity="0" />
-            <stop offset="1" stopColor={c2} stopOpacity=".8" />
+            <stop offset="0" stopColor="#fff" stopOpacity=".95" />
+            <stop offset=".55" stopColor="#fff" stopOpacity="0" />
+            <stop offset="1" stopColor={c2} stopOpacity=".85" />
           </linearGradient>
-          <clipPath id={`clip${id}`}>
-            <circle cx="100" cy="100" r="84" />
-          </clipPath>
+          <linearGradient id={`ear${id}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="1" stopColor={`hsl(${hue} 45% 78%)`} />
+          </linearGradient>
+          <linearGradient id={`glass${id}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fff" stopOpacity=".16" />
+            <stop offset=".5" stopColor="#fff" stopOpacity="0" />
+          </linearGradient>
         </defs>
 
-        <circle cx="100" cy="100" r="84" fill={`url(#body${id})`} />
-        {/* internal swirling light */}
-        <g clipPath={`url(#clip${id})`} opacity=".55">
-          <motion.ellipse
-            cx="100" cy="130" rx="120" ry="26" fill="none" stroke="#fff" strokeOpacity=".35" strokeWidth="1.5"
-            animate={reduce ? undefined : { rotate: [0, 360] }} style={{ originX: "100px", originY: "100px" }}
-            transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-          />
-          <motion.ellipse
-            cx="100" cy="70" rx="110" ry="18" fill="none" stroke={c1} strokeOpacity=".6" strokeWidth="1"
-            animate={reduce ? undefined : { rotate: [360, 0] }} style={{ originX: "100px", originY: "100px" }}
-            transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
-          />
-        </g>
-        <circle cx="100" cy="100" r="83" fill="none" stroke={`url(#rim${id})`} strokeWidth="1.6" />
-        {/* glass highlight */}
-        <ellipse cx="72" cy="56" rx="30" ry="17" fill="#fff" opacity=".28" transform="rotate(-28 72 56)" />
+        {/* antenna */}
+        <line x1="100" y1="10" x2="100" y2="30" stroke={c1} strokeOpacity=".7" strokeWidth="1.5" />
+        <motion.circle cx="100" cy="9" r="4.5" fill={c1} style={{ filter: `drop-shadow(0 0 6px ${c1})` }}
+          animate={reduce ? undefined : { opacity: [1, 0.35, 1] }} transition={{ duration: 2.4, repeat: Infinity }} />
+        <circle cx="100" cy="32" r="3" fill={c1} opacity=".85" />
 
-        {/* face visor */}
-        <rect x="46" y="78" width="108" height="56" rx="28" fill={`url(#face${id})`} stroke="#fff" strokeOpacity=".12" />
+        {/* ear pods */}
+        {[24, 176].map((x) => (
+          <g key={x}>
+            <rect x={x - 11} y="84" width="22" height="40" rx="11" fill={`url(#ear${id})`} stroke={c1} strokeOpacity=".45" />
+            <rect x={x - 4} y="92" width="8" height="24" rx="4" fill={c1} opacity=".35" />
+          </g>
+        ))}
+
+        {/* shell */}
+        <circle cx="100" cy="104" r="72" fill={`url(#body${id})`} />
+        <circle cx="100" cy="104" r="71" fill="none" stroke={`url(#rim${id})`} strokeWidth="1.6" />
+        <ellipse cx="74" cy="62" rx="26" ry="13" fill="#fff" opacity=".7" transform="rotate(-28 74 62)" />
+
+        {/* visor */}
+        <rect x="42" y="74" width="116" height="66" rx="33" fill={`url(#face${id})`} stroke={c1} strokeOpacity=".35" />
+        <rect x="46" y="77" width="108" height="30" rx="15" fill={`url(#glass${id})`} />
         <Eyes state={state} c={c1} reduce={!!reduce} />
-        <Mouth state={state} c={c1} reduce={!!reduce} />
+        <g transform="translate(0 6)"><Mouth state={state} c={c1} reduce={!!reduce} /></g>
+
+        {/* chin light */}
+        <ellipse cx="100" cy="172" rx="16" ry="3" fill={c1} opacity=".55" style={{ filter: `drop-shadow(0 0 6px ${c1})` }} />
       </svg>
     </motion.div>
   );
@@ -91,8 +102,8 @@ function Eyes({ state, c, reduce }: { state: VoiceState; c: string; reduce: bool
   if (happy) {
     return (
       <g stroke={c} strokeWidth="5" strokeLinecap="round" fill="none" style={{ filter: `drop-shadow(0 0 6px ${c})` }}>
-        <path d="M70 104 q8 -10 16 0" />
-        <path d="M114 104 q8 -10 16 0" />
+        <path d="M68 104 q9 -12 18 0" />
+        <path d="M114 104 q9 -12 18 0" />
       </g>
     );
   }
@@ -104,8 +115,8 @@ function Eyes({ state, c, reduce }: { state: VoiceState; c: string; reduce: bool
       animate={reduce ? undefined : { scaleY: [1, 1, 0.1, 1, 1] }}
       transition={{ duration: 4.5, repeat: Infinity, times: [0, 0.46, 0.5, 0.54, 1] }}
     >
-      <rect x={72 + look} y={state === "thinking" ? 92 : 94} width="13" height="18" rx="6.5" />
-      <rect x={115 + look} y={state === "thinking" ? 92 : 94} width="13" height="18" rx="6.5" />
+      <rect x={70 + look} y={state === "thinking" ? 88 : 90} width="15" height="24" rx="7.5" />
+      <rect x={115 + look} y={state === "thinking" ? 88 : 90} width="15" height="24" rx="7.5" />
     </motion.g>
   );
 }

@@ -181,6 +181,24 @@ test.describe.serial("SAUT AI journey", () => {
     expect((await (await api.get("/api/deliveries")).json()).jobs).toHaveLength(0);
   });
 
+  test("app launch screen shows SO and opens the dashboard", async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await ctx.newPage();
+    await page.goto("/app");
+    await expect(page.getByRole("img", { name: /SO/ }).first()).toBeVisible();
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: "e2e-results/screens/app-splash.png" });
+    await page.waitForURL(/\/(dashboard|login)/, { timeout: 10_000 }); // signed out → login
+    await page.goto("/login");
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: "e2e-results/screens/login-desktop.png" });
+    await page.goto("/");
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: "e2e-results/screens/landing-desktop.png" });
+    await ctx.close();
+  });
+
   test("dashboard pages fit a phone screen without horizontal scrolling", async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await ctx.newPage();

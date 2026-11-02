@@ -1,3 +1,29 @@
 <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SAUT AI</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#080812;color:#fff;font-family:system-ui;text-align:center;padding:24px}</style></head>
-<body><div><h1>SAUT AI</h1><p>جاري الاتصال… تأكد من اتصالك بالإنترنت.</p><p dir="ltr">Connecting… check your internet connection.</p></div></body></html>
+<title>SAUT AI</title>
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#080812;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;text-align:center;padding:24px;overflow:hidden}
+.glow{position:fixed;left:50%;top:35%;width:380px;height:380px;transform:translate(-50%,-50%);border-radius:50%;background:rgba(139,92,246,.22);filter:blur(90px)}
+.bot{position:relative;width:180px;height:180px;margin:0 auto;animation:float 5s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-10px)}}
+.eye{animation:blink 4.5s infinite;transform-origin:center 102px}
+@keyframes blink{0%,45%,55%,100%{transform:scaleY(1)}50%{transform:scaleY(.1)}}
+.dot{animation:pulse 2.4s infinite}@keyframes pulse{50%{opacity:.35}}
+.rings{width:220px;height:46px;margin:-6px auto 0;border-radius:50%;border:1px solid rgba(56,189,248,.45);box-shadow:0 0 36px 4px rgba(139,92,246,.4)}
+h1{margin:18px 0 6px;font-size:24px;background:linear-gradient(90deg,#A78BFA,#38BDF8);-webkit-background-clip:text;background-clip:text;color:transparent}
+p{color:#A1A1B5;margin:4px 0;font-size:14px}
+</style></head>
+<body><div class="glow"></div><div>
+<svg class="bot" viewBox="0 0 200 200" aria-label="SO">
+<defs><radialGradient id="b" cx="38%" cy="30%" r="78%"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#EEF0FF"/><stop offset=".8" stop-color="#CFC4F5"/><stop offset="1" stop-color="#8B6FE0"/></radialGradient>
+<radialGradient id="f" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#14112E"/><stop offset="1" stop-color="#05040F"/></radialGradient></defs>
+<line x1="100" y1="10" x2="100" y2="30" stroke="#A78BFA" stroke-width="1.5"/><circle class="dot" cx="100" cy="9" r="4.5" fill="#A78BFA"/>
+<rect x="13" y="84" width="22" height="40" rx="11" fill="#F1EEFF" stroke="#A78BFA" stroke-opacity=".5"/><rect x="165" y="84" width="22" height="40" rx="11" fill="#F1EEFF" stroke="#A78BFA" stroke-opacity=".5"/>
+<circle cx="100" cy="104" r="72" fill="url(#b)"/><ellipse cx="74" cy="62" rx="26" ry="13" fill="#fff" opacity=".7" transform="rotate(-28 74 62)"/>
+<rect x="42" y="74" width="116" height="66" rx="33" fill="url(#f)" stroke="#A78BFA" stroke-opacity=".35"/>
+<g class="eye" fill="#A78BFA" style="filter:drop-shadow(0 0 6px #A78BFA)"><rect x="70" y="90" width="15" height="24" rx="7.5"/><rect x="115" y="90" width="15" height="24" rx="7.5"/></g>
+<path d="M89 122 q11 10 22 0" stroke="#A78BFA" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+</svg>
+<div class="rings"></div>
+<h1>SAUT AI</h1>
+<p>جاري الاتصال… تأكد من اتصالك بالإنترنت.</p><p dir="ltr">Connecting… check your internet connection.</p>
+</div></body></html>

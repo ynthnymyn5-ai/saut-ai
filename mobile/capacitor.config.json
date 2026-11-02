@@ -4,7 +4,7 @@
   "webDir": "www",
   "backgroundColor": "#080812",
   "server": {
-    "url": "https://saut-ai-lons.vercel.app/dashboard",
+    "url": "https://saut-ai-lons.vercel.app/app",
     "cleartext": false,
     "allowNavigation": [
       "saut-ai-lons.vercel.app",

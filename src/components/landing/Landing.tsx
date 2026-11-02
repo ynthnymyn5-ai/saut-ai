@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { SoMascot } from "@/components/brand/SoMascot";
+import { SoScene } from "@/components/brand/SoScene";
 import { Soundwave } from "@/components/brand/Soundwave";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { Badge, ButtonLink } from "@/components/ui/primitives";
@@ -57,7 +58,7 @@ export function Landing() {
             <p className="mt-5 text-xs text-muted">{t.hero.note}</p>
           </motion.div>
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, delay: 0.2 }} className="relative mx-auto">
-            <SoMascot state="speaking" size={340} className="max-sm:!h-[260px] max-sm:!w-[260px]" />
+            <SoScene state="speaking" size={300} className="max-sm:hidden" /><SoMascot state="speaking" size={240} className="sm:hidden" />
             <div className="glass absolute -bottom-2 start-0 flex items-center gap-3 px-4 py-3 sm:-start-8">
               <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" /><span className="relative h-2.5 w-2.5 rounded-full bg-emerald-400" /></span>
               <div><p className="text-xs font-semibold">{locale === "ar" ? "مكالمة مباشرة" : "Live call"}</p><p className="text-[11px] text-muted">+965 •••• 0101 · 01:42</p></div>
