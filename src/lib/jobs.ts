@@ -21,7 +21,7 @@ async function deliver(job: Job): Promise<Result> {
     }
     return { ok: true, id };
   }
-  if (!providerStatus("email").configured) return { ok: false, error: "Email is not configured (RESEND_API_KEY, EMAIL_FROM)", retryable: false };
+  if (!providerStatus("email").configured) return { ok: false, error: "Email is not configured (RESEND_API_KEY + EMAIL_FROM, or SMTP_HOST/SMTP_USER/SMTP_PASS)", retryable: false };
   const { sendEmail } = await import("@/lib/messaging/email");
   const p = job.payload as { to: string[]; subject: string; text: string };
   const r = await sendEmail(p.to, p.subject, p.text);

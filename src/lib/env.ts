@@ -34,8 +34,13 @@ const required: Record<ProviderKey, string[]> = {
 
 export function providerStatus(key: ProviderKey) {
   const missing = required[key].filter((k) => !process.env[k]);
+  // Email works through Resend OR any SMTP server (e.g. Gmail with an app password).
+  if (key === "email" && missing.length && smtpConfigured()) return { configured: true, missing: [] as string[] };
   return { configured: missing.length === 0, missing };
 }
+
+/** SMTP alternative to Resend: SMTP_HOST, SMTP_USER, SMTP_PASS (+ optional SMTP_PORT, EMAIL_FROM). */
+export const smtpConfigured = () => !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
 export function allProviderStatus() {
   return Object.fromEntries(

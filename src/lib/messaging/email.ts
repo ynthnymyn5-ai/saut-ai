@@ -1,8 +1,32 @@
 import "server-only";
-import { serverEnv } from "@/lib/env";
+import { serverEnv, smtpConfigured } from "@/lib/env";
 
-/** Sends one email through Resend. Never pretends: returns ok only when Resend accepted it. */
-export async function sendEmail(to: string | string[], subject: string, text: string, html?: string) {
+type SendResult = { ok: true; id: string } | { ok: false; error: string; retryable: boolean };
+
+/** SMTP (e.g. Gmail: smtp.gmail.com, port 465, an app password). Returns ok only when the server accepted it. */
+async function sendSmtp(to: string[], subject: string, text: string, html?: string): Promise<SendResult> {
+  const nodemailer = await import("nodemailer");
+  const port = Number(process.env.SMTP_PORT) || 465;
+  const transport = nodemailer.createTransport({
+    host: process.env.SMTP_HOST, port, secure: port === 465,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    connectionTimeout: 15_000, greetingTimeout: 15_000, socketTimeout: 20_000,
+  });
+  try {
+    const info = await transport.sendMail({ from: process.env.EMAIL_FROM || `SAUT AI <${process.env.SMTP_USER}>`, to, subject: subject.slice(0, 200), text, ...(html ? { html } : {}) });
+    if (!info.accepted?.length) return { ok: false, error: `SMTP rejected all recipients`, retryable: false };
+    return { ok: true, id: String(info.messageId ?? "smtp") };
+  } catch (e) {
+    const err = e as { responseCode?: number; code?: string; message?: string };
+    // 4xx and network errors are temporary; 5xx (bad login, rejected address) are not.
+    const retryable = !err.responseCode || (err.responseCode >= 400 && err.responseCode < 500) || ["ETIMEDOUT", "ECONNECTION", "ESOCKET"].includes(err.code ?? "");
+    return { ok: false, error: `SMTP: ${(err.message ?? "send failed").slice(0, 300)}`, retryable };
+  }
+}
+
+/** Sends one email through Resend, or SMTP when Resend isn't configured. Never pretends: ok only when accepted. */
+export async function sendEmail(to: string | string[], subject: string, text: string, html?: string): Promise<SendResult> {
+  if (!process.env.RESEND_API_KEY && smtpConfigured()) return sendSmtp(Array.isArray(to) ? to : [to], subject, text, html);
   let res: Response;
   try {
     res = await fetch("https://api.resend.com/emails", {

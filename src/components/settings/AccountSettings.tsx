@@ -249,7 +249,7 @@ function EmailAlertsToggle() {
     <label className="flex items-start gap-3 rounded-xl border border-line p-3 sm:col-span-2">
       <input type="checkbox" className="mt-0.5 h-4 w-4 accent-violet" checked={data.email} onChange={async (e) => { if (await mutate("/api/profile/notifications", "PATCH", { email: e.target.checked }, tr("Saved", "تم الحفظ"))) reload(); }} />
       <span className="text-sm">{tr("Email me important alerts (new orders, messages waiting for a reply, failed deliveries, plan limits)", "أرسل لي تنبيهات مهمة بالإيميل (طلبات جديدة، رسائل بانتظار الرد، رسائل لم تُسلَّم، حدود الباقة)")}
-        {!data.available && <span className="mt-0.5 block text-xs text-amber-200">{tr("Email sending isn't configured on the server yet (RESEND_API_KEY, EMAIL_FROM) — alerts stay in the app until it is.", "إرسال الإيميل غير مفعّل على الخادم بعد (RESEND_API_KEY و EMAIL_FROM) — تبقى التنبيهات داخل التطبيق حتى يتم تفعيله.")}</span>}</span>
+        {!data.available && <span className="mt-0.5 block text-xs text-amber-200">{tr("Email sending isn't configured on the server yet (Resend, or Gmail SMTP) — alerts stay in the app until it is.", "إرسال الإيميل غير مفعّل على الخادم بعد (Resend أو Gmail) — تبقى التنبيهات داخل التطبيق حتى يتم تفعيله.")}</span>}</span>
     </label>
   );
 }
