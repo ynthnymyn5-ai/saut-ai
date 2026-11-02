@@ -254,3 +254,35 @@ function EmailAlertsToggle() {
     </label>
   );
 }
+
+/* ─────────────── Weekly report ─────────────── */
+type Weekly = { from: string; to: string; conversations: number; aiHandled: number; escalated: number; orders: number; revenue: number; currency: string; appointments: number; newCustomers: number; leads: number; hoursSaved: number; satisfaction: number | null; demo?: boolean };
+
+export function WeeklyReportCard() {
+  const tr = useTr();
+  const mutate = useMutate();
+  const { data, loading, error } = useApi<Weekly>("/api/reports/weekly");
+  const [busy, setBusy] = useState(false);
+  const cell = (label: string, value: string | number) => <div className="rounded-xl border border-line p-3"><p className="font-display text-xl font-semibold tabular-nums" dir="ltr">{value}</p><p className="text-[11px] text-muted">{label}</p></div>;
+  return (
+    <Card id="weekly-report">
+      <div className="mb-2 flex items-center gap-2"><Mail className="h-5 w-5 text-electric" /><h2 className="font-semibold">{tr("Weekly report", "التقرير الأسبوعي")}</h2></div>
+      <p className="mb-3 text-xs text-muted">{tr("Every Sunday morning owners and managers get this summary by email (and in the bell). Last 7 days, from real records.", "كل أحد صباحاً يصل هذا الملخص للمالك والمدراء بالإيميل (وفي التنبيهات). آخر ٧ أيام من السجلات الفعلية.")}</p>
+      <ErrorNote error={error} />
+      {loading ? <Skeleton className="h-32" /> : !data || data.demo ? null : (
+        <>
+          <p className="mb-2 text-xs text-muted" dir="ltr">{data.from} → {data.to}</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {cell(tr("Conversations", "محادثات"), data.conversations)}
+            {cell(tr("Handled by AI", "تولّاها الذكاء الاصطناعي"), data.aiHandled)}
+            {cell(tr("Orders", "طلبات"), `${data.orders} · ${data.revenue.toFixed(3)} ${data.currency}`)}
+            {cell(tr("Appointments", "مواعيد"), data.appointments)}
+            {cell(tr("Satisfaction", "رضا العملاء"), data.satisfaction === null ? "—" : `${data.satisfaction}%`)}
+            {cell(tr("Hours saved (est.)", "ساعات موفّرة (تقديري)"), data.hoursSaved)}
+          </div>
+          <Button className="mt-3" size="sm" variant="outline" disabled={busy} onClick={async () => { setBusy(true); await mutate("/api/reports/weekly", "POST", undefined, tr("Report sent", "تم إرسال التقرير")); setBusy(false); }}>{tr("Send this report now", "أرسل التقرير الآن")}</Button>
+        </>
+      )}
+    </Card>
+  );
+}

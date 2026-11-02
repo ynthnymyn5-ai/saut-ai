@@ -6,7 +6,7 @@ import { ErrorNote, useApi, useMutate, useTr } from "@/components/os/shared";
 import { useI18n } from "@/lib/i18n/client";
 import { cn, formatDate } from "@/lib/utils";
 
-type Row = { id: string; channel: string; status: string; summary: string; sentiment: string; at: string; handledBy: string; assignedUser: string | null; unread: boolean; customer: { id: string | null; name: string | null; phone: string | null }; employee: string | null };
+type Row = { id: string; channel: string; status: string; summary: string; sentiment: string; at: string; handledBy: string; assignedUser: string | null; rating?: 1 | -1 | null; unread: boolean; customer: { id: string | null; name: string | null; phone: string | null }; employee: string | null };
 type Msg = { id: string; role: "customer" | "ai" | "human" | "system"; content: string; created_at: string; delivery_status: string | null };
 type Detail = { conversation: Omit<Row, "unread" | "at"> & { started_at: string; whatsappWindowOpen: boolean; transferredTo: string | null }; messages: Msg[] };
 type Member = { user_id: string; full_name: string | null; email: string };
@@ -81,7 +81,7 @@ export function InboxView({ canOperate }: { canOperate: boolean }) {
                       <span className="shrink-0 text-[11px] text-muted">{formatDate(r.at, locale, { dateStyle: "short", timeStyle: "short" })}</span>
                     </div>
                     <p className="truncate text-xs text-muted" dir="auto">{r.summary || "—"}</p>
-                    <div className="mt-1 flex flex-wrap gap-1"><Badge>{ch(r.channel)}</Badge><Badge tone={statusTone(r.status)}>{st(r.status)}</Badge>{r.handledBy === "human" && <Badge tone="blue">{tr("Human", "موظف")}</Badge>}{r.assignedUser && <Badge tone="gray">{name(r.assignedUser) ?? tr("Assigned", "مسندة")}</Badge>}</div>
+                    <div className="mt-1 flex flex-wrap gap-1"><Badge>{ch(r.channel)}</Badge><Badge tone={statusTone(r.status)}>{st(r.status)}</Badge>{r.handledBy === "human" && <Badge tone="blue">{tr("Human", "موظف")}</Badge>}{r.rating === 1 && <Badge tone="green">👍</Badge>}{r.rating === -1 && <Badge tone="red">👎</Badge>}{r.assignedUser && <Badge tone="gray">{name(r.assignedUser) ?? tr("Assigned", "مسندة")}</Badge>}</div>
                   </div>
                 </button>
               ))}

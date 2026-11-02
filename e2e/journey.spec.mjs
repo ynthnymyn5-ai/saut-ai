@@ -179,6 +179,27 @@ test.describe.serial("SAUT AI journey", () => {
     expect((await (await request.get(`/api/widget/${settings.key}?session=other${Date.now()}xxxxxxxx`)).json()).messages).toHaveLength(0);
     // delivery queue is readable and empty
     expect((await (await api.get("/api/deliveries")).json()).jobs).toHaveLength(0);
+
+    // visitor rates the chat 👎 with a comment → visible in the inbox
+    expect((await request.post(`/api/widget/${settings.key}/rate`, { data: { session, rating: 5 } })).status()).toBe(422);
+    expect((await request.post(`/api/widget/${settings.key}/rate`, { data: { session, rating: -1, comment: "Too slow" } })).status()).toBe(200);
+    const rated = (await (await api.get("/api/conversations?channel=web_chat")).json()).conversations.find((c) => c.id === conv.id);
+    expect(rated.rating).toBe(-1);
+
+    // weekly report is computed from real records (this business: 1 order, ≥1 conversation, 1 rating 👎)
+    const week = await (await api.get("/api/reports/weekly")).json();
+    expect(week.orders).toBe(1);
+    expect(week.conversations).toBeGreaterThanOrEqual(1);
+    expect(week.ratingsDown).toBe(1);
+    expect(week.satisfaction).toBe(0);
+    expect((await api.post("/api/reports/weekly")).status()).toBe(200);
+
+    // menu import: bulk add needs real prices; duplicates are skipped; photo reading needs the AI key (honest 503 in CI)
+    expect((await api.post("/api/products/bulk", { data: { items: [{ name: "Mocha", price: null }] } })).status()).toBe(422);
+    const bulk = await (await api.post("/api/products/bulk", { data: { items: [{ name: "Mocha", price: 1.75 }, { name: "Latte", price: 9 }] } })).json();
+    expect(bulk).toEqual({ added: 1, skipped: 1 });
+    const imp = await api.post("/api/products/import", { multipart: { file: { name: "menu.png", mimeType: "image/png", buffer: Buffer.from("89504e470d0a1a0a", "hex") } } });
+    expect(imp.status()).toBe(503);
   });
 
   test("app launch screen shows SO and opens the dashboard", async ({ browser }) => {

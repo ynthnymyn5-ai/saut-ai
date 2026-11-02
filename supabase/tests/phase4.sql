@@ -59,4 +59,23 @@ do $$ begin
   begin insert into conversations (organization_id, channel, web_session_id) select team, 'web_chat', 'bad id!' from o; raise exception 'bad id allowed'; exception when check_violation then null; end;
 end $$;
 select pg_temp.check(true, 'W1. one conversation per widget session; session ids are validated');
+-- ── Ratings + weekly reports ─────────────────────────────────────────────
+reset role;
+do $$ begin
+  begin update conversations set rating = 5 where web_session_id = 'abcdefghijklmnop1234'; raise exception 'bad rating allowed'; exception when check_violation then null; end;
+end $$;
+update conversations set rating = 1, rated_at = now() where web_session_id = 'abcdefghijklmnop1234';
+select pg_temp.check((select rating from conversations where web_session_id = 'abcdefghijklmnop1234') = 1, 'R1. ratings are 👍 (1) or 👎 (-1) only');
+insert into weekly_reports (organization_id, week_start, data) select team, '2026-10-26', '{"conversations":3}' from o;
+do $$ begin
+  begin insert into weekly_reports (organization_id, week_start) select team, '2026-10-26' from o; raise exception 'dup report allowed'; exception when unique_violation then null; end;
+end $$;
+set role authenticated;
+select pg_temp.as_user('41000000-0000-4000-8000-000000000002');
+select pg_temp.check((select count(*) from weekly_reports) = 1, 'R2. owner reads the weekly report; one per week');
+select pg_temp.as_user('41000000-0000-4000-8000-000000000001');
+select pg_temp.check((select count(*) from weekly_reports) = 0, 'R3. viewers and other businesses cannot read it');
+reset role;
+insert into notifications (organization_id, kind, title) select team, 'report', 'Weekly report' from o;
+select pg_temp.check(true, 'R4. weekly-report notifications are allowed');
 \echo 'ALL PHASE 4 DATABASE TESTS PASSED'

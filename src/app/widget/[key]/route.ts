@@ -38,6 +38,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
     error: ar ? "تعذّر الإرسال. حاول مرة أخرى." : "Couldn't send. Please try again.",
     waiting: ar ? "تم استلام رسالتك، وسيرد عليك أحد أعضاء الفريق هنا." : "Got your message — a team member will reply here.",
     typing: ar ? "يكتب…" : "Typing…",
+    rateQ: ar ? "هل كانت المحادثة مفيدة؟" : "Was this chat helpful?",
+    rateThanks: ar ? "شكراً لتقييمك 🙏" : "Thanks for your feedback 🙏",
+    rateWhy: ar ? "وش اللي ما عجبك؟ (اختياري)" : "What went wrong? (optional)",
+    rateSend: ar ? "إرسال" : "Send",
   };
   const html = `<!doctype html><html lang="${lang}" dir="${ar ? "rtl" : "ltr"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(w.title)}</title>
@@ -61,10 +65,14 @@ textarea:focus{outline:2px solid var(--c);outline-offset:0}
 form button{border:0;border-radius:12px;padding:0 16px;background:var(--c);color:#fff;font:inherit;font-weight:600;cursor:pointer}
 form button:disabled{opacity:.5;cursor:default}
 footer{padding:0 12px 10px;color:var(--muted);font-size:11px;text-align:center}
+#rate{display:none;align-items:center;justify-content:center;gap:8px;padding:6px 12px;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+#rate button{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px 10px;font-size:15px;cursor:pointer}
+#rate input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:10px;padding:6px 8px;font:inherit;font-size:12px}
 footer a{color:var(--muted)}
 </style></head><body>
 <header><span class="dot" aria-hidden="true"></span><h1>${esc(w.title)}</h1><button type="button" id="x" aria-label="${t.close}">×</button></header>
 <div id="log" role="log" aria-live="polite"></div>
+<div id="rate" role="group" aria-label="${t.rateQ}"></div>
 <form id="f"><textarea id="t" rows="1" maxlength="2000" placeholder="${t.placeholder}" aria-label="${t.placeholder}" dir="auto"></textarea><button id="b" type="submit">${t.send}</button></form>
 <footer>${t.ai} · <a href="/privacy" target="_blank" rel="noopener">Privacy</a> · Powered by SAUT AI</footer>
 <script>
@@ -77,8 +85,17 @@ if(!sid||!/^[A-Za-z0-9_-]{16,64}$/.test(sid)){var a=new Uint8Array(18);crypto.ge
 var seen={},last=null,typing=null;
 function add(cls,text,who,id){if(id){if(seen[id])return;seen[id]=1}var d=document.createElement("div");d.className="m "+cls;if(who){var s=document.createElement("span");s.className="who";s.textContent=who;d.appendChild(s)}d.appendChild(document.createTextNode(text));log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
 function sys(text){var d=document.createElement("div");d.className="sys";d.textContent=text;log.appendChild(d);log.scrollTop=log.scrollHeight}
-function render(list){(list||[]).forEach(function(m){if(m.role==="customer")add("me",m.content,null,m.id);else if(m.role==="ai")add("them",m.content,null,m.id);else if(m.role==="human")add("them",m.content,LANG==="ar"?"فريق العمل":"Team",m.id);last=m.created_at})}
+function render(list){(list||[]).forEach(function(m){if(m.role==="customer")add("me",m.content,null,m.id);else if(m.role==="ai"){add("them",m.content,null,m.id);gotAnswer()}else if(m.role==="human"){add("them",m.content,LANG==="ar"?"فريق العمل":"Team",m.id);gotAnswer()}last=m.created_at})}
+function gotAnswer(){if(!answered++)rateUi()}
 function poll(){var q=API+"?session="+sid+(last?"&after="+encodeURIComponent(last):"");fetch(q,{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(j){if(j)render(j.messages)}).catch(function(){})}
+var rate=document.getElementById("rate"),rk="saut_r_"+KEY+"_"+sid;
+function rateUi(){if(get(rk)){rate.style.display="flex";rate.textContent=T.rateThanks;return}
+ rate.innerHTML="";var q=document.createElement("span");q.textContent=T.rateQ;rate.appendChild(q);
+ [["👍",1],["👎",-1]].forEach(function(o){var b=document.createElement("button");b.type="button";b.textContent=o[0];b.setAttribute("aria-label",o[0]);b.onclick=function(){sendRate(o[1])};rate.appendChild(b)});rate.style.display="flex"}
+function sendRate(v,comment){fetch(API+"/rate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session:sid,rating:v,comment:comment||undefined})}).then(function(r){if(!r.ok)return;
+ if(v===-1&&comment===undefined){rate.innerHTML="";var i=document.createElement("input");i.maxLength=500;i.placeholder=T.rateWhy;var b=document.createElement("button");b.type="button";b.textContent=T.rateSend;b.style.fontSize="12px";b.onclick=function(){sendRate(-1,i.value.trim());};rate.appendChild(i);rate.appendChild(b);i.focus();return}
+ set(rk,"1");rateUi()}).catch(function(){})}
+var answered=0;
 add("them",T.greeting);poll();setInterval(function(){if(document.visibilityState==="visible")poll()},5000);
 ta.addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();f.requestSubmit()}});
 f.addEventListener("submit",function(e){e.preventDefault();var text=ta.value.trim();if(!text||b.disabled)return;b.disabled=true;ta.value="";
@@ -86,7 +103,7 @@ f.addEventListener("submit",function(e){e.preventDefault();var text=ta.value.tri
  fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session:sid,text:text,lang:LANG})})
  .then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})})
  .then(function(x){typing&&typing.remove();typing=null;if(!x.ok){sys((x.j&&x.j.error&&x.j.error.code==="rate_limited")?T.error:T.error);ta.value=text;mine.remove();return}
-   if(x.j.customerMessageId)seen[x.j.customerMessageId]=1;if(x.j.reply){add("them",x.j.reply,null,x.j.replyId)}else if(x.j.queued){sys(T.waiting)}if(x.j.at)last=x.j.at})
+   if(x.j.customerMessageId)seen[x.j.customerMessageId]=1;if(x.j.reply){add("them",x.j.reply,null,x.j.replyId);gotAnswer()}else if(x.j.queued){sys(T.waiting)}if(x.j.at)last=x.j.at})
  .catch(function(){typing&&typing.remove();typing=null;sys(T.error);ta.value=text;mine.remove()})
  .finally(function(){b.disabled=false;ta.focus()})});
 document.getElementById("x").addEventListener("click",function(){parent.postMessage({type:"saut:close"},"*")});

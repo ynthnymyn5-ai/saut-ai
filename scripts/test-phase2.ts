@@ -357,3 +357,41 @@ test("deliveries: exponential backoff, capped, then marked failed", () => {
   assert.deepEqual(afterFailure({ attempts: 4, max_attempts: 5 }, true, now), { status: "dead", attempts: 5 }, "out of attempts");
   assert.deepEqual(afterFailure({ attempts: 0, max_attempts: 5 }, false, now), { status: "dead", attempts: 1 }, "permanent errors are not retried");
 });
+
+// ── Menu import ──────────────────────────────────────────────────────────
+import { normalizeCurrency, normalizeMenuItems, parsePrice } from "../src/lib/menu-import";
+test("menu import: prices are read as printed, never guessed", () => {
+  assert.equal(parsePrice("1.500 KD"), 1.5);
+  assert.equal(parsePrice("د.ك ٢٫٧٥٠"), 2.75);
+  assert.equal(parsePrice(3), 3);
+  assert.equal(parsePrice("1.5 - 2.5"), null, "a range needs the owner");
+  assert.equal(parsePrice("ask staff"), null);
+  assert.equal(parsePrice(null), null);
+  assert.equal(normalizeCurrency("KD"), "KWD");
+  assert.equal(normalizeCurrency("د.ك"), "KWD");
+  assert.equal(normalizeCurrency(null, "KWD"), "KWD");
+  const items = normalizeMenuItems({ items: [
+    { name: "  لاتيه  ", description: "", price: "1.500", currency: "KD" },
+    { name: "لاتيه", description: null, price: "9", currency: null },
+    { name: "", price: "1" },
+    { name: "Cookie", description: "Fresh", price: null, currency: null },
+  ] });
+  assert.deepEqual(items, [
+    { name: "لاتيه", description: null, price: 1.5, currency: "KWD" },
+    { name: "Cookie", description: "Fresh", price: null, currency: "KWD" },
+  ]);
+});
+
+// ── Weekly report ────────────────────────────────────────────────────────
+import { formatWeeklyReport, hoursSaved, satisfaction } from "../src/lib/reports/weekly-format";
+test("weekly report: real numbers, honest estimates, both languages", () => {
+  const d = { from: "2026-10-26", to: "2026-11-02", conversations: 40, byChannel: { whatsapp: 30, web_chat: 10 }, aiHandled: 30, escalated: 10, orders: 12, revenue: 18.75, currency: "KWD", appointments: 5, newCustomers: 8, leads: 3, ratingsUp: 9, ratingsDown: 1 };
+  assert.equal(hoursSaved(d), 2, "30 conversations × 4 min = 2 h");
+  assert.equal(satisfaction(d), 90);
+  assert.equal(satisfaction({ ...d, ratingsUp: 0, ratingsDown: 0 }), null, "no ratings → no made-up score");
+  const r = formatWeeklyReport(d, "Layali", "https://x/dashboard");
+  assert.match(r.text, /الطلبات: 12 بقيمة 18\.750 KWD/);
+  assert.match(r.text, /Orders: 12 worth 18\.750 KWD/);
+  assert.match(r.text, /تقديرياً/);
+  assert.match(r.text, /Estimated time saved/);
+});

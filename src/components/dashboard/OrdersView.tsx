@@ -1,5 +1,6 @@
 "use client";
-import { Package, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { Camera, Package, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { MenuImport } from "@/components/dashboard/MenuImport";
 import { useMemo, useState } from "react";
 import { Badge, Button, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui/primitives";
 import { ErrorNote, useApi, useMutate, useTr } from "@/components/os/shared";
@@ -28,6 +29,7 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
   const [open, setOpen] = useState<string | null>(null);
   const detail = useApi<Detail>(open ? `/api/orders/${open}` : null);
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [newOrder, setNewOrder] = useState<null | { customer_name: string; phone: string; fulfillment: string; notes: string; lines: { product_id: string; quantity: number }[] }>(null);
   const [prod, setProd] = useState<null | { id?: string; name: string; description: string; price: string; is_active: boolean }>(null);
 
@@ -46,7 +48,8 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
     <>
       <PageHeader title={tr("Orders", "الطلبات")} subtitle={tr("Orders taken by your team and AI employees. Prices always come from your product list.", "الطلبات التي يأخذها فريقك وموظفوك الأذكياء. الأسعار تُحسب دائماً من قائمة منتجاتك.")} demo={demo}
         actions={tab === "orders" ? canEdit && active.length > 0 && <Button onClick={() => setNewOrder({ customer_name: "", phone: "", fulfillment: "pickup", notes: "", lines: [{ product_id: active[0].id, quantity: 1 }] })}><Plus className="h-4 w-4" />{tr("New order", "طلب جديد")}</Button>
-          : canManageProducts && <Button onClick={() => setProd({ name: "", description: "", price: "", is_active: true })}><Plus className="h-4 w-4" />{tr("Add product", "إضافة منتج")}</Button>} />
+          : canManageProducts && <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setImporting(true)}><Camera className="h-4 w-4" />{tr("Import from menu photo", "استيراد من صورة المنيو")}</Button><Button onClick={() => setProd({ name: "", description: "", price: "", is_active: true })}><Plus className="h-4 w-4" />{tr("Add product", "إضافة منتج")}</Button></div>} />
+      {importing && <MenuImport onClose={() => setImporting(false)} onAdded={() => { setImporting(false); products.reload(); }} />}
 
       <div className="mb-4 flex gap-2 border-b border-line">
         {(["orders", "products"] as const).map((t) => (

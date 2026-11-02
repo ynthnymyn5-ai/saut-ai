@@ -27,6 +27,11 @@ export async function GET(req: Request) {
     if (error) { out[key] = { error: error.message }; reportError(new Error(`${fn}: ${error.message}`), { scope: "cron-maintenance" }); }
     else out[key] = data;
   }
+  // Sundays: weekly owner reports (Kuwait morning; the daily job runs at 00:30 UTC)
+  if (new Date().getUTCDay() === 0) {
+    try { const { sendWeeklyReports } = await import("@/lib/reports/weekly"); out.weeklyReports = await sendWeeklyReports(db); }
+    catch (e) { out.weeklyReports = { error: e instanceof Error ? e.message : "error" }; reportError(e, { scope: "cron-weekly-report" }); }
+  }
   try { const { processDueJobs } = await import("@/lib/jobs"); out.deliveries = await processDueJobs(db, 50); }
   catch (e) { out.deliveries = { error: e instanceof Error ? e.message : "error" }; reportError(e, { scope: "cron-maintenance-jobs" }); }
   console.info(JSON.stringify({ level: "info", scope: "cron-maintenance", ...out }));
