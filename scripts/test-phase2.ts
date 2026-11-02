@@ -396,7 +396,7 @@ test("weekly report: real numbers, honest estimates, both languages", () => {
   assert.match(r.text, /Estimated time saved/);
 });
 
-import { canMove, formatAddress as fmtAddr, missingAddressParts, nextStatuses, orderErrorMessage as orderErr } from "../src/lib/orders";
+import { formatAddress as fmtAddr, missingAddressParts, nextStatuses, orderErrorMessage as orderErr } from "../src/lib/orders";
 test("delivery: address validation, formatting and status flow", () => {
   assert.deepEqual(missingAddressParts({ area: "Salmiya", block: "10", house: "5" }), []);
   assert.deepEqual(missingAddressParts({ area: "Salmiya", block: "10", street: "Salem" }), []);
