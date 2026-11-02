@@ -4,8 +4,9 @@ import { audit } from "@/lib/audit";
 import { requireApiSession } from "@/lib/auth";
 import { providerStatus, publicEnv, serverEnv } from "@/lib/env";
 import { fail, ok, route } from "@/lib/http";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseServer, supabaseService } from "@/lib/supabase/server";
 import { twilioClient } from "@/lib/telephony/twilio";
+import { isPublicHost } from "@/lib/safe-redirect";
 
 const PROVIDERS = ["whatsapp", "telephony", "google_calendar", "crm", "web_widget", "email", "webhooks", "api"] as const;
 
@@ -19,12 +20,17 @@ export const POST = route("integrations", async (req, ctx) => {
   const body = z.record(z.string().max(500)).parse(await req.json().catch(() => ({})));
   if (s.demo) return ok({ demo: true, status: "disconnected", message: "Demo mode" });
   const sb = (await supabaseServer())!;
+  // Integrations decide where inbound messages/calls are routed, so only the server writes them (never the browser).
+  const admin = supabaseService();
+  if (!admin) return fail(503, "provider_not_configured", "Server key missing", { variable: "SUPABASE_SERVICE_ROLE_KEY" });
 
   const save = async (status: string, config: object, message: string, lastError: string | null = null) => {
-    await sb.from("integrations").upsert(
+    const { error } = await admin.from("integrations").upsert(
       { organization_id: s.org.id, provider, status, config, last_error: lastError, connected_at: status === "connected" ? new Date().toISOString() : null },
       { onConflict: "organization_id,provider" },
     );
+    if (error?.code === "23505") return fail(409, "already_in_use", "This number or channel is already connected to another business.");
+    if (error) throw error;
     await audit({ orgId: s.org.id, actorId: s.userId, action: `integration.${provider}.${status}` });
     return ok({ status, message });
   };
@@ -32,6 +38,12 @@ export const POST = route("integrations", async (req, ctx) => {
   switch (provider) {
     case "telephony": {
       const number = z.string().regex(/^\+[0-9]{8,15}$/).parse((body.phone_number ?? "").replace(/\s/g, ""));
+      // A number can belong to one business only — otherwise another account could take over its calls.
+      const [ti, te] = await Promise.all([
+        admin.from("integrations").select("organization_id").eq("provider", "telephony").eq("config->>number", number).neq("organization_id", s.org.id).limit(1),
+        admin.from("ai_employees").select("id").eq("phone_number", number).neq("organization_id", s.org.id).limit(1),
+      ]);
+      if (ti.data?.length || te.data?.length) return fail(409, "already_in_use", "This number is already connected to another business.");
       // Verify the number exists on our Twilio account before claiming it's connected.
       const list = await twilioClient().incomingPhoneNumbers.list({ phoneNumber: number, limit: 1 });
       if (!list.length) return save("error", { number }, "Number not found on the Twilio account", "number_not_found");
@@ -39,7 +51,7 @@ export const POST = route("integrations", async (req, ctx) => {
         voiceUrl: `${publicEnv.appUrl}/api/telephony/twilio/voice`,
         statusCallback: `${publicEnv.appUrl}/api/telephony/twilio/status`,
       });
-      if (body.employee_id) await sb.from("ai_employees").update({ phone_number: number }).eq("id", body.employee_id).eq("organization_id", s.org.id);
+      if (body.employee_id) await admin.from("ai_employees").update({ phone_number: number }).eq("id", body.employee_id).eq("organization_id", s.org.id);
       return save("connected", { number }, "Phone number connected");
     }
     case "whatsapp": {
@@ -48,6 +60,8 @@ export const POST = route("integrations", async (req, ctx) => {
       const r = await fetch(`https://graph.facebook.com/v21.0/${id}?fields=display_phone_number,verified_name`, { headers: { Authorization: `Bearer ${token}` } });
       const data = (await r.json()) as { display_phone_number?: string; verified_name?: string; error?: { message: string } };
       if (!r.ok) return save("error", {}, "WhatsApp verification failed", data.error?.message ?? "error");
+      const { data: other } = await admin.from("integrations").select("organization_id").eq("provider", "whatsapp").eq("status", "connected").eq("config->>phone_number_id", id).neq("organization_id", s.org.id).limit(1);
+      if (other?.length) return fail(409, "already_in_use", "This WhatsApp number is already connected to another business.");
       return save("connected", { display: data.display_phone_number, name: data.verified_name, phone_number_id: id }, "WhatsApp connected");
     }
     case "google_calendar": {
@@ -62,9 +76,9 @@ export const POST = route("integrations", async (req, ctx) => {
       return ok({ redirect: url.toString() });
     }
     case "webhooks": {
-      const url = z.string().url().refine((u) => u.startsWith("https://"), "HTTPS required").parse(body.url);
+      const url = z.string().url().refine((u) => u.startsWith("https://"), "HTTPS required").refine(isPublicHost, "Use a public internet address").parse(body.url);
       const secret = crypto.randomBytes(24).toString("hex");
-      const ping = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "X-Saut-Signature": crypto.createHmac("sha256", secret).update("{\"type\":\"ping\"}").digest("hex") }, body: "{\"type\":\"ping\"}" }).catch(() => null);
+      const ping = await fetch(url, { method: "POST", redirect: "manual", signal: AbortSignal.timeout(8000), headers: { "Content-Type": "application/json", "X-Saut-Signature": crypto.createHmac("sha256", secret).update("{\"type\":\"ping\"}").digest("hex") }, body: "{\"type\":\"ping\"}" }).catch(() => null);
       if (!ping?.ok) return save("error", { url }, "Endpoint did not respond with 2xx", "ping_failed");
       return save("connected", { url, secret_hint: secret.slice(0, 6) }, `Webhook verified. Signing secret: ${secret}`);
     }

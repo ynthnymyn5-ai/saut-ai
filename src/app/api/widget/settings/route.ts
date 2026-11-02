@@ -5,7 +5,7 @@ import { requireApiSession } from "@/lib/auth";
 import { publicEnv } from "@/lib/env";
 import { fail, ok, parseJson, route } from "@/lib/http";
 import { MANAGE_ORG } from "@/lib/rbac";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseServer, supabaseService } from "@/lib/supabase/server";
 import { normalizeDomain, safeColor } from "@/lib/widget-core";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +46,9 @@ export const POST = route("widget-settings-save", async (req) => {
   const config = { ...c, key, domain, greeting_ar: b.greeting_ar ?? c.greeting_ar ?? "", greeting_en: b.greeting_en ?? c.greeting_en ?? "", title: b.title ?? c.title ?? "", color: safeColor(b.color ?? c.color), ...(domainChanged ? { verified_at: undefined } : {}) };
   // Shown as connected only after the widget has really loaded on that domain.
   const status = domainChanged ? "pending" : (cur?.status ?? "pending");
-  const { error } = await sb.from("integrations").upsert({ organization_id: s.org.id, provider: "web_widget", status, config: JSON.parse(JSON.stringify(config)), connected_at: status === "connected" ? new Date().toISOString() : null }, { onConflict: "organization_id,provider" });
+  const admin = supabaseService();
+  if (!admin) return fail(503, "provider_not_configured", "Server key missing", { variable: "SUPABASE_SERVICE_ROLE_KEY" });
+  const { error } = await admin.from("integrations").upsert({ organization_id: s.org.id, provider: "web_widget", status, config: JSON.parse(JSON.stringify(config)), connected_at: status === "connected" ? new Date().toISOString() : null }, { onConflict: "organization_id,provider" });
   if (error) throw error;
   await audit({ orgId: s.org.id, actorId: s.userId, action: b.rotate_key ? "integration.web_widget.key_rotated" : "integration.web_widget.saved", metadata: { domain } });
   return ok({ ok: true, status, key });

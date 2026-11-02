@@ -412,3 +412,31 @@ test("delivery: address validation, formatting and status flow", () => {
   assert.ok(orderErr("Outside delivery area"));
   assert.ok(orderErr("Below minimum order for this area: 5.000"));
 });
+
+import { isCustomerFacing, samePhone, scopeDecision, PRIVACY_NOTE, UNVERIFIED_NOTE } from "../src/lib/so/customer-scope-core";
+test("security: AI in customer chats can only touch the caller's own records", () => {
+  const me = { phone: "+96555001111", customerId: "c1" };
+  assert.equal(scopeDecision("lookup_customer", { phone: "+96555001111" }, me), null);
+  assert.equal(scopeDecision("lookup_customer", { phone: "55001111" }, me), null); // local format
+  assert.equal(scopeDecision("lookup_customer", { phone: "+96599998888" }, me), PRIVACY_NOTE);
+  assert.equal(scopeDecision("send_whatsapp", { to: "+96599998888", text: "hi" }, me), PRIVACY_NOTE);
+  assert.equal(scopeDecision("lookup_customer", { phone: "+96555001111" }, { phone: null, customerId: null }), UNVERIFIED_NOTE);
+  assert.equal(scopeDecision("cancel_appointment", { appointment_id: "a" }, me, "c1"), null);
+  assert.equal(scopeDecision("cancel_appointment", { appointment_id: "a" }, me, "c2"), PRIVACY_NOTE);
+  assert.equal(scopeDecision("reschedule_appointment", { appointment_id: "a" }, me, null), PRIVACY_NOTE);
+  assert.equal(scopeDecision("book_appointment", { phone: "+96599998888" }, me), null); // not scoped
+  assert.equal(samePhone("1234", "1234"), false);
+  assert.ok(isCustomerFacing({ actor: "agent", channel: "web_chat", test: false }));
+  assert.ok(!isCustomerFacing({ actor: "agent", channel: "test", test: true }));
+  assert.ok(!isCustomerFacing({ actor: "workflow", channel: "whatsapp", test: false }));
+});
+
+import { isPublicHost, safeNext } from "../src/lib/safe-redirect";
+test("security: no open redirects after sign-in, no webhooks to internal addresses", () => {
+  const o = "https://saut-ai-lons.vercel.app";
+  assert.equal(safeNext("/onboarding", o), "/onboarding");
+  assert.equal(safeNext("/dashboard?x=1#a", o), "/dashboard?x=1#a");
+  for (const bad of ["//evil.com", "/\\evil.com", "/\t/evil.com", "https://evil.com", "evil.com", "", null]) assert.equal(safeNext(bad as string, o), "/dashboard", String(bad));
+  assert.ok(isPublicHost("https://hooks.example.com/x"));
+  for (const bad of ["https://localhost/x", "https://127.0.0.1/", "https://10.0.0.5/", "https://169.254.169.254/latest", "https://192.168.1.1/", "https://[::1]/", "https://2130706433/", "https://metadata.internal/"]) assert.equal(isPublicHost(bad), false, bad);
+});

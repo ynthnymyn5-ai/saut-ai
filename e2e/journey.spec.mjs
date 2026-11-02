@@ -35,6 +35,12 @@ test.describe.serial("SAUT AI journey", () => {
     }
     const health = await request.get("/api/health");
     expect(health.ok()).toBeTruthy();
+    // sign-in links can't be abused to send people to another site
+    for (const next of ["/\\evil.example", "//evil.example", "https://evil.example"]) {
+      const r = await request.get(`/auth/callback?next=${encodeURIComponent(next)}`, { maxRedirects: 0 });
+      expect(r.status()).toBeGreaterThanOrEqual(300);
+      expect(r.headers()["location"] ?? "").not.toContain("evil.example");
+    }
   });
 
   test("Google button is hidden when Google sign-in isn't enabled in Supabase", async ({ page }) => {

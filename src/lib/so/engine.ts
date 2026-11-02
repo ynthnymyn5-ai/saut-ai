@@ -2,6 +2,7 @@ import "server-only";
 import { audit } from "@/lib/audit";
 import { reportError } from "@/lib/monitoring";
 import { notify, type ToolCtx } from "./context";
+import { customerScopeRefusal } from "./customer-scope";
 import { ALWAYS_CONFIRM, decide, HARD_DENY, resolveEffect, type Effect } from "./permissions";
 import { withRetry } from "./retry";
 import { ROLE_TEMPLATES } from "./templates";
@@ -42,6 +43,13 @@ export async function runTool(ctx: ToolCtx, key: string, rawArgs: unknown, opts:
 
   const parsed = tool.schema.safeParse(rawArgs);
   if (!parsed.success) return { ok: false, note: `Invalid arguments: ${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}` };
+
+  // Customer-facing chats/calls: the AI may only touch the records of the person it is talking to.
+  const refusal = await customerScopeRefusal(ctx, key, parsed.data as Record<string, unknown>);
+  if (refusal) {
+    await audit({ orgId: ctx.orgId, action: "agent.tool_scope_refused", targetType: "ai_employee", targetId: ctx.agent?.id, metadata: { tool: key, channel: ctx.channel } });
+    return { ok: false, note: refusal };
+  }
 
   const decision = decide(await effectFor(ctx, tool.permission), !!tool.sensitive, ctx.test);
   const record = async (row: Record<string, unknown>) => {
