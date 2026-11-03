@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 const LOCALE_COOKIE = "saut_locale";
-const PROTECTED = ["/dashboard", "/admin"];
+const PROTECTED = ["/dashboard", "/admin", "/print"];
 
 /**
  * 1. Picks the default language: Arabic for Arabic-speaking visitors, English otherwise.

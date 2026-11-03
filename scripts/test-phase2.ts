@@ -451,3 +451,27 @@ test("AI employee: general questions on by default, owner can keep it on-busines
   assert.equal(generalChatEnabled({ general_chat: false }), false);
   assert.match(GENERAL_CHAT, /only from the business information/); // business facts still grounded
 });
+
+import { salesSummary } from "../src/lib/sales-analytics";
+import { mapsUrl, waMeUrl } from "../src/lib/links";
+test("sales analytics: real orders only, top items, Kuwait hours, delivery areas", () => {
+  const s = salesSummary([
+    { created_at: "2026-11-01T17:10:00Z", status: "delivered", total: 4, delivery_fee: 1, fulfillment: "delivery", zone: "Salmiya", items: [{ name: "Latte", quantity: 2, line_total: 3 }] },
+    { created_at: "2026-11-01T17:40:00Z", status: "ready", total: 2.25, delivery_fee: 0, fulfillment: "pickup", zone: null, items: [{ name: "Latte", quantity: 1, line_total: 1.5 }, { name: "Cookie", quantity: 1, line_total: 0.75 }] },
+    { created_at: "2026-11-02T09:00:00Z", status: "canceled", total: 99, delivery_fee: 0, fulfillment: "pickup", zone: null, items: [{ name: "Cake", quantity: 9, line_total: 99 }] },
+  ]);
+  assert.equal(s.orders, 2); assert.equal(s.canceled, 1); assert.equal(s.revenue, 6.25); assert.equal(s.average, 3.125);
+  assert.deepEqual(s.topItems[0], { name: "Latte", quantity: 3, revenue: 4.5 });
+  assert.ok(!s.topItems.some((i) => i.name === "Cake"));
+  assert.equal(s.peakHour, 20); // 17:xx UTC = 20:xx Kuwait
+  assert.equal(s.deliveryShare, 50);
+  assert.deepEqual(s.zones, [{ zone: "Salmiya", orders: 1, revenue: 4 }]);
+  assert.equal(s.byDay.length, 1);
+  assert.equal(salesSummary([]).peakHour, null);
+});
+test("links: Google Maps search for Kuwaiti addresses, wa.me with prefilled text", () => {
+  assert.match(mapsUrl({ area: "Salmiya", block: "10", street: "Salem", house: "5" })!, /query=Salmiya%2C%20Block%2010%2C%20Street%20Salem%2C%20House%205%2C%20Kuwait$/);
+  assert.equal(mapsUrl(null), null);
+  assert.equal(waMeUrl("+965 5000 1111", "hi"), "https://wa.me/96550001111?text=hi");
+  assert.equal(waMeUrl("123", "hi"), null);
+});

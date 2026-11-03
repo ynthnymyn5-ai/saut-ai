@@ -16,7 +16,7 @@ const TEXT: Record<string, { ar: string; en: string }> = {
  * and the customer messaged in the last 24 h (Meta's rule for free-form messages). Otherwise does
  * nothing and says so (returns null); it never pretends a message was sent.
  */
-export async function notifyCustomerOrderStatus(orgId: string, customerId: string, orderNo: number, status: string): Promise<string | null> {
+export async function notifyCustomerOrderStatus(orgId: string, customerId: string, orderNo: number, status: string, trackUrl?: string | null): Promise<string | null> {
   const t = TEXT[status];
   if (!t || !providerStatus("whatsapp").configured) return null;
   try {
@@ -28,7 +28,8 @@ export async function notifyCustomerOrderStatus(orgId: string, customerId: strin
       db.from("organizations").select("preferred_language").eq("id", orgId).single(),
     ]);
     if (!c?.phone || !insideServiceWindow(c.whatsapp_last_inbound_at as string | null)) return null;
-    const text = (org?.preferred_language === "en" ? t.en : t.ar).replace("{n}", String(orderNo));
+    const en = org?.preferred_language === "en";
+    const text = (en ? t.en : t.ar).replace("{n}", String(orderNo)) + (trackUrl && status !== "delivered" ? `\n${en ? "Follow your order" : "تابع طلبك"}: ${trackUrl}` : "");
     const { enqueue, runJob } = await import("@/lib/jobs");
     const job = await enqueue(db, { orgId, kind: "whatsapp_text", payload: { to: c.phone, parts: [text] } });
     if (job && (await runJob(db, job))) return "whatsapp";

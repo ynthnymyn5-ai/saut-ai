@@ -1,5 +1,7 @@
 "use client";
-import { Bike, Camera, MapPin, Package, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { Bike, Camera, Link2, MapPin, Package, Plus, Printer, Send, ShoppingBag, Trash2 } from "lucide-react";
+import { SalesAnalytics } from "@/components/dashboard/SalesAnalytics";
+import { waMeUrl } from "@/lib/links";
 import { DeliveryZones } from "@/components/dashboard/DeliveryZones";
 import { MenuImport } from "@/components/dashboard/MenuImport";
 import { useMemo, useState } from "react";
@@ -15,7 +17,7 @@ type Order = { id: string; order_no: number; status: OrderStatus; fulfillment: s
 type Zone = { id: string; name: string; areas: string[]; fee: number; min_order: number; is_active: boolean };
 type Member = { user_id: string; full_name: string | null; email: string };
 type Product = { id: string; name: string; description: string | null; sku: string | null; price: number; currency: string; is_active: boolean };
-type Detail = { order: Order & { subtotal: number }; items: { id: string; name: string; unit_price: number; quantity: number; line_total: number }[]; events: { from_status: string | null; to_status: string; created_at: string }[] };
+type Detail = { order: Order & { subtotal: number; trackingUrl?: string | null }; items: { id: string; name: string; unit_price: number; quantity: number; line_total: number }[]; events: { from_status: string | null; to_status: string; created_at: string }[] };
 
 const STATUS_AR: Record<string, string> = { pending: "بانتظار التأكيد", confirmed: "مؤكد", preparing: "قيد التجهيز", ready: "جاهز", out_for_delivery: "في الطريق", delivered: "تم التسليم", canceled: "ملغي" };
 const FUL_AR: Record<string, string> = { pickup: "استلام", delivery: "توصيل", dine_in: "داخل المحل" };
@@ -27,7 +29,7 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
   const mutate = useMutate();
   const toastApi = useToast();
   const toast = (title: string) => toastApi({ kind: "success", title });
-  const [tab, setTab] = useState<"orders" | "products" | "zones">("orders");
+  const [tab, setTab] = useState<"orders" | "products" | "zones" | "sales">("orders");
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const orders = useApi<{ orders: Order[]; demo?: boolean }>(`/api/orders?${new URLSearchParams({ ...(filter !== "all" ? { status: filter } : {}), ...(q ? { q } : {}) })}`);
@@ -66,13 +68,13 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
     <>
       <PageHeader title={tr("Orders", "الطلبات")} subtitle={tr("Orders taken by your team and AI employees. Prices always come from your product list.", "الطلبات التي يأخذها فريقك وموظفوك الأذكياء. الأسعار تُحسب دائماً من قائمة منتجاتك.")} demo={demo}
         actions={tab === "orders" ? canEdit && active.length > 0 && <Button onClick={() => setNewOrder({ customer_name: "", phone: "", fulfillment: "pickup", notes: "", lines: [{ product_id: active[0].id, quantity: 1 }], zone_id: "", address: { area: "", block: "" } })}><Plus className="h-4 w-4" />{tr("New order", "طلب جديد")}</Button>
-          : tab === "zones" ? null : canManageProducts && <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setImporting(true)}><Camera className="h-4 w-4" />{tr("Import from menu photo", "استيراد من صورة المنيو")}</Button><Button onClick={() => setProd({ name: "", description: "", price: "", is_active: true })}><Plus className="h-4 w-4" />{tr("Add product", "إضافة منتج")}</Button></div>} />
+          : tab === "zones" || tab === "sales" ? null : canManageProducts && <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setImporting(true)}><Camera className="h-4 w-4" />{tr("Import from menu photo", "استيراد من صورة المنيو")}</Button><Button onClick={() => setProd({ name: "", description: "", price: "", is_active: true })}><Plus className="h-4 w-4" />{tr("Add product", "إضافة منتج")}</Button></div>} />
       {importing && <MenuImport onClose={() => setImporting(false)} onAdded={() => { setImporting(false); products.reload(); }} />}
 
       <div className="mb-4 flex gap-2 overflow-x-auto border-b border-line">
-        {(["orders", "products", "zones"] as const).map((t) => (
+        {(["orders", "products", "zones", ...(canManageProducts ? ["sales" as const] : [])] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)} className={cn("-mb-px shrink-0 border-b-2 px-3 py-2 text-sm", tab === t ? "border-violet text-white" : "border-transparent text-muted")}>
-            {t === "orders" ? tr("Orders", "الطلبات") : t === "products" ? tr("Products & menu", "المنتجات والقائمة") : tr("Delivery areas", "مناطق التوصيل")}
+            {t === "orders" ? tr("Orders", "الطلبات") : t === "products" ? tr("Products & menu", "المنتجات والقائمة") : t === "zones" ? tr("Delivery areas", "مناطق التوصيل") : tr("Sales analytics", "تحليل المبيعات")}
           </button>
         ))}
       </div>
@@ -127,6 +129,13 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
                           {o.address?.notes && <p className="mt-1 text-xs text-muted" dir="auto">{tr("Address notes", "ملاحظات العنوان")}: {o.address.notes}</p>}
                           {o.notes && <p className="mt-2 text-xs text-muted">{tr("Notes", "ملاحظات")}: {o.notes}</p>}
                           <p className="mt-2 text-xs text-muted">{detail.data.events.map((e) => `${label(e.to_status)} ${formatDate(e.created_at, locale, { dateStyle: undefined, timeStyle: "short" })}`).join(" → ")}</p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <a href={`/print/order/${o.id}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs hover:bg-white/5"><Printer className="h-3.5 w-3.5" />{tr("Print", "طباعة")}</a>
+                            {detail.data.order.trackingUrl && <>
+                              <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(detail.data!.order.trackingUrl!); toast(tr("Tracking link copied", "تم نسخ رابط التتبع")); } catch { /* clipboard blocked */ } }} className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs hover:bg-white/5"><Link2 className="h-3.5 w-3.5" />{tr("Copy tracking link", "نسخ رابط التتبع")}</button>
+                              {waMeUrl(o.customer?.phone, `${tr("Follow your order", "تابع طلبك")} #${o.order_no}: ${detail.data.order.trackingUrl}`) && <a href={waMeUrl(o.customer?.phone, `${tr("Follow your order", "تابع طلبك")} #${o.order_no}: ${detail.data.order.trackingUrl}`)!} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs hover:bg-white/5"><Send className="h-3.5 w-3.5" />{tr("Send link on WhatsApp", "أرسل الرابط بالواتساب")}</a>}
+                            </>}
+                          </div>
                         </>
                       )}
                     </div>
@@ -136,6 +145,8 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
             </div>
           )}
         </>
+      ) : tab === "sales" ? (
+        <SalesAnalytics />
       ) : tab === "zones" ? (
         <DeliveryZones canEdit={canManageProducts} zones={zones.data?.zones ?? null} error={zones.error} onChange={zones.reload} />
       ) : (

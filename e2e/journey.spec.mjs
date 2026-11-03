@@ -153,7 +153,7 @@ test.describe.serial("SAUT AI journey", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test("delivery: areas with fees, address required, out for delivery with a driver", async ({ page }) => {
+  test("delivery: areas with fees, address required, out for delivery with a driver", async ({ page, browser }) => {
     await page.goto("/login");
     await page.fill("#email", A.email); await page.fill("#password", A.password);
     await page.locator('form button[type="submit"]').click();
@@ -180,8 +180,41 @@ test.describe.serial("SAUT AI journey", () => {
     for (const st of ["confirmed", "preparing", "ready"]) expect((await api.patch(`/api/orders/${order.id}`, { data: { status: st } })).status()).toBe(200);
     const me = (await (await api.get("/api/members")).json()).me;
     expect((await api.patch(`/api/orders/${order.id}`, { data: { driver_user: me } })).status()).toBe(200);
+    // driver screen lists the assigned order with a map link
+    const drv = await (await api.get("/api/driver/orders")).json();
+    const mine = drv.active.find((o) => o.id === order.id);
+    expect(mine.maps).toContain("google.com/maps");
+    expect(mine.addressText).toContain("Tunis");
     r = await api.patch(`/api/orders/${order.id}`, { data: { status: "out_for_delivery" } });
     expect(r.status()).toBe(200);
+    // customer tracking link: public, shows status, never phone/name/address
+    const det = await (await api.get(`/api/orders/${order.id}`)).json();
+    expect(det.order.trackingUrl).toMatch(/\/t\/[0-9a-f]{64}$/);
+    const token = det.order.trackingUrl.split("/t/")[1];
+    const anon = await browser.newContext();
+    const tr = await anon.request.get(`/api/track/${token}`);
+    expect(tr.status()).toBe(200);
+    const trk = await tr.json();
+    expect(trk.status).toBe("out_for_delivery");
+    expect(JSON.stringify(trk)).not.toContain("+96550003333");
+    expect(JSON.stringify(trk)).not.toContain("Noura");
+    expect(JSON.stringify(trk)).not.toContain("Tunis");
+    expect((await anon.request.get(`/api/track/${"0".repeat(64)}`)).status()).toBe(404);
+    const tp = await anon.newPage();
+    await tp.goto(`/t/${token}`);
+    await expect(tp.getByText(/On the way|في الطريق إليك/)).toBeVisible();
+    await anon.close();
+    // print page renders the kitchen ticket and receipt
+    await page.goto(`/print/order/${order.id}?part=both`);
+    await expect(page.getByText("تذكرة المطبخ")).toBeVisible();
+    await expect(page.getByText(/الإجمالي/)).toBeVisible();
+    // saved replies
+    expect((await api.post("/api/saved-replies", { data: { title: "Location", body: "We are in Salmiya" } })).status()).toBe(201);
+    expect((await (await api.get("/api/saved-replies")).json()).replies.map((x) => x.title)).toContain("Location");
+    // sales analytics counts real orders; Latte is the top item
+    const an = await (await api.get("/api/orders/analytics?days=7")).json();
+    expect(an.orders).toBeGreaterThanOrEqual(2);
+    expect(an.topItems[0].name).toBe("Latte");
     expect((await r.json()).customerNotified).not.toBe("whatsapp"); // no WhatsApp connected: nothing claimed
     // pickup orders cannot go out for delivery
     expect((await api.patch(`/api/orders/${shared.orderId}`, { data: { status: "out_for_delivery" } })).status()).toBe(409);
@@ -288,7 +321,7 @@ test.describe.serial("SAUT AI journey", () => {
     for (const locale of ["en", "ar"]) {
       // same name/domain/path as the cookie the app sets, so this replaces it instead of adding a second one
       await ctx.addCookies([{ name: "saut_locale", value: locale, domain: new URL(page.url()).hostname, path: "/", sameSite: "Lax" }]);
-      for (const path of ["/dashboard", "/dashboard/conversations", "/dashboard/orders", "/dashboard/appointments", "/dashboard/knowledge", "/dashboard/customers", "/dashboard/settings"]) {
+      for (const path of ["/dashboard", "/dashboard/conversations", "/dashboard/orders", "/dashboard/driver", "/dashboard/appointments", "/dashboard/knowledge", "/dashboard/customers", "/dashboard/settings"]) {
         await page.goto(path);
         await page.waitForLoadState("networkidle");
         const { overflow, dir } = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth - window.innerWidth, dir: document.documentElement.dir }));

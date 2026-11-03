@@ -3,6 +3,7 @@ import { ArrowLeft, Bot, Inbox, MessagesSquare, Search, Send, UserRound } from "
 import { useEffect, useRef, useState } from "react";
 import { Badge, Button, Card, EmptyState, PageHeader, Skeleton, statusTone } from "@/components/ui/primitives";
 import { ErrorNote, useApi, useMutate, useTr } from "@/components/os/shared";
+import { SavedReplies } from "@/components/dashboard/SavedReplies";
 import { useI18n } from "@/lib/i18n/client";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -134,6 +135,7 @@ export function InboxView({ canOperate }: { canOperate: boolean }) {
                   const text = reply.trim(); if (!text) return;
                   if (await act({ action: "reply", text }, tr("Sent", "تم الإرسال"))) setReply("");
                 }}>
+                  {!(c.channel === "whatsapp" && !c.whatsappWindowOpen) && <SavedReplies onPick={(t) => setReply((cur) => (cur.trim() ? `${cur.trim()}\n${t}` : t))} />}
                   <textarea aria-label={tr("Reply", "الرد")} rows={2} maxLength={4096} dir="auto" className="input flex-1 resize-none" value={reply} onChange={(e) => setReply(e.target.value)}
                     placeholder={c.channel === "whatsapp" && !c.whatsappWindowOpen ? tr("The 24-hour WhatsApp window is closed — free-text replies can't be sent.", "نافذة واتساب (٢٤ ساعة) مغلقة — لا يمكن إرسال رد نصي حر.") : tr("Type a reply… (sending takes over from the AI)", "اكتب رداً… (الإرسال يجعلك تتولى المحادثة)")}
                     disabled={busy || (c.channel === "whatsapp" && !c.whatsappWindowOpen)} />

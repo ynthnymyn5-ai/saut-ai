@@ -5,6 +5,7 @@ import { fail, ok, parseJson, route } from "@/lib/http";
 import { FULFILLMENTS, ORDER_STATUSES, orderErrorMessage } from "@/lib/orders";
 import { ANY_MEMBER, OPERATE } from "@/lib/rbac";
 import { supabaseServer } from "@/lib/supabase/server";
+import { trackingUrl } from "@/lib/tracking";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export const GET = route("orders-list", async (req) => {
   const status = u.searchParams.get("status");
   const q = (u.searchParams.get("q") ?? "").trim().slice(0, 40);
   const sb = (await supabaseServer())!;
-  let query = sb.from("orders").select("id, order_no, status, fulfillment, total, delivery_fee, currency, notes, created_at, customer_id, created_by_agent, delivery_address, driver_user, customers(full_name, phone), ai_employees(name), delivery_zones(name)")
+  let query = sb.from("orders").select("id, order_no, status, fulfillment, total, delivery_fee, currency, notes, created_at, customer_id, created_by_agent, delivery_address, driver_user, tracking_token, customers(full_name, phone), ai_employees(name), delivery_zones(name)")
     .eq("organization_id", s.org.id).order("created_at", { ascending: false }).limit(200);
   if (status && (ORDER_STATUSES as readonly string[]).includes(status)) query = query.eq("status", status);
   if (/^\d{1,9}$/.test(q)) query = query.eq("order_no", Number(q));
@@ -27,7 +28,7 @@ export const GET = route("orders-list", async (req) => {
       const c = o.customers as unknown as { full_name: string | null; phone: string | null } | null;
       const e = o.ai_employees as unknown as { name: string } | null;
       return { id: o.id, order_no: o.order_no, status: o.status, fulfillment: o.fulfillment, total: o.total, deliveryFee: o.delivery_fee, currency: o.currency, notes: o.notes, created_at: o.created_at,
-        address: o.delivery_address, zone: (o.delivery_zones as unknown as { name: string } | null)?.name ?? null, driverUser: o.driver_user,
+        trackingUrl: trackingUrl(o.tracking_token as string), address: o.delivery_address, zone: (o.delivery_zones as unknown as { name: string } | null)?.name ?? null, driverUser: o.driver_user,
         customer: c ? { id: o.customer_id, name: c.full_name, phone: c.phone } : null, takenBy: e?.name ?? null };
     }),
   });

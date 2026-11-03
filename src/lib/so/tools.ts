@@ -276,10 +276,12 @@ export const TOOLS: ToolDef[] = [
         if (friendly) return { ok: false, note: `${friendly} Nothing was ordered. Call list_delivery_areas if it's about the area.` };
         throw new PermanentError(error.message);
       }
-      const { data: o } = await ctx.db.from("orders").select("order_no, total, delivery_fee, currency").eq("id", id).eq("organization_id", ctx.orgId).single();
+      const { data: o } = await ctx.db.from("orders").select("order_no, total, delivery_fee, currency, tracking_token").eq("id", id).eq("organization_id", ctx.orgId).single();
       await notify(ctx.db, { orgId: ctx.orgId, kind: "task", title: `New order #${o?.order_no} to confirm`, body: `${o?.total} ${o?.currency}`, link: "/dashboard/orders" });
       const fee = Number(o?.delivery_fee ?? 0) > 0 ? ` (includes delivery ${o?.delivery_fee} ${o?.currency})` : "";
-      return { ok: true, note: `Order #${o?.order_no} placed as PENDING, total ${o?.total} ${o?.currency}${fee}. Tell the customer staff will confirm it.`, data: { order_id: id, order_no: o?.order_no, total: o?.total, delivery_fee: o?.delivery_fee } };
+      const { trackingUrl } = await import("@/lib/tracking");
+      const track = trackingUrl(o?.tracking_token as string | undefined);
+      return { ok: true, note: `Order #${o?.order_no} placed as PENDING, total ${o?.total} ${o?.currency}${fee}. Tell the customer staff will confirm it.${track ? ` Share this link so they can follow the order: ${track}` : ""}`, data: { order_id: id, order_no: o?.order_no, total: o?.total, delivery_fee: o?.delivery_fee, tracking_url: track } };
     },
   }),
   def({
