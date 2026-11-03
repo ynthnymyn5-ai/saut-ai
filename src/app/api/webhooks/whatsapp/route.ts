@@ -15,7 +15,9 @@ export const runtime = "nodejs";
 /** Meta webhook verification handshake. */
 export async function GET(req: Request) {
   const u = new URL(req.url);
-  if (u.searchParams.get("hub.mode") === "subscribe" && process.env.WHATSAPP_VERIFY_TOKEN && u.searchParams.get("hub.verify_token") === process.env.WHATSAPP_VERIFY_TOKEN) {
+  // Trim both sides: a value pasted into Vercel or Meta often carries a stray space or newline.
+  const expected = (process.env.WHATSAPP_VERIFY_TOKEN ?? "").trim();
+  if (u.searchParams.get("hub.mode") === "subscribe" && expected && (u.searchParams.get("hub.verify_token") ?? "").trim() === expected) {
     return new Response(u.searchParams.get("hub.challenge") ?? "");
   }
   return new Response("Forbidden", { status: 403 });
