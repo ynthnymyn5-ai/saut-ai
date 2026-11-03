@@ -59,7 +59,20 @@ export const POST = route("integrations", async (req, ctx) => {
       const id = serverEnv("WHATSAPP_PHONE_NUMBER_ID");
       const r = await fetch(`https://graph.facebook.com/v21.0/${id}?fields=display_phone_number,verified_name`, { headers: { Authorization: `Bearer ${token}` } });
       const data = (await r.json()) as { display_phone_number?: string; verified_name?: string; error?: { message: string } };
-      if (!r.ok) return save("error", {}, "WhatsApp verification failed", data.error?.message ?? "error");
+      if (!r.ok) {
+        // A common setup slip: the WhatsApp Business Account ID (or another ID) was pasted as the phone number ID.
+        // Ask Meta which phone numbers the account really has and say exactly which ID to use.
+        const waba = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
+        let hint = "";
+        if (waba) {
+          const pr = await fetch(`https://graph.facebook.com/v21.0/${encodeURIComponent(waba)}/phone_numbers?fields=id,display_phone_number`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) }).catch(() => null);
+          const list = pr?.ok ? ((await pr.json()) as { data?: { id: string; display_phone_number?: string }[] }).data ?? [] : [];
+          if (list.length && !list.some((p) => p.id === id)) {
+            hint = ` WHATSAPP_PHONE_NUMBER_ID is not a phone number ID. Set it to ${list.map((p) => `${p.id} (${p.display_phone_number ?? "number"})`).join(" or ")} in Vercel, redeploy, then connect again.`;
+          }
+        }
+        return save("error", {}, `WhatsApp verification failed.${hint}`, `${data.error?.message ?? "error"}${hint}`.slice(0, 500));
+      }
       const { data: other } = await admin.from("integrations").select("organization_id").eq("provider", "whatsapp").eq("status", "connected").eq("config->>phone_number_id", id).neq("organization_id", s.org.id).limit(1);
       if (other?.length) return fail(409, "already_in_use", "This WhatsApp number is already connected to another business.");
       return save("connected", { display: data.display_phone_number, name: data.verified_name, phone_number_id: id }, "WhatsApp connected");
