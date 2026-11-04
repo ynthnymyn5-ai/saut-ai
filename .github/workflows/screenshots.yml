@@ -1,0 +1,76 @@
+name: screenshots
+# Product screenshots with SAMPLE data on a LOCAL Supabase stack (never production). Output: `screenshots` branch.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["e2e/screens.spec.mjs", ".github/workflows/screenshots.yml"]
+permissions:
+  contents: write
+concurrency:
+  group: screenshots
+  cancel-in-progress: true
+jobs:
+  screens:
+    runs-on: ubuntu-24.04   # Playwright browsers are not yet published for 26.04
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_DEMO_MODE: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: supabase/setup-cli@v1
+        id: cli1
+        continue-on-error: true      # the "latest" lookup occasionally fails; retry once below
+        with:
+          version: latest
+      - uses: supabase/setup-cli@v1
+        if: steps.cli1.outcome == 'failure'
+        with:
+          version: latest
+      - name: Start local Supabase and apply all migrations
+        run: |
+          set -o pipefail
+          (yes n | supabase init) > supabase.log 2>&1 || true
+          # Move the stack off the default 5432x ports (one was already taken on the runner).
+          sed -i -E 's/^(\s*[a-z_]*port\s*=\s*)543([0-9]{2})/\1553\2/' supabase/config.toml
+          grep -nE "^\s*[a-z_]*port\s*=" supabase/config.toml >> supabase.log || true
+          docker ps -a >> supabase.log 2>&1 || true
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,realtime,postgres-meta 2>&1 | tee -a supabase.log
+          supabase status -o env > /tmp/sb.env 2>>supabase.log
+          set -a; . /tmp/sb.env; set +a
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000" >> "$GITHUB_ENV"
+      - name: Install
+        run: npm install --no-audit --no-fund > install.log 2>&1
+      - name: Build
+        run: npm run build 2>&1 | tee build.log; echo "exit=${PIPESTATUS[0]}" >> build.log
+      - name: Start app
+        run: |
+          nohup npx next start -H 127.0.0.1 -p 3000 > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:3000/api/health > health.json && break; sleep 1; done
+          cat health.json
+      - name: Screenshots
+        run: |
+          set +e
+          npm i --no-save --no-audit --no-fund @playwright/test@1.55.0 > pw.log 2>&1 && npx playwright install --with-deps chromium >> pw.log 2>&1
+          npx playwright test -c e2e/playwright.config.mjs e2e/screens.spec.mjs 2>&1 | tee screens.log; echo "exit=${PIPESTATUS[0]}" >> screens.log
+      - name: Publish to screenshots branch
+        if: always()
+        run: |
+          mkdir -p /tmp/out && cp -r e2e-results/screens /tmp/out/ 2>/dev/null || true
+          cp screens.log server.log /tmp/out/ 2>/dev/null || true
+          find /tmp/out -type f -name "*.log" -exec sed -i -E 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/[redacted-jwt]/g; s/sb_(secret|publishable)_[A-Za-z0-9_-]+/sb_\1_[redacted]/g; s/(KEY|SECRET|key|secret)([^=:]{0,20}[=:] *)[^ ]+/\1\2[redacted]/g' {} +
+          echo "${GITHUB_SHA}" > /tmp/out/commit.txt
+          echo '{"git":{"deploymentEnabled":false}}' > /tmp/out/vercel.json
+          cd /tmp/out
+          git init -q -b screenshots
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "screenshots for ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" screenshots
