@@ -1,0 +1,15 @@
+name: monitoring-check
+# Sends one labelled test error through the production client-error relay so Sentry delivery can be verified.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [".github/workflows/monitoring-check.yml"]
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -sS -X POST https://www.sautai.company/api/client-error \
+            -H "Content-Type: application/json" -H "User-Agent: saut-ai-monitoring-check" \
+            -d '{"name":"MonitoringTest","message":"SAUT AI monitoring test (safe to resolve)","path":"/monitoring-check","kind":"error"}'
