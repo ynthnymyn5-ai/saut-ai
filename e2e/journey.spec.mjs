@@ -141,11 +141,13 @@ test.describe.serial("SAUT AI journey", () => {
     // order is still "preparing" after the other business's cancel attempt
     const o = await (await page.request.get(`/api/orders/${shared.orderId}`)).json();
     expect(o.order.status).toBe("preparing");
-    // sign out
-    await page.request.post("/auth/signout");
-    await page.context().clearCookies();
+    // sign out with the real button (no manual cookie clearing): the session must be gone
+    await page.goto("/dashboard");
+    await page.getByRole("button", { name: /Sign out|تسجيل الخروج/ }).first().click();
+    await page.waitForURL(/\/login/);
     await page.goto("/dashboard");
     await page.waitForURL(/\/login/);
+    expect((await page.request.get("/api/orders")).status()).toBe(401);
     // wrong password is refused
     await page.fill("#email", A.email);
     await page.fill("#password", "wrong-password-1");

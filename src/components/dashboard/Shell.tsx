@@ -8,6 +8,7 @@ import { AssistantLauncher } from "@/components/assistant/AssistantLauncher";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { backTarget } from "@/lib/back-path";
+import { supabaseBrowser } from "@/lib/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
@@ -78,7 +79,12 @@ export function DashboardShell({ children, orgName, userName, isAdmin, demo }: {
       <div className="border-t border-line p-4">
         <p className="truncate text-sm font-semibold">{orgName}</p>
         <p className="truncate text-xs text-muted">{userName}</p>
-        <form action="/auth/signout" method="post" className="mt-3">
+        <form action="/auth/signout" method="post" className="mt-3" onSubmit={async (e) => {
+          e.preventDefault();
+          try { await supabaseBrowser()?.auth.signOut({ scope: "local" }); } catch { /* server clears it too */ }
+          try { await fetch("/auth/signout", { method: "POST", redirect: "manual", cache: "no-store" }); } catch { /* ignore */ }
+          window.location.replace("/login");
+        }}>
           <button className="flex items-center gap-2 text-xs text-muted hover:text-white"><LogOut className="h-3.5 w-3.5 rtl:-scale-x-100" />{n.signOut}</button>
         </form>
       </div>

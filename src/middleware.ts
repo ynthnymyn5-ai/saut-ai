@@ -19,6 +19,7 @@ export async function middleware(req: NextRequest) {
     res.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
   }
 
+  if (req.nextUrl.pathname === "/auth/signout") return res; // never re-issue session cookies while signing out
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return res; // demo mode — no auth backend configured
