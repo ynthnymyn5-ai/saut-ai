@@ -36,7 +36,8 @@ export function WhatsAppSetup() {
       body: <p>{tr("The active employee answers WhatsApp messages.", "الموظف المفعّل هو الذي يرد على رسائل واتساب.")} {!data.activeEmployee && <Link className="text-electric underline" href="/dashboard/employees/new">{tr("Create one", "أنشئ موظفاً")}</Link>}</p>,
     },
     {
-      done: false,
+      // Proven by Meta itself: a verified connection or an app subscribed to the WhatsApp account means the app exists.
+      done: data.connected || !!data.lastInboundAt || (data.subscribedApps?.length ?? 0) > 0,
       title: tr("Create a Meta app with WhatsApp", "أنشئ تطبيقاً في Meta مع واتساب"),
       body: <p>{tr("developers.facebook.com → My apps → Create app → “Connect with customers through WhatsApp” → link your business portfolio.", "developers.facebook.com ← تطبيقاتي ← إنشاء تطبيق ← «التواصل مع العملاء عبر واتساب» ← اربط حساب الأعمال.")} <a className="inline-flex items-center gap-1 text-electric underline" href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer">{tr("Open", "فتح")}<ExternalLink className="h-3 w-3" /></a></p>,
     },
