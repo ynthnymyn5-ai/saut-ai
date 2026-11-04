@@ -37,7 +37,7 @@ jobs:
           flyctl secrets set --stage -a "$APP" \
             OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
             INTERNAL_API_SECRET="${{ secrets.INTERNAL_API_SECRET }}" \
-            APP_URL="https://saut-ai-lons.vercel.app" > /dev/null
+            APP_URL="https://www.sautai.company" > /dev/null
       - name: Deploy
         run: flyctl deploy --remote-only -a "$APP" --config fly.toml --ha=false
       - name: Health check

@@ -6,8 +6,8 @@ No secrets are inside the APK: it contains only the public URL. All keys live on
 ## 1. Supabase settings the app needs (one time)
 
 **Auth → URL Configuration**
-- Site URL: `https://saut-ai-lons.vercel.app`
-- Redirect URLs: `https://saut-ai-lons.vercel.app/auth/callback`
+- Site URL: `https://www.sautai.company`
+- Redirect URLs: `https://www.sautai.company/auth/callback`
 
 **Auth → Email Templates** — add the code so people can confirm *inside the app*
 (the link opens in the phone's browser, not in the app).
@@ -54,8 +54,8 @@ Keep the `.jks` file and passwords in a password manager — losing them means y
 ## 4. Play Console checklist
 - [ ] Developer account ($25 one-time), app created as **SAUT AI**, default language Arabic + English listing
 - [ ] Upload `saut-ai.aab` to Internal testing first; test with 2–3 phones
-- [ ] Privacy policy URL: `https://saut-ai-lons.vercel.app/privacy`
-- [ ] Account deletion URL: `https://saut-ai-lons.vercel.app/account-deletion` (in-app: Settings → Delete my account)
+- [ ] Privacy policy URL: `https://www.sautai.company/privacy`
+- [ ] Account deletion URL: `https://www.sautai.company/account-deletion` (in-app: Settings → Delete my account)
 - [ ] Data safety: collects name, email, phone (account), messages and audio (only when the user uses chat/voice
       features), app activity; data encrypted in transit; users can request deletion. No data sold.
 - [ ] Permissions: Internet, Microphone (voice assistant / live voice test)

@@ -4,9 +4,11 @@
   "webDir": "www",
   "backgroundColor": "#080812",
   "server": {
-    "url": "https://saut-ai-lons.vercel.app/app",
+    "url": "https://www.sautai.company/app",
     "cleartext": false,
     "allowNavigation": [
+      "www.sautai.company",
+      "sautai.company",
       "saut-ai-lons.vercel.app",
       "*.supabase.co",
       "checkout.stripe.com",
@@ -18,5 +20,5 @@
     "captureInput": true,
     "webContentsDebuggingEnabled": false
   },
-  "appendUserAgent": "SautAIApp/1.1"
+  "appendUserAgent": "SautAIApp/1.2"
 }
