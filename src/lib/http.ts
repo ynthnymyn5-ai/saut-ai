@@ -36,10 +36,10 @@ export function route(
       if (e instanceof AuthError) return fail(e.status, e.code, e.message);
       const provider = providerFailure(e);
       if (provider) {
-        reportError(e, { scope, provider: provider.provider, status: provider.status });
+        await reportError(e, { scope, provider: provider.provider, status: provider.status });
         return fail(502, "provider_error", `${provider.provider}: ${provider.message}`, { provider: provider.provider, status: provider.status });
       }
-      reportError(e, { scope });
+      await reportError(e, { scope });
       return fail(500, "internal_error", "Something went wrong");
     }
   };

@@ -1,9 +1,10 @@
 "use client";
 import { useEffect } from "react";
 import { SoMascot } from "@/components/brand/SoMascot";
+import { sendClientError } from "@/lib/client-errors";
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  useEffect(() => { console.error(error); }, [error]);
+  useEffect(() => { console.error(error); sendClientError(error, "boundary", error.digest); }, [error]);
   return (
     <main className="grid min-h-[70vh] place-items-center px-4 text-center">
       <div>

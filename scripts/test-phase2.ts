@@ -9,7 +9,7 @@ import { signStreamToken, verifyStreamToken } from "../src/lib/so/stream-token";
 import { inboundText, insideServiceWindow, splitWhatsAppText, WA_MAX_TEXT } from "../src/lib/messaging/wa-core";
 import { fromMinor, minorUnitDigits, toMinor } from "../src/lib/payments/money";
 import { docxToText, readZipEntry } from "../src/lib/knowledge/extract";
-import { buildSentryEnvelope, parseSentryDsn } from "../src/lib/monitoring";
+import { buildSentryEnvelope, parseSentryDsn, scrubPath } from "../src/lib/monitoring";
 
 const IDS = { c: "11111111-1111-4111-8111-111111111111", e: "22222222-2222-4222-8222-222222222222", o: "33333333-3333-4333-8333-333333333333" };
 
@@ -140,6 +140,13 @@ test("sentry: envelope carries the error and only safe tags (no personal data)",
   assert.equal(ev.exception.values[0].value, "WhatsApp media lookup failed");
   assert.deepEqual(ev.tags, { scope: "whatsapp-voice-note", doc: "abc" });
   assert.doesNotMatch(env, /96550000000|secret message/);
+});
+
+test("sentry: paths are scrubbed of tokens and ids", () => {
+  assert.equal(scrubPath("/t/" + "a".repeat(64) + "?x=1"), "/t/:id");
+  assert.equal(scrubPath("/dashboard/orders/3f2b1c4d-1111-2222-3333-444455556666"), "/dashboard/orders/:id");
+  assert.equal(scrubPath("/dashboard/customers/12345"), "/dashboard/customers/:id");
+  assert.equal(scrubPath("/dashboard/settings"), "/dashboard/settings");
 });
 
 // ── In-app assistant ────────────────────────────────────────────────────

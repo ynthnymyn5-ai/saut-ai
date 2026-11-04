@@ -3,6 +3,7 @@ import "./globals.css";
 import { getDict } from "@/lib/i18n/server";
 import { I18nProvider } from "@/lib/i18n/client";
 import { ToastProvider } from "@/components/ui/Toast";
+import { ErrorReporter } from "@/components/ErrorReporter";
 
 export const metadata: Metadata = {
   title: { default: "SAUT AI — Your Business. Our Intelligence.", template: "%s · SAUT AI" },
@@ -30,6 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
+        <ErrorReporter />
         <I18nProvider locale={locale}>
           <ToastProvider>{children}</ToastProvider>
         </I18nProvider>

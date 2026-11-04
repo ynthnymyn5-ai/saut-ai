@@ -4,14 +4,22 @@
  * with plain fetch — no SDK needed. Only the error and the small context object are sent:
  * never request bodies, message text, phone numbers or emails.
  */
-export function reportError(err: unknown, context: Record<string, unknown> = {}) {
+export function reportError(err: unknown, context: Record<string, unknown> = {}, opts: { platform?: "node" | "javascript" } = {}): Promise<boolean> {
   const e = err instanceof Error ? err : new Error(String(err));
   console.error(JSON.stringify({ level: "error", message: e.message, stack: e.stack, ...context, at: new Date().toISOString() }));
   const dsn = typeof process !== "undefined" ? process.env.ERROR_MONITORING_DSN : undefined;
   const target = dsn ? parseSentryDsn(dsn) : null;
-  if (!target) return;
-  const env = buildSentryEnvelope(e, context, { dsn: dsn!, environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "production", release: process.env.VERCEL_GIT_COMMIT_SHA });
-  fetch(target.url, { method: "POST", headers: { "Content-Type": "application/x-sentry-envelope", "X-Sentry-Auth": target.auth }, body: env }).catch(() => {});
+  if (!target) return Promise.resolve(false);
+  const env = buildSentryEnvelope(e, context, { dsn: dsn!, environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "production", release: process.env.VERCEL_GIT_COMMIT_SHA, platform: opts.platform });
+  // Returned so serverless handlers can await it before the function freezes; capped at 2.5s.
+  return fetch(target.url, { method: "POST", headers: { "Content-Type": "application/x-sentry-envelope", "X-Sentry-Auth": target.auth }, body: env, signal: AbortSignal.timeout(2500) })
+    .then((r) => r.ok).catch(() => false);
+}
+
+/** Replace ids and tokens in a URL path so reports never carry tracking tokens or record ids. */
+export function scrubPath(path: string): string {
+  return path.split("?")[0].split("#")[0].slice(0, 300)
+    .split("/").map((seg) => (/^[0-9a-f-]{16,}$/i.test(seg) || /\d{4,}/.test(seg) || seg.length > 40 ? ":id" : seg)).join("/");
 }
 
 export function parseSentryDsn(dsn: string): { url: string; auth: string } | null {
@@ -29,15 +37,15 @@ export function parseSentryDsn(dsn: string): { url: string; auth: string } | nul
   }
 }
 
-const SAFE_KEY = /^(scope|event|provider|doc|status|code|route|kind)$/;
+const SAFE_KEY = /^(scope|event|provider|doc|status|code|route|kind|path|source|digest|routeType|ua)$/;
 
-export function buildSentryEnvelope(e: Error, context: Record<string, unknown>, opts: { dsn: string; environment: string; release?: string }, now = new Date()) {
+export function buildSentryEnvelope(e: Error, context: Record<string, unknown>, opts: { dsn: string; environment: string; release?: string; platform?: "node" | "javascript" }, now = new Date()) {
   const eventId = cryptoRandomHex();
   const tags = Object.fromEntries(Object.entries(context).filter(([k, v]) => SAFE_KEY.test(k) && ["string", "number", "boolean"].includes(typeof v)).map(([k, v]) => [k, String(v).slice(0, 200)]));
   const frames = (e.stack ?? "").split("\n").slice(1, 30).map((l) => l.trim()).filter((l) => l.startsWith("at ")).reverse()
     .map((l) => { const m = /at (?:(.+?) \()?(.+?):(\d+):(\d+)\)?$/.exec(l); return m ? { function: m[1] ?? "?", filename: m[2], lineno: Number(m[3]), colno: Number(m[4]) } : { function: l.slice(3) }; });
   const event = {
-    event_id: eventId, timestamp: now.getTime() / 1000, platform: "node", level: "error",
+    event_id: eventId, timestamp: now.getTime() / 1000, platform: opts.platform ?? "node", level: "error",
     environment: opts.environment, ...(opts.release ? { release: opts.release } : {}), tags,
     exception: { values: [{ type: e.name || "Error", value: e.message.slice(0, 1000), ...(frames.length ? { stacktrace: { frames } } : {}) }] },
   };

@@ -101,7 +101,7 @@ OAuth client (Web), redirect URI `https://YOUR_APP/api/integrations/google/callb
 
 ## 9. Email, monitoring & rate limiting
 - `RESEND_API_KEY`, `EMAIL_FROM`.
-- **Errors:** set `ERROR_MONITORING_DSN` to a Sentry DSN. Errors are sent to Sentry's envelope API
+- **Errors:** set `ERROR_MONITORING_DSN` to a Sentry DSN (server-only; project `saut-ai/saut-ai-web`, EU region). Server route errors, page render errors (`src/instrumentation.ts`) and browser/app errors (posted to `/api/client-error`, forwarded server-side) all land in Sentry. Errors are sent to Sentry's envelope API
   with plain `fetch` (no SDK); only the error, stack and safe tags (scope, provider…) are sent —
   never message text, phone numbers or emails.
 - **Rate limiting:** set `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (Upstash free tier
