@@ -105,6 +105,17 @@ test.describe.serial("screenshots", () => {
           await page.screenshot({ path: `${OUT}/desktop-${locale}-${name}.png` });
         } catch (e) { console.log(`skip ${name}: ${e.message}`); }
       }
+      for (const [name, path, click] of [["03b-sales-analytics", "/dashboard/orders", /Sales analytics|تحليلات المبيعات/], ["04b-inbox-open", "/dashboard/conversations", null]]) {
+        try {
+          await page.goto(path);
+          await page.waitForLoadState("networkidle");
+          if (click) await page.getByRole("button", { name: click }).first().click();
+          else await page.locator("main button, main a").filter({ hasText: /web chat|دردشة/ }).first().click();
+          await page.waitForLoadState("networkidle");
+          await page.waitForTimeout(1500);
+          await page.screenshot({ path: `${OUT}/desktop-${locale}-${name}.png` });
+        } catch (e) { console.log(`skip ${name}: ${e.message}`); }
+      }
       await c.close();
     });
 
