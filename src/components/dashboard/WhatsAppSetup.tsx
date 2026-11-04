@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n/client";
 type Data = {
   demo?: boolean; env: Record<string, boolean>; webhookUrl: string; openai: boolean; connected: boolean; lastError: string | null;
   display: string | null; activeEmployee: boolean; lastInboundAt: string | null; canConnect?: boolean;
+  webhookLast?: { at: string | null; outcome: string | null; field: string | null; messages: number | null } | null; subscribedApps?: string[] | null;
 };
 
 /**
@@ -97,6 +98,7 @@ export function WhatsAppSetup() {
       body: <p>{data.lastInboundAt
         ? tr(`Last message received ${formatDate(data.lastInboundAt, locale)}. Open Conversations to see the reply.`, `آخر رسالة وصلت ${formatDate(data.lastInboundAt, locale)}. افتح المحادثات لترى الرد.`)
         : tr("From your phone, send “hello” to the WhatsApp number. (With Meta's test number, first add your phone under API Setup → To.)", "من جوالك أرسل «هلا» إلى رقم واتساب. (مع الرقم التجريبي من Meta أضف رقمك أولاً في API Setup ← To.)")}
+        {!data.lastInboundAt && <WaDiagnostics d={data} />}
         {!data.openai && <span className="block text-xs text-amber-200">{tr("OPENAI_API_KEY is missing, so messages reach staff but the AI won't reply.", "OPENAI_API_KEY غير موجود، فالرسائل تصل للموظفين لكن الذكاء الاصطناعي لن يرد.")}</span>}</p>,
     },
   ] : [];
@@ -128,5 +130,34 @@ export function WhatsAppSetup() {
         </Card>
       )}
     </>
+  );
+}
+
+/** Where messages stop, from real signals: Meta's subscription list and the last webhook delivery. */
+function WaDiagnostics({ d }: { d: Data }) {
+  const tr = useTr();
+  const { locale } = useI18n();
+  const lines: { ok: boolean; text: string }[] = [];
+  if (d.subscribedApps === null || d.subscribedApps === undefined) lines.push({ ok: false, text: tr("Couldn't check which app receives this account's messages (WHATSAPP_BUSINESS_ACCOUNT_ID / token).", "ما قدرنا نتأكد أي تطبيق يستقبل رسائل الحساب (WHATSAPP_BUSINESS_ACCOUNT_ID أو الرمز).") });
+  else if (d.subscribedApps.length === 0) lines.push({ ok: false, text: tr("No app is subscribed to your WhatsApp account, so Meta sends messages nowhere. Press “Connect WhatsApp” again.", "ما فيه أي تطبيق مشترك في حساب واتساب، فـ Meta ما ترسل الرسائل لأي مكان. اضغط «اربط واتساب» مرة ثانية.") });
+  else lines.push({ ok: true, text: tr(`Subscribed app: ${d.subscribedApps.join(", ")}`, `التطبيق المشترك: ${d.subscribedApps.join("، ")}`) });
+  const w = d.webhookLast;
+  if (!w?.at) lines.push({ ok: false, text: tr("Meta hasn't sent anything to the webhook yet. If you messaged the number, the Meta app may need to be published, or the callback URL isn't saved.", "Meta ما أرسلت أي شي للـ Webhook للحين. إذا راسلت الرقم، ممكن تطبيق Meta يحتاج نشر، أو رابط الاستدعاء ما انحفظ.") });
+  else {
+    const when = formatDate(w.at, locale);
+    const map: Record<string, [boolean, string, string]> = {
+      received: [true, `Meta delivered an event (${w.field ?? "?"}, ${w.messages ?? 0} message(s)) ${when}.`, `وصل حدث من Meta (${w.field ?? "?"}، ${w.messages ?? 0} رسالة) ${when}.`],
+      bad_signature: [false, `Meta reached us ${when} but the signature didn't match: WHATSAPP_APP_SECRET in Vercel isn't this app's secret.`, `Meta وصلت ${when} بس التوقيع ما تطابق: قيمة WHATSAPP_APP_SECRET في Vercel مو المفتاح السري لهذا التطبيق.`],
+      no_app_secret: [false, `Meta reached us ${when} but WHATSAPP_APP_SECRET is missing.`, `Meta وصلت ${when} بس WHATSAPP_APP_SECRET ناقص.`],
+      no_connected_business: [false, `A message arrived ${when} but no business is connected to that number. Press “Connect WhatsApp”.`, `وصلت رسالة ${when} بس ما فيه نشاط مربوط بهذا الرقم. اضغط «اربط واتساب».`],
+    };
+    const m = map[w.outcome ?? ""] ?? [false, `Last event ${when}: ${w.outcome}`, `آخر حدث ${when}: ${w.outcome}`];
+    lines.push({ ok: m[0], text: locale === "ar" ? m[2] : m[1] });
+  }
+  return (
+    <span className="mt-2 block space-y-1 rounded-xl border border-line p-3 text-xs">
+      <span className="block font-semibold">{tr("Diagnostics", "تشخيص")}</span>
+      {lines.map((l, i) => <span key={i} className={l.ok ? "block text-emerald-300" : "block text-amber-200"}>{l.ok ? "✓ " : "• "}{l.text}</span>)}
+    </span>
   );
 }

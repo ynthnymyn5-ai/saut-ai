@@ -39,16 +39,21 @@ type WaValue = {
  */
 export async function POST(req: Request) {
   const raw = await req.text();
-  const secret = process.env.WHATSAPP_APP_SECRET;
-  if (!secret) return new Response("Not configured", { status: 503 });
+  const secret = (process.env.WHATSAPP_APP_SECRET ?? "").trim();
+  if (!secret) { after(() => noteWebhook({ outcome: "no_app_secret" })); return new Response("Not configured", { status: 503 }); }
   const sig = req.headers.get("x-hub-signature-256") ?? "";
   const expected = "sha256=" + crypto.createHmac("sha256", secret).update(raw).digest("hex");
-  if (sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return new Response("Invalid signature", { status: 401 });
+  if (Buffer.byteLength(sig) !== Buffer.byteLength(expected) || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+    after(() => noteWebhook({ outcome: "bad_signature" }));
+    return new Response("Invalid signature", { status: 401 });
+  }
 
   let db: DB;
   try { db = engineDb(); } catch { return new Response("ok"); }
   try {
-    const body = JSON.parse(raw) as { entry?: { changes?: { value: WaValue }[] }[] };
+    const body = JSON.parse(raw) as { entry?: { changes?: { value: WaValue; field?: string }[] }[] };
+    const first = body.entry?.[0]?.changes?.[0];
+    after(() => noteWebhook({ outcome: "received", field: first?.field ?? null, phone_number_id: first?.value?.metadata?.phone_number_id ?? null, messages: first?.value?.messages?.length ?? 0 }));
     for (const entry of body.entry ?? []) for (const ch of entry.changes ?? []) await handleValue(db, ch.value);
   } catch (e) {
     reportError(e, { scope: "whatsapp-webhook" });
@@ -72,7 +77,7 @@ async function handleValue(db: DB, v: WaValue) {
   const integ = (integs ?? []).find((i) => phoneNumberId && cfg(i).phone_number_id === phoneNumberId)
     ?? (integs ?? []).find((i) => String(cfg(i).display ?? "").replace(/\D/g, "") === display)
     ?? (integs?.length === 1 ? integs[0] : null);
-  if (!integ) return;
+  if (!integ) { await noteWebhook({ outcome: "no_connected_business", phone_number_id: phoneNumberId || null, messages: v.messages.length }); return; }
   const orgId = integ.organization_id as string;
 
   for (const m of v.messages) {
@@ -146,4 +151,15 @@ async function handleValue(db: DB, v: WaValue) {
       await notify(db, { orgId, kind: "integration", title: "WhatsApp reply failed to send", body: sent.error, link: "/dashboard/conversations" });
     }
   }
+}
+
+/**
+ * Last delivery from Meta, kept for the setup screen so the owner can see where messages stop
+ * (never arrived / bad signature / no business connected to that number). No message content is stored.
+ */
+async function noteWebhook(d: Record<string, unknown>) {
+  try {
+    const db = engineDb();
+    await db.from("platform_settings").upsert({ key: "whatsapp_webhook_last", value: { ...d, at: new Date().toISOString() } });
+  } catch { /* diagnostics only */ }
 }
