@@ -75,7 +75,19 @@ export const POST = route("integrations", async (req, ctx) => {
       }
       const { data: other } = await admin.from("integrations").select("organization_id").eq("provider", "whatsapp").eq("status", "connected").eq("config->>phone_number_id", id).neq("organization_id", s.org.id).limit(1);
       if (other?.length) return fail(409, "already_in_use", "This WhatsApp number is already connected to another business.");
-      return save("connected", { display: data.display_phone_number, name: data.verified_name, phone_number_id: id }, "WhatsApp connected");
+      // Inbound messages reach our webhook only if the WhatsApp Business Account is subscribed to THIS Meta app.
+      // Subscribe it now (idempotent) so customers' messages actually arrive.
+      const waba = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
+      let subscribed: boolean | null = null;
+      if (waba) {
+        const sr = await fetch(`https://graph.facebook.com/v21.0/${encodeURIComponent(waba)}/subscribed_apps`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) }).catch(() => null);
+        subscribed = !!sr?.ok;
+        if (!subscribed) {
+          const why = sr ? (((await sr.json().catch(() => ({}))) as { error?: { message?: string } }).error?.message ?? `HTTP ${sr.status}`) : "no response";
+          return save("error", { display: data.display_phone_number, phone_number_id: id }, `Number verified, but the WhatsApp Business Account could not be subscribed to this app, so incoming messages won't arrive: ${why}`, `subscribed_apps: ${why}`.slice(0, 500));
+        }
+      }
+      return save("connected", { display: data.display_phone_number, name: data.verified_name, phone_number_id: id, waba_subscribed: subscribed }, subscribed ? "WhatsApp connected — incoming messages will arrive here" : "WhatsApp connected (set WHATSAPP_BUSINESS_ACCOUNT_ID so incoming messages are routed to this app)");
     }
     case "google_calendar": {
       if (!providerStatus("google").configured) return fail(503, "provider_not_configured", "Google OAuth not configured", { variable: "GOOGLE_CLIENT_ID" });
