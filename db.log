@@ -1,0 +1,158 @@
+== migrate supabase/migrations/0001_schema.sql
+
+== migrate supabase/migrations/0002_rls.sql
+
+== migrate supabase/migrations/0003_seed_plans.sql
+
+== migrate supabase/migrations/0004_vault_and_admin.sql
+
+== migrate supabase/migrations/0005_enum_values.sql
+
+== migrate supabase/migrations/0006_operating_system.sql
+== migrate supabase/migrations/0007_member_roles.sql
+
+== migrate supabase/migrations/0008_phase1_foundation.sql
+== migrate supabase/migrations/0009_phase2_channels_billing.sql
+
+== migrate supabase/migrations/0010_voice_settings.sql
+
+== migrate supabase/migrations/0011_orders_inbox.sql
+== migrate supabase/migrations/0012_account_deletion.sql
+== migrate supabase/migrations/0013_widget_jobs_email.sql
+== migrate supabase/migrations/0014_ratings_reports.sql
+== migrate supabase/migrations/0015_delivery.sql
+== migrate supabase/migrations/0016_security_hardening.sql
+== migrate supabase/migrations/0017_tracking_replies.sql
+== re-run Phase 1+ migrations (idempotency)
+
+== tests supabase/tests/phase1.sql
+NOTICE: ok - 1. sign-up trigger creates a profile per auth user
+NOTICE: ok - 1. profiles view exposes the profile
+NOTICE: ok - 2. owner sees exactly the new organization
+NOTICE: ok - 2. creator becomes owner
+NOTICE: ok - 2. free trial subscription created (no payment)
+NOTICE: ok - 2. org profile stored (currency, industry)
+NOTICE: ok - 2. audit log written
+NOTICE: ok - 3. owner can add members
+NOTICE: ok - 3. sole owner cannot demote themself
+NOTICE: ok - 3. users cannot grant themselves platform admin
+NOTICE: ok - 4. owner B sees only their own organization
+NOTICE: ok - 4. B org currency SAR
+NOTICE: ok - 5. owner A cannot read B's customers
+NOTICE: ok - 5. owner A cannot read B's profile
+NOTICE: ok - 5. owner A can read own team member's profile
+NOTICE: ok - 5. owner A cannot write into B's organization
+NOTICE: ok - 5. owner A sees only their own subscription
+NOTICE: ok - 6. employee can create customers and appointments
+NOTICE: ok - 6. employee cannot create AI employees
+NOTICE: ok - 6. employee cannot edit the organization profile
+NOTICE: ok - 6. employee cannot add members
+NOTICE: ok - 7. manager can create and edit AI employees + instructions
+NOTICE: ok - 7. plan limit enforced (starter trial = 1 AI employee)
+NOTICE: ok - 7. manager cannot change member roles
+NOTICE: ok - 8. viewer can read organization data
+NOTICE: ok - 8. viewer cannot write
+NOTICE: ok - 9. admin can edit the organization profile
+NOTICE: ok - 9. admin cannot grant the owner role
+NOTICE: ok - 9. admin can change member roles
+NOTICE: ok - 11. a member can leave and then loses access
+NOTICE: ok - 10. ownership can be handed over (owner → admin after granting another owner)
+ALL PHASE 1 DATABASE TESTS PASSED
+== tests supabase/tests/phase2.sql
+NOTICE: ok - B1. exactly the four lapsed subscriptions change
+NOTICE: ok - B2. an ended free trial is closed
+NOTICE: ok - B3. a running trial is untouched
+NOTICE: ok - B4. a MyFatoorah renewal missing after the grace period becomes past due
+NOTICE: ok - B5. within the grace period the plan stays active
+NOTICE: ok - B6. cancel-at-period-end ends when the period ends
+NOTICE: ok - B7. past due beyond the final window is cancelled
+NOTICE: ok - B8. Stripe subscriptions are left to Stripe webhooks
+NOTICE: ok - B9. cancellation time is recorded
+NOTICE: ok - B10. each affected owner gets one billing notification
+NOTICE: ok - B11. every change is audited
+NOTICE: ok - B12. running it again changes nothing (idempotent)
+NOTICE: ok - B13. MyFatoorah recurring id is stored
+NOTICE: ok - B14. a new checkout can start after the trial ended
+NOTICE: ok - B15. anonymous users cannot run the billing job
+NOTICE: ok - K1. a failed document keeps its reason
+NOTICE: ok - K2. error text is bounded
+NOTICE: ok - K3. full-text index for knowledge search exists
+ALL PHASE 2 DATABASE TESTS PASSED
+== tests supabase/tests/phase3.sql
+NOTICE: ok - O1. owner manages the product catalogue
+NOTICE: ok - O2. staff cannot change prices or products
+NOTICE: ok - O3. total is computed from catalogue prices (2×1.500 + 0.750 = 3.750)
+NOTICE: ok - O4. items stored with price snapshot
+NOTICE: ok - O5. order numbers start at 1001 per business
+NOTICE: ok - O6. order numbers are sequential
+NOTICE: ok - O7. inactive products cannot be ordered
+NOTICE: ok - O8. another business's product cannot be used
+NOTICE: ok - O9. invalid quantities and empty orders are rejected
+NOTICE: ok - O10. totals cannot be edited directly
+NOTICE: ok - O11. status history is recorded (created + confirmed)
+NOTICE: ok - O12. viewer can see orders
+NOTICE: ok - O13. viewer cannot create orders
+NOTICE: ok - O14. another business sees none of these orders
+NOTICE: ok - O15. another business cannot create orders here
+NOTICE: ok - O16. (update by outsider affects nothing)
+NOTICE: ok - O16. outsider update changed nothing
+NOTICE: ok - I1. staff can mark read and assign conversations
+NOTICE: ok - E1. staff cannot erase customer data
+NOTICE: ok - E2. another business cannot erase this customer
+NOTICE: ok - E3. erasure reports what it removed
+NOTICE: ok - E4. customer record is deleted
+NOTICE: ok - E5. their messages are deleted
+NOTICE: ok - E6. conversation kept for records but anonymised
+NOTICE: ok - E7. order kept for accounting, unlinked
+NOTICE: ok - E8. erasure is audited
+ALL PHASE 3 DATABASE TESTS PASSED
+== tests supabase/tests/phase4.sql
+NOTICE: ok - A1. sole member: their business would be deleted with them
+NOTICE: ok - A2. only owner of a team: blocked until ownership is transferred
+NOTICE: ok - A3. staff member: just leaves the business
+NOTICE: ok - A4. deleting a user keeps their records (creator becomes empty)
+NOTICE: ok - A5. their memberships are removed
+NOTICE: ok - Q1. owner sees failed deliveries
+NOTICE: ok - Q2. owner can queue a failed delivery for retry
+NOTICE: ok - Q3. owner cannot mark a delivery as sent (only the server can)
+NOTICE: ok - Q4. viewers cannot see the delivery queue
+NOTICE: ok - W1. one conversation per widget session; session ids are validated
+NOTICE: ok - R1. ratings are 👍 (1) or 👎 (-1) only
+NOTICE: ok - R2. owner reads the weekly report; one per week
+NOTICE: ok - R3. viewers and other businesses cannot read it
+NOTICE: ok - R4. weekly-report notifications are allowed
+ALL PHASE 4 DATABASE TESTS PASSED
+== tests supabase/tests/phase5.sql
+NOTICE: ok - D1. no zones configured: delivery has no fee
+NOTICE: ok - D2. delivery needs area, block and house/street
+NOTICE: ok - D3. area matched to a zone: fee added on the server (3.000 + 0.750)
+NOTICE: ok - D4. areas outside the zones are refused
+NOTICE: ok - D5. minimum order per zone is enforced
+NOTICE: ok - D6. pickup orders keep no address and no fee
+NOTICE: ok - D7. delivery fee cannot be edited directly
+NOTICE: ok - D8. staff cannot change delivery zones or fees
+NOTICE: ok - D9. staff marks "out for delivery" and is the driver
+NOTICE: ok - D10. the status change is in the order history
+ALL PHASE 5 DATABASE TESTS PASSED
+== tests supabase/tests/phase6.sql
+NOTICE: ok - S0. onboarding (create_organization) still works
+NOTICE: ok - S1. owner cannot change the business status
+NOTICE: ok - S2. owner can still edit normal business fields
+NOTICE: ok - S3. businesses cannot be inserted directly (only via onboarding)
+NOTICE: ok - S4. owner cannot write integrations directly
+NOTICE: ok - S5. direct integration updates have no effect
+NOTICE: ok - S6. a widget key / WhatsApp number belongs to one business only
+NOTICE: ok - S7. phone numbers are server-only and unique; other employee edits still work
+NOTICE: ok - ALL PHASE 6 DATABASE TESTS PASSED
+== tests supabase/tests/phase7.sql
+NOTICE: ok - T1. every order gets an unguessable 64-character tracking token
+NOTICE: ok - T2. the tracking token cannot be changed from the browser
+NOTICE: ok - T3. anyone with the link sees the order status
+NOTICE: ok - T4. the tracking page shows no phone, name, address or notes
+NOTICE: ok - T5. items are listed
+NOTICE: ok - T6. wrong or malformed tokens reveal nothing
+NOTICE: ok - R1. staff can save a reply
+NOTICE: ok - R2. another business cannot see the replies
+NOTICE: ok - R3. another business cannot add replies to this one
+NOTICE: ok - ALL PHASE 7 DATABASE TESTS PASSED
+exit=0

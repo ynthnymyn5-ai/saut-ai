@@ -1,0 +1,320 @@
+
+> saut-ai@0.2.0 test
+> tsx --test scripts/test-engine.ts scripts/test-phase2.ts
+
+TAP version 13
+# Subtest: guardrails: payments and data export are never allowed, even if configured
+ok 1 - guardrails: payments and data export are never allowed, even if configured
+  ---
+  duration_ms: 0.671435
+  ...
+# Subtest: guardrails: cancellation always needs confirmation; defaults follow role
+ok 2 - guardrails: cancellation always needs confirmation; defaults follow role
+  ---
+  duration_ms: 0.123817
+  ...
+# Subtest: guardrails: decision matrix
+ok 3 - guardrails: decision matrix
+  ---
+  duration_ms: 0.142385
+  ...
+# Subtest: brain fallback: Arabic and English intents
+ok 4 - brain fallback: Arabic and English intents
+  ---
+  duration_ms: 0.902514
+  ...
+# Subtest: router: role preference, branch preference, managers never face customers
+ok 5 - router: role preference, branch preference, managers never face customers
+  ---
+  duration_ms: 0.553286
+  ...
+# Subtest: handoff rules
+ok 6 - handoff rules
+  ---
+  duration_ms: 0.30423
+  ...
+# Subtest: retry: transient errors retried with backoff, permanent ones not
+ok 7 - retry: transient errors retried with backoff, permanent ones not
+  ---
+  duration_ms: 1.387927
+  ...
+# Subtest: lead scoring is bounded and explained
+ok 8 - lead scoring is bounded and explained
+  ---
+  duration_ms: 0.435438
+  ...
+# Subtest: live status: stale transient status decays; inactive is offline
+ok 9 - live status: stale transient status decays; inactive is offline
+  ---
+  duration_ms: 0.373474
+  ...
+# Subtest: working hours in Kuwait time, including overnight ranges
+ok 10 - working hours in Kuwait time, including overnight ranges
+  ---
+  duration_ms: 13.277763
+  ...
+# Subtest: workflow: branches, context passing, failure stops the run
+ok 11 - workflow: branches, context passing, failure stops the run
+  ---
+  duration_ms: 1.114895
+  ...
+# Subtest: workflow validation catches bad graphs
+ok 12 - workflow validation catches bad graphs
+  ---
+  duration_ms: 0.220484
+  ...
+# Subtest: templates: 5 roles, 10 industries, medical safety rules
+ok 13 - templates: 5 roles, 10 industries, medical safety rules
+  ---
+  duration_ms: 0.464161
+  ...
+# Subtest: availability: Kuwait time, busy slots and capacity respected
+ok 14 - availability: Kuwait time, busy slots and capacity respected
+  ---
+  duration_ms: 0.775873
+  ...
+# Subtest: stream token: round-trips claims and expires
+ok 15 - stream token: round-trips claims and expires
+  ---
+  duration_ms: 1.385753
+  ...
+# Subtest: stream token: rejects wrong secret, tampering and junk
+ok 16 - stream token: rejects wrong secret, tampering and junk
+  ---
+  duration_ms: 0.400925
+  ...
+# Subtest: stream token: bridge verifier is byte-compatible with the app signer
+ok 17 - stream token: bridge verifier is byte-compatible with the app signer
+  ---
+  duration_ms: 20.784094
+  ...
+# Subtest: whatsapp: short replies are sent as one message
+ok 18 - whatsapp: short replies are sent as one message
+  ---
+  duration_ms: 0.257689
+  ...
+# Subtest: whatsapp: long replies split under the limit at natural breaks, losing nothing
+ok 19 - whatsapp: long replies split under the limit at natural breaks, losing nothing
+  ---
+  duration_ms: 0.616541
+  ...
+# Subtest: whatsapp: 24-hour customer-service window
+ok 20 - whatsapp: 24-hour customer-service window
+  ---
+  duration_ms: 0.358351
+  ...
+# Subtest: whatsapp: inbound message types become readable text or a staff note
+ok 21 - whatsapp: inbound message types become readable text or a staff note
+  ---
+  duration_ms: 0.290589
+  ...
+# Subtest: money: Kuwaiti dinar uses fils (3 decimals) — Stripe amounts are not divided by 100
+ok 22 - money: Kuwaiti dinar uses fils (3 decimals) — Stripe amounts are not divided by 100
+  ---
+  duration_ms: 0.266493
+  ...
+# Subtest: docx: extracts Arabic and English text, tabs, tables and entities
+ok 23 - docx: extracts Arabic and English text, tabs, tables and entities
+  ---
+  duration_ms: 1.611695
+  ...
+# Subtest: docx: stored (uncompressed) entries and invalid files
+ok 24 - docx: stored (uncompressed) entries and invalid files
+  ---
+  duration_ms: 0.699307
+  ...
+# Subtest: sentry: DSN parsing
+ok 25 - sentry: DSN parsing
+  ---
+  duration_ms: 0.373324
+  ...
+# Subtest: sentry: envelope carries the error and only safe tags (no personal data)
+ok 26 - sentry: envelope carries the error and only safe tags (no personal data)
+  ---
+  duration_ms: 1.256248
+  ...
+# Subtest: sentry: paths are scrubbed of tokens and ids
+ok 27 - sentry: paths are scrubbed of tokens and ids
+  ---
+  duration_ms: 0.21179
+  ...
+# Subtest: signup alert: owner email lists the new business and links to admin
+ok 28 - signup alert: owner email lists the new business and links to admin
+  ---
+  duration_ms: 0.265241
+  ...
+# Subtest: analyst: Kuwait-time ranges, previous period and last year
+ok 29 - analyst: Kuwait-time ranges, previous period and last year
+  ---
+  duration_ms: 0.530812
+  ...
+# Subtest: analyst: totals and change exclude canceled orders and keep 3 decimals
+ok 30 - analyst: totals and change exclude canceled orders and keep 3 decimals
+  ---
+  duration_ms: 0.294135
+  ...
+# Subtest: analyst: products, customers, loyalty and weekdays are computed from orders
+ok 31 - analyst: products, customers, loyalty and weekdays are computed from orders
+  ---
+  duration_ms: 0.696793
+  ...
+# Subtest: assistant audio: 24 kHz TTS → 16 kHz for the face keeps duration and waveform
+ok 32 - assistant audio: 24 kHz TTS → 16 kHz for the face keeps duration and waveform
+  ---
+  duration_ms: 5.875918
+  ...
+# Subtest: assistant audio: speech level drives the mouth (silence closed, speech open)
+ok 33 - assistant audio: speech level drives the mouth (silence closed, speech open)
+  ---
+  duration_ms: 1.09206
+  ...
+# Subtest: assistant: voice navigation in Gulf Arabic and English, questions are not hijacked
+ok 34 - assistant: voice navigation in Gulf Arabic and English, questions are not hijacked
+  ---
+  duration_ms: 2.245984
+  ...
+# Subtest: assistant: emotions, voice tone and speakable text
+ok 35 - assistant: emotions, voice tone and speakable text
+  ---
+  duration_ms: 0.45658
+  ...
+# Subtest: voice: Arabic or English voice is chosen from the reply text
+ok 36 - voice: Arabic or English voice is chosen from the reply text
+  ---
+  duration_ms: 1.124799
+  ...
+# Subtest: voice: emotion changes expressiveness within safe ranges
+ok 37 - voice: emotion changes expressiveness within safe ranges
+  ---
+  duration_ms: 0.160903
+  ...
+# Subtest: voices: employee choice beats business default beats server default
+ok 38 - voices: employee choice beats business default beats server default
+  ---
+  duration_ms: 0.199581
+  ...
+# Subtest: voices: ElevenLabs list is shaped safely; Arabic voices recognised
+ok 39 - voices: ElevenLabs list is shaped safely; Arabic voices recognised
+  ---
+  duration_ms: 0.322548
+  ...
+# Subtest: wizard examples: every placeholder is bracketed and only empty fields are filled
+ok 40 - wizard examples: every placeholder is bracketed and only empty fields are filled
+  ---
+  duration_ms: 0.301846
+  ...
+# Subtest: assistant: “اربط واتساب” opens the WhatsApp guide
+ok 41 - assistant: “اربط واتساب” opens the WhatsApp guide
+  ---
+  duration_ms: 0.091518
+  ...
+# Subtest: provider errors: real reason shown, secrets masked
+ok 42 - provider errors: real reason shown, secrets masked
+  ---
+  duration_ms: 0.300244
+  ...
+# Subtest: bookings: outside opening hours and over-capacity are refused
+ok 43 - bookings: outside opening hours and over-capacity are refused
+  ---
+  duration_ms: 0.440526
+  ...
+# Subtest: orders: only forward status moves; delivered/canceled are final
+ok 44 - orders: only forward status moves; delivered/canceled are final
+  ---
+  duration_ms: 0.134373
+  ...
+# Subtest: orders: database errors become readable messages; unknown errors stay hidden
+ok 45 - orders: database errors become readable messages; unknown errors stay hidden
+  ---
+  duration_ms: 0.271651
+  ...
+# Subtest: money: KWD shows three decimals
+ok 46 - money: KWD shows three decimals
+  ---
+  duration_ms: 10.452274
+  ...
+# Subtest: auth: Supabase errors map to clear messages in both languages
+ok 47 - auth: Supabase errors map to clear messages in both languages
+  ---
+  duration_ms: 0.716002
+  ...
+# Subtest: auth: existing account detection and in-app detection
+ok 48 - auth: existing account detection and in-app detection
+  ---
+  duration_ms: 0.212801
+  ...
+# Subtest: allowance: AI pauses without a subscription or past plan + 10 % grace
+ok 49 - allowance: AI pauses without a subscription or past plan + 10 % grace
+  ---
+  duration_ms: 0.274575
+  ...
+# Subtest: widget: domains are normalised and the embed is locked to them
+ok 50 - widget: domains are normalised and the embed is locked to them
+  ---
+  duration_ms: 0.491132
+  ...
+# Subtest: widget: keys, sessions and colours are validated
+ok 51 - widget: keys, sessions and colours are validated
+  ---
+  duration_ms: 0.249277
+  ...
+# Subtest: deliveries: exponential backoff, capped, then marked failed
+ok 52 - deliveries: exponential backoff, capped, then marked failed
+  ---
+  duration_ms: 0.235797
+  ...
+# Subtest: menu import: prices are read as printed, never guessed
+ok 53 - menu import: prices are read as printed, never guessed
+  ---
+  duration_ms: 0.682301
+  ...
+# Subtest: weekly report: real numbers, honest estimates, both languages
+ok 54 - weekly report: real numbers, honest estimates, both languages
+  ---
+  duration_ms: 0.344591
+  ...
+# Subtest: delivery: address validation, formatting and status flow
+ok 55 - delivery: address validation, formatting and status flow
+  ---
+  duration_ms: 0.39088
+  ...
+# Subtest: security: AI in customer chats can only touch the caller's own records
+ok 56 - security: AI in customer chats can only touch the caller's own records
+  ---
+  duration_ms: 0.348436
+  ...
+# Subtest: security: no open redirects after sign-in, no webhooks to internal addresses
+ok 57 - security: no open redirects after sign-in, no webhooks to internal addresses
+  ---
+  duration_ms: 0.768541
+  ...
+# Subtest: AI employee: general questions on by default, owner can keep it on-business
+ok 58 - AI employee: general questions on by default, owner can keep it on-business
+  ---
+  duration_ms: 0.253392
+  ...
+# Subtest: sales analytics: real orders only, top items, Kuwait hours, delivery areas
+ok 59 - sales analytics: real orders only, top items, Kuwait hours, delivery areas
+  ---
+  duration_ms: 3.865871
+  ...
+# Subtest: links: Google Maps search for Kuwaiti addresses, wa.me with prefilled text
+ok 60 - links: Google Maps search for Kuwaiti addresses, wa.me with prefilled text
+  ---
+  duration_ms: 0.190067
+  ...
+# Subtest: back arrow: one level up, overview has none
+ok 61 - back arrow: one level up, overview has none
+  ---
+  duration_ms: 0.177859
+  ...
+1..61
+# tests 61
+# suites 0
+# pass 61
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 520.435482
+exit=0

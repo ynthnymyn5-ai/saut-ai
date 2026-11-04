@@ -1,0 +1,21 @@
+TAP version 13
+# Subtest: bridge: full call — session, greeting, transcripts, guarded tool, live transfer
+ok 1 - bridge: full call — session, greeting, transcripts, guarded tool, live transfer
+  ---
+  duration_ms: 171.596828
+  ...
+# Subtest: bridge: rejects a stream with a forged or expired token before opening OpenAI
+ok 2 - bridge: rejects a stream with a forged or expired token before opening OpenAI
+  ---
+  duration_ms: 125.197269
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 355.620606
+exit=0

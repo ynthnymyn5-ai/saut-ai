@@ -1,0 +1,10 @@
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'machina@7.0.1',
+npm warn EBADENGINE   required: { node: '>=22.22' },
+npm warn EBADENGINE   current: { node: 'v20.20.2', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn deprecated scmp@2.1.0: Just use Node.js's crypto.timingSafeEqual()
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+npm warn deprecated recharts@2.15.4: 1.x and 2.x branches are no longer active. Bump to Recharts v3 to receive latest features and bugfixes. See https://github.com/recharts/recharts/wiki/3.0-migration-guide
+
+added 247 packages in 18s
