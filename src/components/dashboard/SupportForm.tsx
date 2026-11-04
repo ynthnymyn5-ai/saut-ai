@@ -19,7 +19,13 @@ export function SupportForm({ demo }: { demo: boolean }) {
     const res = await fetch("/api/support", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.fromEntries(new FormData(form))) });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
-    if (!res.ok) return toast({ kind: "error", title: data?.error?.message ?? "Failed" });
+    if (!res.ok) {
+      const f = data?.error?.issues?.fieldErrors ?? {};
+      const msg = f.subject ? (ar ? "اكتب موضوعاً (حرفين على الأقل)" : "Add a subject (at least 2 characters)")
+        : f.body ? (ar ? "اكتب تفاصيل المشكلة" : "Describe the issue")
+        : data?.error?.message ?? (ar ? "ما انرسلت، حاول مرة ثانية" : "Couldn't send, try again");
+      return toast({ kind: "error", title: msg });
+    }
     form.reset();
     toast({ kind: data.demo ? "info" : "success", title: data.demo ? (ar ? "وضع تجريبي — لم تُرسل التذكرة" : "Demo mode — ticket not sent") : (ar ? "تم إرسال التذكرة" : "Ticket submitted") });
   }
@@ -30,10 +36,10 @@ export function SupportForm({ demo }: { demo: boolean }) {
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
         <Card>
           <form onSubmit={submit} className="space-y-4">
-            <div><label className="label" htmlFor="subject">{ar ? "الموضوع" : "Subject"}</label><input id="subject" name="subject" required minLength={3} maxLength={200} dir="auto" className="input" /></div>
+            <div><label className="label" htmlFor="subject">{ar ? "الموضوع" : "Subject"}</label><input id="subject" name="subject" required minLength={2} maxLength={200} dir="auto" className="input" /></div>
             <div><label className="label" htmlFor="priority">{ar ? "الأولوية" : "Priority"}</label>
-              <select id="priority" name="priority" className="input" defaultValue="normal">{["low", "normal", "high", "urgent"].map((p) => <option key={p} value={p}>{p}</option>)}</select></div>
-            <div><label className="label" htmlFor="body">{ar ? "التفاصيل" : "Details"}</label><textarea id="body" name="body" required minLength={10} maxLength={10000} rows={6} dir="auto" className="input" /></div>
+              <select id="priority" name="priority" className="input" defaultValue="normal">{([["low", "منخفضة", "Low"], ["normal", "عادية", "Normal"], ["high", "عالية", "High"], ["urgent", "عاجلة", "Urgent"]] as const).map(([v, a, e]) => <option key={v} value={v}>{ar ? a : e}</option>)}</select></div>
+            <div><label className="label" htmlFor="body">{ar ? "التفاصيل" : "Details"}</label><textarea id="body" name="body" required minLength={2} maxLength={10000} rows={6} dir="auto" className="input" /></div>
             <Button type="submit" disabled={busy}>{busy ? t.common.loading : ar ? "إرسال" : "Submit ticket"}</Button>
           </form>
         </Card>

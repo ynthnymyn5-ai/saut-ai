@@ -59,8 +59,8 @@ export const checkoutSchema = z.object({
 });
 
 export const ticketSchema = z.object({
-  subject: z.string().trim().min(3).max(200),
-  body: z.string().trim().min(10).max(10000),
+  subject: z.string().trim().min(2, "Subject is too short").max(200),
+  body: z.string().trim().min(2, "Please describe the issue").max(10000),
   priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
 });
 
