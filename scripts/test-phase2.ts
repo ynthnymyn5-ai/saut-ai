@@ -11,6 +11,7 @@ import { fromMinor, minorUnitDigits, toMinor } from "../src/lib/payments/money";
 import { docxToText, readZipEntry } from "../src/lib/knowledge/extract";
 import { buildSentryEnvelope, parseSentryDsn, scrubPath } from "../src/lib/monitoring";
 import { newSignupEmail } from "../src/lib/admin-notify";
+import { change, customerRanking, lastYearOf, loyalty, previousOf, productTable, resolveRange, totals, weekdays, type AOrder } from "../src/lib/analyst/core";
 
 const IDS = { c: "11111111-1111-4111-8111-111111111111", e: "22222222-2222-4222-8222-222222222222", o: "33333333-3333-4333-8333-333333333333" };
 
@@ -157,6 +158,58 @@ test("signup alert: owner email lists the new business and links to admin", () =
   assert.match(m.text, /\+96550000000/);
   assert.match(m.text, /https:\/\/www\.sautai\.company\/admin/);
   assert.match(m.text, /إيميل التواصل: —/);
+});
+
+// ── AI Analyst ──────────────────────────────────────────────────────────
+test("analyst: Kuwait-time ranges, previous period and last year", () => {
+  const now = new Date("2026-11-04T16:00:00Z"); // 19:00 Kuwait, Wednesday
+  const today = resolveRange("today", now);
+  assert.equal(today.from.toISOString(), "2026-11-03T21:00:00.000Z");
+  assert.deepEqual(today.label, { from: "2026-11-04", to: "2026-11-04" });
+  assert.deepEqual(resolveRange("yesterday", now).label, { from: "2026-11-03", to: "2026-11-03" });
+  assert.deepEqual(resolveRange("this_week", now).label, { from: "2026-11-01", to: "2026-11-04" }); // Sunday start
+  assert.deepEqual(resolveRange("last_week", now).label, { from: "2026-10-25", to: "2026-10-31" });
+  const lm = resolveRange("last_month", now);
+  assert.deepEqual(lm.label, { from: "2026-10-01", to: "2026-10-31" });
+  assert.deepEqual(previousOf(lm).label, { from: "2026-08-31", to: "2026-09-30" }); // same length (31 days)
+  assert.deepEqual(lastYearOf(lm).label, { from: "2025-10-01", to: "2025-10-31" });
+  assert.deepEqual(resolveRange("last_7_days", now).label, { from: "2026-10-29", to: "2026-11-04" });
+  assert.deepEqual(resolveRange("custom", now, "2026-10-01", "2026-10-15").label, { from: "2026-10-01", to: "2026-10-15" });
+  assert.throws(() => resolveRange("custom", now, "2026-10-15", "2026-10-01"));
+  assert.throws(() => resolveRange("custom", now, "2024-01-01", "2026-01-01"));
+  assert.throws(() => resolveRange("custom", now, "1/10/2026", "2026-10-15"));
+});
+
+const ao = (day: string, total: number, items: [string, number, number][], customer: string | null = null, status = "delivered", hour = "12"): AOrder =>
+  ({ created_at: `${day}T${hour}:00:00Z`, status, total, fulfillment: "pickup", customer_id: customer, customer_name: customer ? `Name ${customer}` : null, items: items.map(([name, quantity, line_total]) => ({ name, quantity, line_total })) });
+
+test("analyst: totals and change exclude canceled orders and keep 3 decimals", () => {
+  const cur = [ao("2026-11-01", 2.5, [["Latte", 2, 2.5]], "a"), ao("2026-11-02", 1.25, [["Tea", 1, 1.25]], "b"), ao("2026-11-02", 9, [["Latte", 6, 9]], "a", "canceled")];
+  assert.deepEqual(totals(cur), { orders: 2, canceled: 1, revenue: 3.75, average_order: 1.875 });
+  assert.deepEqual(change(3.75, 2.5), { current: 3.75, previous: 2.5, change: 1.25, change_pct: 50 });
+  assert.equal(change(1, 0).change_pct, null);
+});
+
+test("analyst: products, customers, loyalty and weekdays are computed from orders", () => {
+  const cur = [ao("2026-11-01", 3, [["Latte", 2, 3]], "a"), ao("2026-11-02", 5, [["Latte", 1, 1.5], ["Cake", 1, 3.5]], "a"), ao("2026-11-03", 1, [["Tea", 1, 1]], "b"), ao("2026-11-03", 2, [["Tea", 2, 2]])];
+  const prev = [ao("2026-10-01", 3, [["Latte", 2, 3]], "a"), ao("2026-10-01", 4, [["Muffin", 2, 4]], "c")];
+  const p = productTable(cur, prev);
+  assert.equal(p[0].name, "Latte");
+  assert.equal(p[0].revenue, 4.5);
+  assert.equal(p[0].quantity_vs_previous.change_pct, 50);
+  assert.ok(p.find((x) => x.name === "Muffin" && x.quantity === 0)); // sold before, not now
+  assert.equal(productTable(cur, prev, "lat").length, 1);
+  const c = customerRanking(cur, "revenue", 5);
+  assert.equal(c.customers[0].name, "Name a");
+  assert.equal(c.customers[0].revenue, 8);
+  assert.equal(c.customers[0].orders, 2);
+  assert.equal(c.orders_without_customer, 1);
+  const l = loyalty(cur, new Set(["a"]));
+  assert.deepEqual([l.buyers, l.new_buyers, l.returning_buyers, l.ordered_twice_or_more_in_period, l.orders_without_customer], [2, 1, 1, 1, 1]);
+  const w = weekdays(cur);
+  assert.equal(w[0].day, "sunday");
+  assert.equal(w[0].orders, 1); // 2026-11-01 is a Sunday in Kuwait
+  assert.equal(w[2].orders, 2); // Tuesday 2026-11-03
 });
 
 // ── In-app assistant ────────────────────────────────────────────────────

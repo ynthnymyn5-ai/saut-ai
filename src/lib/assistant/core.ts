@@ -37,12 +37,13 @@ export const ASSISTANT_PAGES = {
   create_employee: "/dashboard/employees/new", templates: "/dashboard/templates", automations: "/dashboard/automations",
   knowledge: "/dashboard/knowledge", customers: "/dashboard/customers", appointments: "/dashboard/appointments", orders: "/dashboard/orders",
   pipeline: "/dashboard/pipeline", calls: "/dashboard/calls", conversations: "/dashboard/conversations",
-  intelligence: "/dashboard/intelligence", analytics: "/dashboard/analytics", branches: "/dashboard/branches",
+  analyst: "/dashboard/analyst", intelligence: "/dashboard/intelligence", analytics: "/dashboard/analytics", branches: "/dashboard/branches",
   integrations: "/dashboard/integrations", whatsapp_setup: "/dashboard/integrations/whatsapp", billing: "/dashboard/billing", settings: "/dashboard/settings", support: "/dashboard/support",
 } as const;
 export type AssistantPage = keyof typeof ASSISTANT_PAGES;
 
 const PAGE_WORDS: [AssistantPage, RegExp][] = [
+  ["analyst", /المحلل|محلل|analyst/i],
   ["create_employee", /(موظف|employee).{0,12}(جديد|new)|(أنشئ|انشئ|اصنع|create|new).{0,12}(موظف|employee)/i],
   ["orders", /الطلبات|طلبات|المنتجات|المنيو|orders?\b|products|menu/i],
   ["appointments", /مواعيد|الموعد|حجوزات|appointment|booking|reservation/i],

@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  type LucideIcon, Activity, MoreHorizontal, CalendarDays, BarChart3, BookOpen, Bot, Brain, Building, CreditCard, Gauge, Kanban, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Menu, MessagesSquare, Phone, Plug, Plus, Settings, Shield, ShoppingBag, Users, Workflow, X, Bike, ArrowLeft, ArrowRight } from "lucide-react";
+  type LucideIcon, Activity, MoreHorizontal, CalendarDays, BarChart3, BookOpen, Bot, Brain, Building, CreditCard, Gauge, Kanban, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Menu, MessagesSquare, Phone, Plug, Plus, Settings, Shield, ShoppingBag, Users, Workflow, X, Bike, Calculator, ArrowLeft, ArrowRight } from "lucide-react";
 import { NotificationBell } from "@/components/os/NotificationBell";
 import { PwaInstall } from "@/components/pwa/Pwa";
 import { AssistantLauncher } from "@/components/assistant/AssistantLauncher";
@@ -34,7 +34,7 @@ export function DashboardShell({ children, orgName, userName, isAdmin, demo }: {
     [null, [["/dashboard", n.overview, LayoutDashboard], ["/dashboard/command", n.command, Gauge], ["/dashboard/live", n.live, Activity]]],
     [n.gWorkforce, [["/dashboard/employees", n.employees, Bot], ["/dashboard/templates", n.templates, LayoutTemplate], ["/dashboard/automations", n.automations, Workflow], ["/dashboard/knowledge", n.knowledge, BookOpen]]],
     [n.gCustomers, [["/dashboard/customers", n.customers, Users], ["/dashboard/appointments", n.appointments, CalendarDays], ["/dashboard/orders", n.orders, ShoppingBag], ["/dashboard/driver", locale === "ar" ? "توصيلاتي" : "My deliveries", Bike], ["/dashboard/pipeline", n.pipeline, Kanban], ["/dashboard/calls", n.calls, Phone], ["/dashboard/conversations", n.conversations, MessagesSquare]]],
-    [n.gInsight, [["/dashboard/intelligence", n.intelligence, Brain], ["/dashboard/analytics", n.analytics, BarChart3]]],
+    [n.gInsight, [["/dashboard/analyst", locale === "ar" ? "المحلل الذكي" : "AI Analyst", Calculator], ["/dashboard/intelligence", n.intelligence, Brain], ["/dashboard/analytics", n.analytics, BarChart3]]],
     [n.gBusiness, [["/dashboard/branches", n.branches, Building], ["/dashboard/integrations", n.integrations, Plug], ["/dashboard/billing", n.billing, CreditCard], ["/dashboard/settings", n.settings, Settings], ["/dashboard/support", n.support, LifeBuoy]]],
   ];
 

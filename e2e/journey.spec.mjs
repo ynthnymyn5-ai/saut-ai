@@ -33,6 +33,8 @@ test.describe.serial("SAUT AI journey", () => {
       const r = await request.get(path);
       expect(r.status(), path).toBe(401);
     }
+    const analyst = await request.post("/api/analyst", { data: { text: "how were sales?" } });
+    expect(analyst.status(), "/api/analyst").toBe(401);
     const health = await request.get("/api/health");
     expect(health.ok()).toBeTruthy();
     // sign-in links can't be abused to send people to another site
@@ -226,6 +228,19 @@ test.describe.serial("SAUT AI journey", () => {
     await expect(page.getByText("Salmiya").first()).toBeVisible();
   });
 
+  test("AI analyst: owner opens it from the menu and gets an honest answer when no AI provider is connected", async ({ page }) => {
+    await page.goto("/login");
+    await page.fill("#email", A.email);
+    await page.fill("#password", A.password);
+    await page.locator('form button[type="submit"]').click();
+    await page.waitForURL(/\/dashboard/);
+    await page.goto("/dashboard/analyst");
+    await expect(page.getByRole("heading", { name: /AI Analyst|المحلل الذكي/ })).toBeVisible();
+    await page.getByRole("button", { name: /best and worst selling|أكثر وأقل المنتجات/ }).click();
+    // CI has no OpenAI key: the analyst must say so instead of inventing numbers
+    await expect(page.getByText(/isn't connected|غير متصل/)).toBeVisible({ timeout: 15000 });
+  });
+
   test("website widget: locked to the business domain, visitor messages reach the inbox, staff replies reach the visitor", async ({ page, request }) => {
     await page.goto("/login");
     await page.fill("#email", A.email); await page.fill("#password", A.password);
@@ -323,7 +338,7 @@ test.describe.serial("SAUT AI journey", () => {
     for (const locale of ["en", "ar"]) {
       // same name/domain/path as the cookie the app sets, so this replaces it instead of adding a second one
       await ctx.addCookies([{ name: "saut_locale", value: locale, domain: new URL(page.url()).hostname, path: "/", sameSite: "Lax" }]);
-      for (const path of ["/dashboard", "/dashboard/conversations", "/dashboard/orders", "/dashboard/driver", "/dashboard/appointments", "/dashboard/knowledge", "/dashboard/customers", "/dashboard/settings"]) {
+      for (const path of ["/dashboard", "/dashboard/conversations", "/dashboard/orders", "/dashboard/driver", "/dashboard/appointments", "/dashboard/knowledge", "/dashboard/customers", "/dashboard/settings", "/dashboard/analyst"]) {
         await page.goto(path);
         await page.waitForLoadState("networkidle");
         const { overflow, dir } = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth - window.innerWidth, dir: document.documentElement.dir }));
