@@ -10,6 +10,7 @@ import { inboundText, insideServiceWindow, splitWhatsAppText, WA_MAX_TEXT } from
 import { fromMinor, minorUnitDigits, toMinor } from "../src/lib/payments/money";
 import { docxToText, readZipEntry } from "../src/lib/knowledge/extract";
 import { buildSentryEnvelope, parseSentryDsn, scrubPath } from "../src/lib/monitoring";
+import { newSignupEmail } from "../src/lib/admin-notify";
 
 const IDS = { c: "11111111-1111-4111-8111-111111111111", e: "22222222-2222-4222-8222-222222222222", o: "33333333-3333-4333-8333-333333333333" };
 
@@ -147,6 +148,15 @@ test("sentry: paths are scrubbed of tokens and ids", () => {
   assert.equal(scrubPath("/dashboard/orders/3f2b1c4d-1111-2222-3333-444455556666"), "/dashboard/orders/:id");
   assert.equal(scrubPath("/dashboard/customers/12345"), "/dashboard/customers/:id");
   assert.equal(scrubPath("/dashboard/settings"), "/dashboard/settings");
+});
+
+test("signup alert: owner email lists the new business and links to admin", () => {
+  const m = newSignupEmail({ businessName: "تكسي", ownerName: "Mohammad", ownerEmail: "o@example.com", contactPhone: "+96550000000", country: "KW", industry: "other", language: "ar", organizationId: "x" }, "https://www.sautai.company/");
+  assert.match(m.subject, /تكسي/);
+  assert.match(m.text, /o@example\.com/);
+  assert.match(m.text, /\+96550000000/);
+  assert.match(m.text, /https:\/\/www\.sautai\.company\/admin/);
+  assert.match(m.text, /إيميل التواصل: —/);
 });
 
 // ── In-app assistant ────────────────────────────────────────────────────

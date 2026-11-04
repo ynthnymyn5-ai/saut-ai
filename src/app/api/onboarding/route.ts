@@ -35,7 +35,30 @@ export const POST = route("onboarding", async (req) => {
     if (error.message.includes("limit")) return fail(409, "org_limit", "You already own the maximum number of organizations.");
     return fail(422, "invalid_input", error.message);
   }
+  await notifyOwnerOfSignup({
+    businessName: b.name, ownerName: s.fullName, ownerEmail: s.email,
+    contactEmail: b.contact_email || null, contactPhone: b.contact_phone || null,
+    country: b.country, industry: b.industry, language: b.language, organizationId: String(data),
+  });
   const res = ok({ organizationId: data }, 201);
   res.cookies.set("saut_locale", b.language, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
   return res;
 }, { limit: 5 });
+
+/** Emails the platform owner about the new business. Never blocks or fails sign-up. */
+async function notifyOwnerOfSignup(info: import("@/lib/admin-notify").NewSignup) {
+  try {
+    const { providerStatus } = await import("@/lib/env");
+    if (!providerStatus("email").configured) return;
+    const { sendEmail } = await import("@/lib/messaging/email");
+    const { CONTACT_EMAIL } = await import("@/lib/contact");
+    const { newSignupEmail } = await import("@/lib/admin-notify");
+    const to = (process.env.SIGNUP_ALERT_EMAIL || CONTACT_EMAIL).trim();
+    const { subject, text } = newSignupEmail(info, process.env.NEXT_PUBLIC_APP_URL || "https://www.sautai.company");
+    const r = await sendEmail(to, subject, text);
+    if (!r.ok) {
+      const { reportError } = await import("@/lib/monitoring");
+      await reportError(new Error(`Signup alert email failed: ${r.error}`), { scope: "signup-alert" });
+    }
+  } catch { /* the business is created either way */ }
+}
