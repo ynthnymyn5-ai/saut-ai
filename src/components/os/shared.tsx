@@ -18,14 +18,20 @@ export function useApi<T>(url: string | null, opts: { pollMs?: number } = {}) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!!url);
   const alive = useRef(true);
+  const lastBody = useRef<string>("");
   const load = useCallback(async () => {
     if (!url) return;
     try {
       const r = await fetch(url, { cache: "no-store" });
-      const j = await r.json();
+      const text = await r.text();
       if (!alive.current) return;
+      const j = text ? JSON.parse(text) : {};
       if (!r.ok) setError(j?.error?.message ?? `Error ${r.status}`);
-      else { setData(j); setError(null); }
+      else {
+        // Polls usually return the same thing: skip the re-render (it was redrawing whole lists every few seconds).
+        if (text !== lastBody.current) { lastBody.current = text; setData(j); }
+        setError(null);
+      }
     } catch {
       if (alive.current) setError("network");
     } finally {

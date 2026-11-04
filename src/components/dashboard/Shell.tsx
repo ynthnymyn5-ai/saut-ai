@@ -100,7 +100,7 @@ export function DashboardShell({ children, orgName, userName, isAdmin, demo }: {
         )}
       </AnimatePresence>
       <div className="lg:ps-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-line bg-ink/75 px-4 backdrop-blur-xl sm:px-8">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-line bg-ink/95 px-4 lg:bg-ink/75 lg:backdrop-blur-xl sm:px-8">
           <div className="flex items-center gap-3">
             {back && (
               <button type="button" onClick={goBack} className="rounded-lg p-2 hover:bg-white/5" aria-label={locale === "ar" ? "رجوع" : "Back"}>
@@ -118,7 +118,7 @@ export function DashboardShell({ children, orgName, userName, isAdmin, demo }: {
       </div>
       <AssistantLauncher />
       {/* Phone tab bar: the screens owners check most, one thumb away. "More" opens the full menu. */}
-      <nav aria-label={locale === "ar" ? "التنقل السريع" : "Quick navigation"} className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-ink-2/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+      <nav aria-label={locale === "ar" ? "التنقل السريع" : "Quick navigation"} className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-ink-2 pb-[env(safe-area-inset-bottom)] lg:hidden">
         <ul className="mx-auto grid max-w-md grid-cols-5">
           {tabs.map(([href, label, I]) => {
             const active = href === "/dashboard" ? path === href : path.startsWith(href);

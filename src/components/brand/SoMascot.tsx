@@ -11,7 +11,10 @@ export type VoiceState = "idle" | "listening" | "thinking" | "speaking" | "compl
  */
 export function SoMascot({ state = "idle", size = 280, hue = 265, className }: { state?: VoiceState; size?: number; hue?: number; className?: string }) {
   const id = useId().replace(/:/g, "");
-  const reduce = useReducedMotion();
+  const prefersReduced = useReducedMotion();
+  // Small mascots appear many times in lists: draw them light (no blur, glow or endless loops) so phones stay smooth.
+  const lite = size <= 96;
+  const reduce = prefersReduced || lite;
   const active = state === "listening" || state === "speaking";
   const c1 = `hsl(${hue} 90% 66%)`;
   const c2 = `hsl(${(hue + 295) % 360} 92% 60%)`;
@@ -26,9 +29,9 @@ export function SoMascot({ state = "idle", size = 280, hue = 265, className }: {
       role="img"
     >
       {/* aura */}
-      <div className="absolute inset-[-18%] rounded-full blur-3xl opacity-60" style={{ background: `radial-gradient(circle, ${c1}66 0%, ${c2}33 45%, transparent 70%)` }} />
+      {!lite && <div className="absolute inset-[-18%] rounded-full blur-3xl opacity-60" style={{ background: `radial-gradient(circle, ${c1}66 0%, ${c2}33 45%, transparent 70%)` }} />}
       {/* light waves */}
-      {[0, 1, 2].map((i) => (
+      {!lite && [0, 1, 2].map((i) => (
         <motion.div
           key={i}
           className="absolute inset-0 rounded-full border"
@@ -37,7 +40,7 @@ export function SoMascot({ state = "idle", size = 280, hue = 265, className }: {
           transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.7, ease: "easeOut" }}
         />
       ))}
-      <svg viewBox="0 0 200 200" className="relative h-full w-full drop-shadow-[0_30px_60px_rgba(139,92,246,.45)]">
+      <svg viewBox="0 0 200 200" className={cn("relative h-full w-full", !lite && "drop-shadow-[0_30px_60px_rgba(139,92,246,.45)]")}>
         <defs>
           {/* pearl shell: bright glossy white, tinted by the brand colours at the edges */}
           <radialGradient id={`body${id}`} cx="38%" cy="30%" r="78%">
