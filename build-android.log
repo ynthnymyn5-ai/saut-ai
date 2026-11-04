@@ -1,0 +1,169 @@
+npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+npm warn deprecated tar@6.2.1: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated uuid@7.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated glob@9.3.5: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+added 222 packages in 8s
+✔ Adding native android project in android in 30.61ms
+✔ add in 30.98ms
+✔ Copying web assets from www to android/app/src/main/assets/public in 1.88ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 631.94μs
+✔ copy android in 6.74ms
+✔ Updating Android plugins in 525.89μs
+✔ update android in 10.98ms
+✔ Syncing Gradle in 162.81μs
+[success] android platform added!
+Follow the Developer Workflow guide to get building:
+https://capacitorjs.com/docs/basics/workflow
+
+> saut-ai-mobile@1.0.0 assets
+> capacitor-assets generate --android --iconBackgroundColor '#080812' --splashBackgroundColor '#080812'
+
+[log] xml(load) at /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/AndroidManifest.xml
+[log] xml(load) Found root namespaces in XML file: http://schemas.android.com/apk/res/android
+Generating assets for android
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-ldpi/ic_launcher_foreground.png (6.1 KB)
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png (8.57 KB)
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png (13.62 KB)
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png (19.27 KB)
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png (31.16 KB)
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png (44.62 KB)
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-ldpi/ic_launcher_background.png (331 B)
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-mdpi/ic_launcher_background.png (552 B)
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-hdpi/ic_launcher_background.png (910 B)
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xhdpi/ic_launcher_background.png (1.48 KB)
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_background.png (2.86 KB)
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_background.png (4.62 KB)
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android adaptive-icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-ldpi/ic_launcher.png (1.13 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-mdpi/ic_launcher.png (2.08 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-hdpi/ic_launcher.png (4.32 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png (7.08 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png (12.22 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png (18.1 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-ldpi/ic_launcher_round.png (2.21 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png (3.1 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png (5.18 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png (7.42 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png (11.66 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png (16.29 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable/splash.png (9.25 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-land-ldpi/splash.png (7.1 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-land-mdpi/splash.png (12.29 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-land-hdpi/splash.png (24.58 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-land-xhdpi/splash.png (45.83 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-land-xxhdpi/splash.png (65.9 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-land-xxxhdpi/splash.png (93.22 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-port-ldpi/splash.png (5.74 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-port-mdpi/splash.png (9.25 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-port-hdpi/splash.png (18.68 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-port-xhdpi/splash.png (36.39 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-port-xxhdpi/splash.png (52.69 KB)
+CREATE android splash /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-port-xxxhdpi/splash.png (76.97 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-night/splash.png (7.07 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-land-night-ldpi/splash.png (7.07 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-land-night-mdpi/splash.png (12.26 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-land-night-hdpi/splash.png (24.59 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-land-night-xhdpi/splash.png (45.8 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-land-night-xxhdpi/splash.png (65.93 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-land-night-xxxhdpi/splash.png (93.14 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-port-night-ldpi/splash.png (5.71 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-port-night-mdpi/splash.png (9.2 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-port-night-hdpi/splash.png (18.64 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-port-night-xhdpi/splash.png (36.34 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-port-night-xxhdpi/splash.png (52.51 KB)
+CREATE android splash-dark /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/drawable-port-night-xxxhdpi/splash.png (76.85 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-ldpi/ic_launcher_foreground.png (1.88 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png (2.47 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png (4.02 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png (5.77 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png (9.17 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png (13.14 KB)
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+CREATE android icon /home/runner/work/saut-ai/saut-ai/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+
+
+Totals:
+android: 92 generated, 1.15 MB total
+34:    <uses-permission android:name="android.permission.INTERNET" />
+35:    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+36:    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+✔ Copying web assets from www to android/app/src/main/assets/public in 3.68ms
+✔ Creating capacitor.config.json in android/app/src/main/assets in 692.29μs
+✔ copy android in 9.64ms
+✔ Updating Android plugins in 581.50μs
+✔ update android in 27.98ms
+[info] Sync finished in 0.05s
+> Task :capacitor-cordova-android-plugins:copyDebugJniLibsProjectOnly
+> Task :app:mergeProjectDexDebug
+> Task :app:mergeLibDexDebug
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:mergeExtDexDebug
+> Task :app:validateSigningDebug
+> Task :app:writeDebugAppMetadata
+> Task :app:writeDebugSigningConfigVersions
+> Task :capacitor-android:stripDebugDebugSymbols NO-SOURCE
+> Task :capacitor-android:copyDebugJniLibsProjectAndLocalJars
+> Task :capacitor-android:extractDebugAnnotations
+> Task :capacitor-android:extractDeepLinksForAarDebug
+> Task :capacitor-android:mergeDebugGeneratedProguardFiles
+> Task :capacitor-android:mergeDebugConsumerProguardFiles
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect
+> Task :app:assembleDebug
+> Task :capacitor-android:prepareDebugArtProfile
+> Task :capacitor-cordova-android-plugins:stripDebugDebugSymbols NO-SOURCE
+> Task :capacitor-android:prepareLintJarForPublish
+> Task :capacitor-cordova-android-plugins:copyDebugJniLibsProjectAndLocalJars
+> Task :capacitor-android:mergeDebugJavaResource
+> Task :capacitor-cordova-android-plugins:extractDebugAnnotations
+> Task :capacitor-android:syncDebugLibJars
+> Task :capacitor-android:bundleDebugAar
+> Task :capacitor-android:assembleDebug
+> Task :capacitor-cordova-android-plugins:extractDeepLinksForAarDebug
+> Task :capacitor-cordova-android-plugins:mergeDebugGeneratedProguardFiles
+> Task :capacitor-cordova-android-plugins:mergeDebugConsumerProguardFiles
+> Task :capacitor-cordova-android-plugins:prepareDebugArtProfile
+> Task :capacitor-cordova-android-plugins:prepareLintJarForPublish
+> Task :capacitor-cordova-android-plugins:mergeDebugJavaResource
+> Task :capacitor-cordova-android-plugins:syncDebugLibJars
+> Task :capacitor-cordova-android-plugins:bundleDebugAar
+> Task :capacitor-cordova-android-plugins:assembleDebug
+[Incubating] Problems report is available at: file:///home/runner/work/saut-ai/saut-ai/mobile/android/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 1m 34s
+85 actionable tasks: 85 executed
