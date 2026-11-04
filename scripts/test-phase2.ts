@@ -475,3 +475,12 @@ test("links: Google Maps search for Kuwaiti addresses, wa.me with prefilled text
   assert.equal(waMeUrl("+965 5000 1111", "hi"), "https://wa.me/96550001111?text=hi");
   assert.equal(waMeUrl("123", "hi"), null);
 });
+
+import { backTarget } from "../src/lib/back-path";
+test("back arrow: one level up, overview has none", () => {
+  assert.equal(backTarget("/dashboard"), null);
+  assert.equal(backTarget("/dashboard/orders"), "/dashboard");
+  assert.equal(backTarget("/dashboard/integrations/whatsapp"), "/dashboard/integrations");
+  assert.equal(backTarget("/dashboard/employees/abc/"), "/dashboard/employees");
+  assert.equal(backTarget("/login"), null);
+});

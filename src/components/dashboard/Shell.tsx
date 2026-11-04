@@ -1,13 +1,14 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  type LucideIcon, Activity, MoreHorizontal, CalendarDays, BarChart3, BookOpen, Bot, Brain, Building, CreditCard, Gauge, Kanban, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Menu, MessagesSquare, Phone, Plug, Plus, Settings, Shield, ShoppingBag, Users, Workflow, X, Bike } from "lucide-react";
+  type LucideIcon, Activity, MoreHorizontal, CalendarDays, BarChart3, BookOpen, Bot, Brain, Building, CreditCard, Gauge, Kanban, LayoutDashboard, LayoutTemplate, LifeBuoy, LogOut, Menu, MessagesSquare, Phone, Plug, Plus, Settings, Shield, ShoppingBag, Users, Workflow, X, Bike, ArrowLeft, ArrowRight } from "lucide-react";
 import { NotificationBell } from "@/components/os/NotificationBell";
 import { PwaInstall } from "@/components/pwa/Pwa";
 import { AssistantLauncher } from "@/components/assistant/AssistantLauncher";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { backTarget } from "@/lib/back-path";
+import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { ButtonLink, DemoBadge } from "@/components/ui/primitives";
@@ -19,6 +20,13 @@ export function DashboardShell({ children, orgName, userName, isAdmin, demo }: {
   const off = locale === "ar" ? "100%" : "-100%";
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const back = backTarget(path);
+  const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
+  // Count in-app screen changes: with a previous screen we go back in history, else one level up.
+  const visits = useRef(0);
+  useEffect(() => { visits.current += 1; }, [path]);
+  const goBack = () => { if (visits.current > 1) router.back(); else if (back) router.push(back); };
   const n = t.dash.nav;
   // Grouped navigation: operate → workforce → customers → insight → account
   const groups: [string | null, [string, string, LucideIcon][]][] = [
@@ -94,6 +102,11 @@ export function DashboardShell({ children, orgName, userName, isAdmin, demo }: {
       <div className="lg:ps-64">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-line bg-ink/75 px-4 backdrop-blur-xl sm:px-8">
           <div className="flex items-center gap-3">
+            {back && (
+              <button type="button" onClick={goBack} className="rounded-lg p-2 hover:bg-white/5" aria-label={locale === "ar" ? "رجوع" : "Back"}>
+                <BackIcon className="h-5 w-5" />
+              </button>
+            )}
             <button className="rounded-lg p-2 lg:hidden" onClick={() => setOpen(true)} aria-label="Menu"><Menu className="h-5 w-5" /></button>
             {demo && <DemoBadge />}
           </div>
