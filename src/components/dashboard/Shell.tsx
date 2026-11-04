@@ -85,7 +85,7 @@ export function DashboardShell({ children, orgName, userName, isAdmin, demo }: {
           try { await fetch("/auth/signout", { method: "POST", redirect: "manual", cache: "no-store" }); } catch { /* ignore */ }
           window.location.replace("/login");
         }}>
-          <button className="flex items-center gap-2 text-xs text-muted hover:text-white"><LogOut className="h-3.5 w-3.5 rtl:-scale-x-100" />{n.signOut}</button>
+          <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-line px-3 py-2.5 text-sm text-white/80 hover:border-rose-400/40 hover:bg-rose-500/10 hover:text-rose-200"><LogOut className="h-4 w-4 rtl:-scale-x-100" />{n.signOut}</button>
         </form>
       </div>
     </nav>
@@ -98,7 +98,7 @@ export function DashboardShell({ children, orgName, userName, isAdmin, demo }: {
         {open && (
           <>
             <motion.div className="fixed inset-0 z-40 bg-black/60 lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} />
-            <motion.aside className="fixed inset-y-0 start-0 z-50 w-72 border-e border-line bg-ink-2 lg:hidden" initial={{ x: off }} animate={{ x: 0 }} exit={{ x: off }} transition={{ type: "spring", damping: 30, stiffness: 300 }}>
+            <motion.aside className="fixed inset-y-0 start-0 z-50 w-72 border-e border-line bg-ink-2 pb-[max(4rem,env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] lg:hidden" initial={{ x: off }} animate={{ x: 0 }} exit={{ x: off }} transition={{ type: "spring", damping: 30, stiffness: 300 }}>
               <button className="absolute end-3 top-4 p-2" onClick={() => setOpen(false)} aria-label="Close"><X className="h-5 w-5" /></button>
               {nav}
             </motion.aside>
