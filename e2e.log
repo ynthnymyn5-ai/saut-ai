@@ -1,0 +1,19 @@
+
+Running 13 tests using 1 worker
+
+  ✓   1 e2e/journey.spec.mjs:31:3 › SAUT AI journey › unauthenticated API calls are rejected (175ms)
+  ✓   2 e2e/journey.spec.mjs:48:3 › SAUT AI journey › landing page feature cards open details (2.5s)
+  ✓   3 e2e/journey.spec.mjs:60:3 › SAUT AI journey › Google button is hidden when Google sign-in isn't enabled in Supabase (1.2s)
+  ✓   4 e2e/journey.spec.mjs:67:3 › SAUT AI journey › owner A signs up, onboards and builds the business (4.9s)
+  ✓   5 e2e/journey.spec.mjs:121:3 › SAUT AI journey › owner B cannot read or change business A's data (3.2s)
+  ✓   6 e2e/journey.spec.mjs:135:3 › SAUT AI journey › owner A logs out and back in; data persists (3.3s)
+  ✓   7 e2e/journey.spec.mjs:160:3 › SAUT AI journey › delivery: areas with fees, address required, out for delivery with a driver (3.8s)
+  ✓   8 e2e/journey.spec.mjs:231:3 › SAUT AI journey › AI analyst: owner opens it from the menu and gets an honest answer when no AI provider is connected (2.1s)
+  ✓   9 e2e/journey.spec.mjs:244:3 › SAUT AI journey › website widget: locked to the business domain, visitor messages reach the inbox, staff replies reach the visitor (2.5s)
+  ✓  10 e2e/journey.spec.mjs:311:3 › SAUT AI journey › app launch screen shows SO and opens the dashboard (4.8s)
+  ✓  11 e2e/journey.spec.mjs:329:3 › SAUT AI journey › dashboard pages fit a phone screen without horizontal scrolling (13.5s)
+  ✓  12 e2e/journey.spec.mjs:353:3 › SAUT AI journey › Android app: email sign-up works and the Google button is hidden (3.5s)
+  ✓  13 e2e/journey.spec.mjs:370:3 › SAUT AI journey › owner B deletes their account (business and login removed) (2.1s)
+
+  13 passed (48.8s)
+exit=0

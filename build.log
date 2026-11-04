@@ -1,0 +1,182 @@
+
+> saut-ai@0.2.0 build
+> next build
+
+⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+   ▲ Next.js 15.5.29
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (106kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (250kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ⚠ Compiled with warnings in 1949ms
+
+./node_modules/@supabase/supabase-js/dist/index.mjs
+A Node.js API is used (process.version at line: 27) which is not supported in the Edge Runtime.
+Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+
+Import trace for requested module:
+./node_modules/@supabase/supabase-js/dist/index.mjs
+./node_modules/@supabase/ssr/dist/module/createServerClient.js
+./node_modules/@supabase/ssr/dist/module/index.js
+
+ ✓ Compiled successfully in 27.7s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/58) ...
+   Generating static pages (14/58) 
+   Generating static pages (28/58) 
+   Generating static pages (43/58) 
+ ✓ Generating static pages (58/58)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ƒ /                                    2.35 kB         172 kB
+├ ƒ /_not-found                            362 B         103 kB
+├ ƒ /account-deletion                      174 B         106 kB
+├ ƒ /admin                                 13 kB         163 kB
+├ ƒ /api/account                           362 B         103 kB
+├ ƒ /api/admin                             362 B         103 kB
+├ ƒ /api/ai/chat                           362 B         103 kB
+├ ƒ /api/ai/realtime-session               362 B         103 kB
+├ ƒ /api/analyst                           362 B         103 kB
+├ ƒ /api/appointments                      362 B         103 kB
+├ ƒ /api/appointments/[id]                 362 B         103 kB
+├ ƒ /api/assistant/chat                    362 B         103 kB
+├ ƒ /api/assistant/face                    362 B         103 kB
+├ ƒ /api/assistant/listen                  362 B         103 kB
+├ ƒ /api/assistant/speak                   362 B         103 kB
+├ ƒ /api/audit                             362 B         103 kB
+├ ƒ /api/bi/ask                            362 B         103 kB
+├ ƒ /api/bi/reports                        362 B         103 kB
+├ ƒ /api/billing/addons                    362 B         103 kB
+├ ƒ /api/billing/cancel                    362 B         103 kB
+├ ƒ /api/billing/checkout                  362 B         103 kB
+├ ƒ /api/billing/portal                    362 B         103 kB
+├ ƒ /api/branches                          362 B         103 kB
+├ ƒ /api/branches/[id]                     362 B         103 kB
+├ ƒ /api/client-error                      362 B         103 kB
+├ ƒ /api/conversations                     362 B         103 kB
+├ ƒ /api/conversations/[id]                362 B         103 kB
+├ ƒ /api/cron/deliveries                   362 B         103 kB
+├ ƒ /api/cron/maintenance                  362 B         103 kB
+├ ƒ /api/customers                         362 B         103 kB
+├ ƒ /api/customers/[id]                    362 B         103 kB
+├ ƒ /api/customers/[id]/notes              362 B         103 kB
+├ ƒ /api/customers/[id]/timeline           362 B         103 kB
+├ ƒ /api/customers/export                  362 B         103 kB
+├ ƒ /api/deliveries                        362 B         103 kB
+├ ƒ /api/delivery-zones                    362 B         103 kB
+├ ƒ /api/delivery-zones/[id]               362 B         103 kB
+├ ƒ /api/driver/orders                     362 B         103 kB
+├ ƒ /api/employees                         362 B         103 kB
+├ ƒ /api/employees/[id]                    362 B         103 kB
+├ ƒ /api/employees/[id]/activity           362 B         103 kB
+├ ƒ /api/employees/from-template           362 B         103 kB
+├ ƒ /api/health                            362 B         103 kB
+├ ƒ /api/integrations/[provider]           362 B         103 kB
+├ ƒ /api/integrations/google/callback      362 B         103 kB
+├ ƒ /api/internal/call-event               362 B         103 kB
+├ ƒ /api/internal/session                  362 B         103 kB
+├ ƒ /api/internal/status                   362 B         103 kB
+├ ƒ /api/internal/tool                     362 B         103 kB
+├ ƒ /api/knowledge/[id]                    362 B         103 kB
+├ ƒ /api/knowledge/upload                  362 B         103 kB
+├ ƒ /api/leads                             362 B         103 kB
+├ ƒ /api/leads/[id]                        362 B         103 kB
+├ ƒ /api/leads/[id]/suggest                362 B         103 kB
+├ ƒ /api/members                           362 B         103 kB
+├ ƒ /api/members/[id]                      362 B         103 kB
+├ ƒ /api/notifications                     362 B         103 kB
+├ ƒ /api/onboarding                        362 B         103 kB
+├ ƒ /api/orders                            362 B         103 kB
+├ ƒ /api/orders/[id]                       362 B         103 kB
+├ ƒ /api/orders/analytics                  362 B         103 kB
+├ ƒ /api/organization                      362 B         103 kB
+├ ƒ /api/products                          362 B         103 kB
+├ ƒ /api/products/[id]                     362 B         103 kB
+├ ƒ /api/products/bulk                     362 B         103 kB
+├ ƒ /api/products/import                   362 B         103 kB
+├ ƒ /api/profile                           362 B         103 kB
+├ ƒ /api/profile/notifications             362 B         103 kB
+├ ƒ /api/profile/notifications/test        362 B         103 kB
+├ ƒ /api/reports/weekly                    362 B         103 kB
+├ ƒ /api/saved-replies                     362 B         103 kB
+├ ƒ /api/saved-replies/[id]                362 B         103 kB
+├ ƒ /api/settings/privacy                  362 B         103 kB
+├ ƒ /api/setup                             362 B         103 kB
+├ ƒ /api/so/command                        362 B         103 kB
+├ ƒ /api/so/executions/[id]                362 B         103 kB
+├ ƒ /api/so/live                           362 B         103 kB
+├ ƒ /api/so/live/[id]                      362 B         103 kB
+├ ƒ /api/support                           362 B         103 kB
+├ ƒ /api/telephony/twilio/status           362 B         103 kB
+├ ƒ /api/telephony/twilio/voice            362 B         103 kB
+├ ƒ /api/track/[token]                     362 B         103 kB
+├ ƒ /api/voices                            362 B         103 kB
+├ ƒ /api/webhooks/myfatoorah               362 B         103 kB
+├ ƒ /api/webhooks/stripe                   362 B         103 kB
+├ ƒ /api/webhooks/whatsapp                 362 B         103 kB
+├ ƒ /api/whatsapp/health                   362 B         103 kB
+├ ƒ /api/whatsapp/send                     362 B         103 kB
+├ ƒ /api/whatsapp/setup                    362 B         103 kB
+├ ƒ /api/whatsapp/templates                362 B         103 kB
+├ ƒ /api/widget/[key]                      362 B         103 kB
+├ ƒ /api/widget/[key]/rate                 362 B         103 kB
+├ ƒ /api/widget/settings                   362 B         103 kB
+├ ƒ /api/workflows                         362 B         103 kB
+├ ƒ /api/workflows/[id]                    362 B         103 kB
+├ ƒ /app                                 1.56 kB         150 kB
+├ ƒ /auth/callback                         362 B         103 kB
+├ ƒ /auth/signout                          362 B         103 kB
+├ ƒ /dashboard                            7.2 kB         272 kB
+├ ƒ /dashboard/analyst                   6.54 kB         161 kB
+├ ƒ /dashboard/analytics                 3.04 kB         263 kB
+├ ƒ /dashboard/appointments               6.4 kB         161 kB
+├ ƒ /dashboard/automations               5.79 kB         165 kB
+├ ƒ /dashboard/automations/[id]          6.34 kB         163 kB
+├ ƒ /dashboard/billing                   6.35 kB         181 kB
+├ ƒ /dashboard/branches                  3.95 kB         161 kB
+├ ƒ /dashboard/calls                     6.58 kB         156 kB
+├ ƒ /dashboard/command                   5.79 kB         163 kB
+├ ƒ /dashboard/conversations             10.3 kB         165 kB
+├ ƒ /dashboard/customers                 6.19 kB         163 kB
+├ ƒ /dashboard/driver                    2.64 kB         160 kB
+├ ƒ /dashboard/employees                 7.68 kB         157 kB
+├ ƒ /dashboard/employees/[id]            7.26 kB         174 kB
+├ ƒ /dashboard/employees/new             24.4 kB         187 kB
+├ ƒ /dashboard/integrations              8.78 kB         158 kB
+├ ƒ /dashboard/integrations/whatsapp     5.45 kB         162 kB
+├ ƒ /dashboard/integrations/widget       3.57 kB         161 kB
+├ ƒ /dashboard/intelligence              7.05 kB         161 kB
+├ ƒ /dashboard/knowledge                 8.91 kB         158 kB
+├ ƒ /dashboard/live                      6.84 kB         161 kB
+├ ƒ /dashboard/orders                    12.9 kB         170 kB
+├ ƒ /dashboard/pipeline                  6.94 kB         161 kB
+├ ƒ /dashboard/settings                  13.5 kB         170 kB
+├ ƒ /dashboard/support                    6.9 kB         156 kB
+├ ƒ /dashboard/templates                 7.49 kB         167 kB
+├ ƒ /forgot-password                     2.02 kB         225 kB
+├ ○ /icon.svg                                0 B            0 B
+├ ƒ /login                                 149 B         229 kB
+├ ○ /manifest.webmanifest                  362 B         103 kB
+├ ƒ /onboarding                          7.41 kB         160 kB
+├ ƒ /print/order/[id]                      653 B         107 kB
+├ ƒ /privacy                               174 B         106 kB
+├ ƒ /reset-password                      2.03 kB         225 kB
+├ ƒ /signup                                149 B         229 kB
+├ ƒ /t/[token]                           4.32 kB         107 kB
+├ ƒ /terms                                 174 B         106 kB
+└ ƒ /widget/[key]                          362 B         103 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/1255-d8a1861c775d9bcc.js      46.3 kB
+  ├ chunks/4bd1b696-100b9d70ed4e49c1.js  54.2 kB
+  └ other shared chunks (total)          2.08 kB
+
+
+ƒ Middleware                             92.6 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+exit=0

@@ -1,0 +1,1 @@
+{"status":"ok","db":"ok","providers":{"openai":false,"twilio":false,"whatsapp":false,"stripe":false,"myfatoorah":false,"google":false,"email":false,"elevenlabs":false},"ops":{"sharedRateLimit":false,"errorMonitoring":false,"voiceBridge":false},"time":"2026-11-04T17:35:30.277Z"}
