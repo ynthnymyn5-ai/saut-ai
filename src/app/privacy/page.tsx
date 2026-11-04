@@ -1,4 +1,5 @@
 import { LegalPage, type LegalSection } from "@/components/brand/LegalPage";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 export const metadata = { title: "Privacy Policy" };
 
@@ -19,8 +20,8 @@ const S: LegalSection[] = [
     ar: ["حذف بيانات عميل", "يستطيع العميل طلب حذف بياناته من النشاط. يفتح المالك أو المدير: العملاء ← العميل ← «حذف بيانات هذا العميل» ويكتب ERASE للتأكيد. يحذف ذلك نهائياً رسائله وملاحظاته وذاكرة الموظف الذكي عنه ووسومه وفرصه وسجلّه؛ وتبقى المحادثات والمواعيد والطلبات بدون أي بيانات تعريفية. يُسجّل الإجراء في سجل التدقيق. ويمكن للعملاء التواصل معنا وسنحوّل الطلب إلى النشاط."] },
   { en: ["Security", "Data of each business is isolated by database row-level security, every API checks the user's role, secrets stay on the server, webhooks are signature-verified, and sensitive actions are audit-logged. No system is perfectly secure; we will notify affected businesses of a breach as required by law."],
     ar: ["الأمان", "بيانات كل نشاط معزولة بسياسات أمان على مستوى الصفوف في قاعدة البيانات، وكل واجهة برمجية تتحقق من دور المستخدم، والمفاتيح السرية تبقى على الخادم، ويُتحقق من توقيع الويب هوك، وتُسجّل الإجراءات الحساسة. لا يوجد نظام آمن تماماً؛ وسنبلغ الأنشطة المتأثرة بأي اختراق وفق ما يتطلبه القانون."] },
-  { en: ["Your rights and contact", "You can access, correct, export (Customers → Export) or delete personal data. Account holders can delete their account themselves in Settings → “Delete my account” (steps: /account-deletion). Contact: privacy@saut.ai."],
-    ar: ["حقوقك والتواصل", "يمكنك الاطلاع على البيانات الشخصية وتصحيحها وتصديرها (العملاء ← تصدير) أو حذفها. ويمكن لأصحاب الحسابات حذف حساباتهم بأنفسهم من الإعدادات ← «حذف حسابي» (الخطوات: /account-deletion). للتواصل: privacy@saut.ai."] },
+  { en: ["Your rights and contact", `You can access, correct, export (Customers → Export) or delete personal data. Account holders can delete their account themselves in Settings → “Delete my account” (steps: /account-deletion). Contact: ${CONTACT_EMAIL}.`],
+    ar: ["حقوقك والتواصل", `يمكنك الاطلاع على البيانات الشخصية وتصحيحها وتصديرها (العملاء ← تصدير) أو حذفها. ويمكن لأصحاب الحسابات حذف حساباتهم بأنفسهم من الإعدادات ← «حذف حسابي» (الخطوات: /account-deletion). للتواصل: ${CONTACT_EMAIL}.`] },
 ];
 
 export default function Privacy() {

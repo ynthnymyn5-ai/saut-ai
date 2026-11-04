@@ -7,6 +7,7 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import { Logo } from "@/components/brand/Logo";
+import { CONTACT_EMAIL } from "@/lib/contact";
 import { SoMascot } from "@/components/brand/SoMascot";
 import { SoScene } from "@/components/brand/SoScene";
 import { Soundwave } from "@/components/brand/Soundwave";
@@ -350,7 +351,7 @@ function Footer() {
         </div>
         {[
           [t.footer.product, [[t.nav.features, "#features"], [t.nav.pricing, "#pricing"], [t.nav.faq, "#faq"]]],
-          [t.footer.company, [[t.footer.contact, "mailto:hello@saut.ai"], [t.nav.login, "/login"]]],
+          [t.footer.company, [[t.footer.contact, `mailto:${CONTACT_EMAIL}`], [t.nav.login, "/login"]]],
           [t.footer.legal, [[t.footer.privacy, "/privacy"], [t.footer.terms, "/terms"]]],
         ].map(([h, ls]) => (
           <div key={h as string}>

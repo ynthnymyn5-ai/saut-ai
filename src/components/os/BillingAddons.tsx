@@ -3,6 +3,7 @@ import { Building2, Mic, MessageCircle, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { Badge, Button, Card } from "@/components/ui/primitives";
 import { useI18n } from "@/lib/i18n/client";
+import { CONTACT_EMAIL } from "@/lib/contact";
 import { cn, formatMoney } from "@/lib/utils";
 import { useApi, useMutate, useTr } from "./shared";
 
@@ -64,7 +65,7 @@ export function BillingAddons({ providers }: { providers: { stripe: boolean; myf
       <Card className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
         <Building2 className="h-6 w-6 text-violet-soft" />
         <div className="flex-1"><p className="font-semibold">{tr("Enterprise", "المؤسسات")}</p><p className="text-sm text-muted">{tr("Many branches, custom AI employees and integrations, SLA and security review. Priced by agreement.", "فروع متعددة، موظفون وتكاملات مخصصة، اتفاقية مستوى خدمة ومراجعة أمنية. السعر حسب الاتفاق.")}</p></div>
-        <p className="text-sm">{tr("Contact", "تواصل")}: <span className="select-all font-mono text-electric">sales@saut.ai</span></p>
+        <p className="text-sm">{tr("Contact", "تواصل")}: <a href={`mailto:${CONTACT_EMAIL}`} dir="ltr" className="select-all font-mono text-electric">{CONTACT_EMAIL}</a></p>
       </Card>
     </section>
   );

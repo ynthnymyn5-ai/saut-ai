@@ -1,4 +1,5 @@
 import { LegalPage, type LegalSection } from "@/components/brand/LegalPage";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 export const metadata = { title: "Terms of Service" };
 
@@ -15,8 +16,8 @@ const S: LegalSection[] = [
     ar: ["بياناتك", "أنت تملك بيانات نشاطك وبيانات عملائك. نعالجها فقط لتقديم الخدمة كما هو موضح في سياسة الخصوصية. يمكنك تصدير العملاء وحذف بيانات أي عميل في أي وقت."] },
   { en: ["Availability and liability", "We work to keep the service available but do not guarantee it will be uninterrupted; third-party providers (AI, telephony, WhatsApp, payments) can fail. To the extent permitted by law, our liability is limited to the fees you paid in the three months before the claim."],
     ar: ["التوفر والمسؤولية", "نعمل على إبقاء الخدمة متاحة لكن لا نضمن عدم انقطاعها؛ وقد تتعطل خدمات المزوّدين الخارجيين (الذكاء الاصطناعي والاتصالات وواتساب والمدفوعات). وفي حدود ما يسمح به القانون تقتصر مسؤوليتنا على الرسوم التي دفعتها خلال الأشهر الثلاثة السابقة للمطالبة."] },
-  { en: ["Changes and contact", "We will notify account owners of material changes to these terms. Questions: support@saut.ai."],
-    ar: ["التعديلات والتواصل", "سنبلغ أصحاب الحسابات بأي تغييرات جوهرية على هذه الشروط. للاستفسار: support@saut.ai."] },
+  { en: ["Changes and contact", `We will notify account owners of material changes to these terms. Questions: ${CONTACT_EMAIL}.`],
+    ar: ["التعديلات والتواصل", `سنبلغ أصحاب الحسابات بأي تغييرات جوهرية على هذه الشروط. للاستفسار: ${CONTACT_EMAIL}.`] },
 ];
 
 export default function Terms() {

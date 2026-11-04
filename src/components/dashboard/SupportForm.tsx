@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button, Card, PageHeader } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/Toast";
 import { useI18n } from "@/lib/i18n/client";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 export function SupportForm({ demo }: { demo: boolean }) {
   const { t, locale } = useI18n();
@@ -40,7 +41,7 @@ export function SupportForm({ demo }: { demo: boolean }) {
           <LifeBuoy className="h-6 w-6 text-electric" />
           <h2 className="font-semibold">{ar ? "نحن هنا للمساعدة" : "We're here to help"}</h2>
           <p className="text-sm text-muted">{ar ? "نرد عادة خلال يوم عمل واحد (الأحد–الخميس، توقيت الكويت). خطط الأعمال والاحترافي تحصل على أولوية." : "We usually reply within one business day (Sun–Thu, Kuwait time). Business and Pro plans get priority."}</p>
-          <a href="mailto:support@saut.ai" className="inline-flex items-center gap-2 text-sm text-violet-soft hover:text-white"><Mail className="h-4 w-4" />support@saut.ai</a>
+          <a href={`mailto:${CONTACT_EMAIL}`} dir="ltr" className="inline-flex items-center gap-2 text-sm text-violet-soft hover:text-white"><Mail className="h-4 w-4" />{CONTACT_EMAIL}</a>
         </Card>
       </div>
     </>

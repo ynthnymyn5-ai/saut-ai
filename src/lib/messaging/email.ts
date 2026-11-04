@@ -1,4 +1,5 @@
 import "server-only";
+import { CONTACT_EMAIL } from "@/lib/contact";
 import { serverEnv, smtpConfigured } from "@/lib/env";
 
 type SendResult = { ok: true; id: string } | { ok: false; error: string; retryable: boolean };
@@ -13,7 +14,7 @@ async function sendSmtp(to: string[], subject: string, text: string, html?: stri
     connectionTimeout: 15_000, greetingTimeout: 15_000, socketTimeout: 20_000,
   });
   try {
-    const info = await transport.sendMail({ from: process.env.EMAIL_FROM || `SAUT AI <${process.env.SMTP_USER}>`, to, subject: subject.slice(0, 200), text, ...(html ? { html } : {}) });
+    const info = await transport.sendMail({ from: process.env.EMAIL_FROM || `SAUT AI <${process.env.SMTP_USER}>`, replyTo: CONTACT_EMAIL, to, subject: subject.slice(0, 200), text, ...(html ? { html } : {}) });
     if (!info.accepted?.length) return { ok: false, error: `SMTP rejected all recipients`, retryable: false };
     return { ok: true, id: String(info.messageId ?? "smtp") };
   } catch (e) {
@@ -32,7 +33,7 @@ export async function sendEmail(to: string | string[], subject: string, text: st
     res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${serverEnv("RESEND_API_KEY")}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: serverEnv("EMAIL_FROM"), to: Array.isArray(to) ? to : [to], subject: subject.slice(0, 200), text, ...(html ? { html } : {}) }),
+      body: JSON.stringify({ from: serverEnv("EMAIL_FROM"), reply_to: CONTACT_EMAIL, to: Array.isArray(to) ? to : [to], subject: subject.slice(0, 200), text, ...(html ? { html } : {}) }),
       signal: AbortSignal.timeout(15_000),
     });
   } catch (e) {
