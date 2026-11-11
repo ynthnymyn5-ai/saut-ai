@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">مور</string>
+    <string name="title_activity_main">مور</string>
+    <string name="package_name">com.moorgame.cards</string>
+    <string name="custom_url_scheme">com.moorgame.cards</string>
+</resources>

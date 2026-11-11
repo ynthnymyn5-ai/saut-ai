@@ -1,0 +1,55 @@
+name: moor-android
+# Builds the release (non-debuggable) Android app of the card game «مور» from games/moor.
+# Output is UNSIGNED; it is signed afterwards with the game's upload key, which never goes in the repo.
+on:
+  workflow_dispatch:
+  push:
+    paths: ["games/moor/**", ".github/workflows/moor-android.yml"]
+permissions:
+  contents: read
+concurrency:
+  group: moor-android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: games/moor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Use the runner's preinstalled Android SDK
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+      - run: npm ci --no-audit --no-fund
+      - run: npx cap sync android
+      - name: Build release bundle and APK
+        working-directory: games/moor/android
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease assembleRelease --no-daemon --stacktrace 2>&1 | tail -60
+          ls -la app/build/outputs/bundle/release app/build/outputs/apk/release
+      - name: Check the release manifest
+        working-directory: games/moor/android
+        run: |
+          M=app/build/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml
+          [ -f "$M" ] || M=$(find app/build/intermediates -path '*release*' -name AndroidManifest.xml | head -1)
+          grep -E 'uses-permission|debuggable|versionCode|versionName' "$M"
+          if grep -q 'SCHEDULE_EXACT_ALARM' "$M"; then echo "SCHEDULE_EXACT_ALARM still present"; exit 1; fi
+          if grep -q 'debuggable="true"' "$M"; then echo "release is debuggable"; exit 1; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: moor-release-unsigned
+          path: |
+            games/moor/android/app/build/outputs/bundle/release/*.aab
+            games/moor/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
