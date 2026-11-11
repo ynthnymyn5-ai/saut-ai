@@ -6,7 +6,7 @@ on:
   push:
     paths: ["games/moor/**", ".github/workflows/moor-android.yml"]
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: moor-android-${{ github.ref }}
   cancel-in-progress: true
@@ -50,6 +50,15 @@ jobs:
         run: |
           BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
           mkdir -p ../../out && cp $BT/lib/apksigner.jar ../../out/ && echo "$BT" > ../../out/build-tools.txt
+      - name: Publish unsigned build to the moor-build branch
+        working-directory: .
+        run: |
+          mkdir -p /tmp/out && cp games/moor/android/app/build/outputs/bundle/release/*.aab games/moor/android/app/build/outputs/apk/release/*.apk out/* /tmp/out/
+          echo "${GITHUB_SHA}" > /tmp/out/commit.txt
+          echo '{"git":{"deploymentEnabled":false}}' > /tmp/out/vercel.json
+          cd /tmp/out && git init -q -b moor-build && git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm "moor unsigned build ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" moor-build
       - uses: actions/upload-artifact@v4
         with:
           name: moor-release-unsigned
