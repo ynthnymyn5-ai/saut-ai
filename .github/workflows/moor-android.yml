@@ -46,10 +46,15 @@ jobs:
           grep -E 'uses-permission|debuggable|versionCode|versionName' "$M"
           if grep -q 'SCHEDULE_EXACT_ALARM' "$M"; then echo "SCHEDULE_EXACT_ALARM still present"; exit 1; fi
           if grep -q 'debuggable="true"' "$M"; then echo "release is debuggable"; exit 1; fi
+      - name: Bundle the SDK's apksigner (for signing outside CI)
+        run: |
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          mkdir -p ../../out && cp $BT/lib/apksigner.jar ../../out/ && echo "$BT" > ../../out/build-tools.txt
       - uses: actions/upload-artifact@v4
         with:
           name: moor-release-unsigned
           path: |
             games/moor/android/app/build/outputs/bundle/release/*.aab
             games/moor/android/app/build/outputs/apk/release/*.apk
+            out/
           if-no-files-found: error
