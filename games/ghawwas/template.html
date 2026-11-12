@@ -1,0 +1,313 @@
+<title>غوّاص اللولو</title>
+<meta name="theme-color" content="#0a3d5c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@700&family=Cairo:wght@600;800;900&display=swap">
+<style>
+/* Layout: one full-height portrait stage (max 480px wide) — the sea is the canvas, HUD and menus float over it.
+   A single deliberate look: Gulf water from turquoise shallows to night-blue depths, pearl white and dhow gold. */
+:root{
+  --sea-top:#2fb3c0; --sea-deep:#06213d; --abyss:#020914;
+  --pearl:#fbf6ea; --gold:#e6b85c; --gold-soft:#f8de97; --ink:#0b1f33; --coral:#ff7a6b;
+  --display:"Aref Ruqaa","Amiri",serif; --body:"Cairo","Segoe UI",Tahoma,system-ui,sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--abyss);overflow:hidden;overscroll-behavior:none}
+.stage{position:relative;height:100%;max-width:480px;margin:0 auto;overflow:hidden;background:var(--sea-deep);
+  font-family:var(--body);color:var(--pearl);user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+/* HUD */
+.hud{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:12px;right:12px;display:flex;align-items:center;gap:10px;direction:rtl;pointer-events:none;z-index:3}
+.chip{display:flex;align-items:center;gap:6px;background:rgba(2,9,20,.45);border:1px solid rgba(248,222,151,.35);border-radius:999px;padding:3px 12px;
+  font-weight:900;font-size:17px;font-variant-numeric:tabular-nums;backdrop-filter:blur(4px)}
+.chip small{font-size:12px;font-weight:800;color:var(--gold-soft)}
+.air{flex:1;height:14px;border-radius:99px;background:rgba(2,9,20,.5);border:1px solid rgba(248,222,151,.35);overflow:hidden;position:relative}
+.air i{position:absolute;inset:0 auto 0 0;width:100%;background:linear-gradient(90deg,#7fe3f0,#e8fbff);border-radius:99px;transition:background .3s}
+.air.low i{background:linear-gradient(90deg,var(--coral),#ffb4a8)}
+.airlbl{font-size:12px;font-weight:800;color:var(--gold-soft)}
+.mute{pointer-events:auto;width:36px;height:36px;border-radius:50%;border:1px solid rgba(248,222,151,.35);background:rgba(2,9,20,.45);color:var(--pearl);font-size:16px;cursor:pointer}
+.mute:focus-visible,.btn:focus-visible{outline:3px solid var(--gold-soft);outline-offset:2px}
+/* overlays */
+.ov{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;direction:rtl;
+  padding:calc(24px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));
+  background:radial-gradient(ellipse at 50% 30%,rgba(47,179,192,.25),rgba(2,9,20,.82) 70%)}
+.ov h1{margin:0;font-family:var(--display);font-size:clamp(54px,16vw,78px);line-height:1.05;color:var(--gold-soft);text-shadow:0 3px 0 #6a4310,0 0 30px rgba(230,184,92,.35)}
+.ov h2{margin:0;font-weight:900;font-size:26px;color:var(--gold-soft);text-wrap:balance}
+.ov p{margin:0;max-width:30ch;line-height:1.7;font-weight:600}
+.por{width:132px;height:132px;border-radius:50%;object-fit:cover;object-position:50% 30%;border:3px solid var(--gold);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.quote{background:var(--pearl);color:var(--ink);font-weight:800;border-radius:18px;padding:8px 16px;position:relative;max-width:28ch}
+.quote::after{content:"";position:absolute;top:-8px;left:50%;margin-left:-8px;border:8px solid transparent;border-top:0;border-bottom-color:var(--pearl)}
+.btn{font-family:var(--body);font-weight:900;font-size:20px;color:#2a1605;border:0;border-radius:999px;padding:12px 38px;cursor:pointer;
+  background:linear-gradient(180deg,var(--gold-soft),var(--gold));box-shadow:0 6px 0 #8a5a17,0 14px 30px rgba(0,0,0,.4)}
+.btn:active{translate:0 3px;box-shadow:0 3px 0 #8a5a17}
+.how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;max-width:340px;font-size:13px;font-weight:800}
+.how div{background:rgba(2,9,20,.45);border:1px solid rgba(248,222,151,.25);border-radius:14px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.how b{font-size:22px}
+.stats{display:flex;gap:10px}
+.stats div{background:rgba(2,9,20,.5);border:1px solid rgba(248,222,151,.3);border-radius:14px;padding:6px 14px;display:flex;flex-direction:column;font-variant-numeric:tabular-nums}
+.stats b{font-size:26px;font-weight:900;color:var(--gold-soft)}
+.stats span{font-size:12px;font-weight:800}
+.new{color:var(--coral);font-weight:900}
+.small{font-size:13px;opacity:.8}
+@media (prefers-reduced-motion:reduce){.btn{box-shadow:none}}
+</style>
+
+<div class="stage" id="stage">
+  <canvas id="cv"></canvas>
+  <div class="hud" id="hud" hidden>
+    <div class="chip" title="اللولو اللي جمعتها"><small>الديين</small> <span id="hP">٠</span> ⚪</div>
+    <div class="chip" title="العمق"><span id="hD">٠</span><small>باع</small></div>
+    <span class="airlbl">النَفَس</span>
+    <div class="air" id="air"><i id="airI"></i></div>
+    <button class="mute" id="mute" aria-label="الصوت">🔊</button>
+  </div>
+
+  <div class="ov" id="menu">
+    <img class="por" src="{{lulu}}" alt="بو لولو">
+    <h1>غوّاص اللولو</h1>
+    <p>انزل مع «بو لولو» لهيرات الخليج، واجمع المحار قبل لا يخلص نَفَسك. السيب يسحبك للمحمل أول ما ينقطع النَفَس.</p>
+    <div class="how">
+      <div><b>👆</b>اسحب يمين ويسار</div>
+      <div><b>🦪</b>اجمع المحار</div>
+      <div><b>🫧</b>الفقاعات نَفَس</div>
+    </div>
+    <div class="how" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      <div><b>🪼</b>القنديل ياخذ من نَفَسك</div>
+      <div><b>🦈</b>انتبه للجرجور بعد ٢٠ باع</div>
+    </div>
+    <button class="btn" id="go">يلا نغوص</button>
+    <p class="small" id="bestM"></p>
+  </div>
+
+  <div class="ov" id="over" hidden>
+    <h2 id="oT">السيب سحبك للمحمل!</h2>
+    <img class="por" src="{{lulu}}" alt="بو لولو">
+    <div class="quote" id="oQ"></div>
+    <div class="stats">
+      <div><b id="oP">٠</b><span>لولوة</span></div>
+      <div><b id="oD">٠</b><span>باع عمق</span></div>
+      <div><b id="oB">٠</b><span>أفضل غوصة</span></div>
+    </div>
+    <p class="new" id="oN" hidden>رقم جديد! 🎉</p>
+    <button class="btn" id="again">غوص من جديد</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const AR=n=>String(Math.floor(n)).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
+const $=id=>document.getElementById(id);
+const cv=$('cv'),cx=cv.getContext('2d'),stage=$('stage');
+const face=new Image();face.src='{{face}}';
+let W=420,H=800,DPR=1;
+function resize(){const r=stage.getBoundingClientRect();DPR=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.round(r.width*DPR);cv.height=Math.round(r.height*DPR);W=r.width;H=r.height;cx.setTransform(DPR,0,0,DPR,0,0)}
+addEventListener('resize',resize);resize();
+
+/* ---------- storage (best score) ---------- */
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let best=store.get('ghawwas_best',{p:0,d:0});
+let muted=store.get('ghawwas_mute',false);
+$('mute').textContent=muted?'🔇':'🔊';
+function bestLine(){$('bestM').textContent=best.p?`أفضل غوصة: ${AR(best.p)} لولوة • ${AR(best.d)} باع`:''}
+bestLine();
+
+/* ---------- sound (tiny synth) ---------- */
+let ac=null;
+function tone(f,dur,type,vol,slide){if(muted)return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+  const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime;o.type=type||'sine';o.frequency.setValueAtTime(f,t);
+  if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+dur);g.gain.setValueAtTime(vol||.12,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(g).connect(ac.destination);o.start(t);o.stop(t+dur)}catch(e){}}
+const sfx={pearl:c=>{tone(660*Math.pow(1.122,Math.min(c,8)),.18,'triangle',.13)},gold:()=>{tone(880,.12,'triangle',.13);setTimeout(()=>tone(1320,.25,'triangle',.12),90)},
+  bubble:()=>tone(300,.15,'sine',.1,900),hit:()=>tone(160,.35,'sawtooth',.12,60),shark:()=>tone(90,.5,'square',.08,50),over:()=>{tone(520,.2,'triangle',.1,260);setTimeout(()=>tone(390,.4,'triangle',.1,180),180)}};
+function buzz(ms){try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
+$('mute').addEventListener('click',e=>{e.stopPropagation();muted=!muted;store.set('ghawwas_mute',muted);$('mute').textContent=muted?'🔇':'🔊'});
+
+/* ---------- game state ---------- */
+const PX_PER_BAA=46; // باع ≈ 1.8 m
+let G=null,state='menu',last=0,pointerX=null,keys={};
+function newGame(){
+  G={t:0,dist:0,speed:120,air:100,pearls:0,combo:0,comboT:0,x:W/2,vx:0,y:H*.32,hitT:0,shake:0,
+     items:[],fx:[],texts:[],spawnY:H*.9,sharkT:6,kick:0,rays:0,over:false};
+  for(let i=0;i<40;i++)G.fx.push(plankton(Math.random()*H));
+}
+function plankton(y){return {k:'pl',x:Math.random()*W,y:y==null?H+10:y,r:.6+Math.random()*1.8,a:.15+Math.random()*.35,v:.2+Math.random()*.5}}
+const depth=()=>G.dist/PX_PER_BAA;
+
+/* spawn content row by row as the world scrolls */
+function spawnRow(y){
+  const d=depth(),m=18;
+  const r=Math.random();
+  if(r<.42){const gold=Math.random()<(d>15?.11:.06);G.items.push({k:'oy',x:m+30+Math.random()*(W-2*m-60),y,r:16,gold,open:Math.random()*6.28})}
+  else if(r<.58){const n=2+(Math.random()*3|0),bx=m+30+Math.random()*(W-2*m-60);for(let i=0;i<n;i++)G.items.push({k:'bu',x:bx+(Math.random()-.5)*36,y:y+i*18,r:7+Math.random()*5,w:Math.random()*6.28})}
+  const jp=Math.min(.55,.16+d*.012);
+  if(Math.random()<jp)G.items.push({k:'je',x:m+24+Math.random()*(W-2*m-48),y:y+40,r:18+Math.random()*6,ph:Math.random()*6.28,dx:(Math.random()-.5)*30});
+}
+function spawnShark(){const fromRight=Math.random()<.5;const y=G.y+60+Math.random()*(H*.45);
+  G.items.push({k:'sh',warn:1.1,x:fromRight?W+90:-90,y,dir:fromRight?-1:1,v:160+depth()*2.2,r:26})}
+
+/* ---------- input ---------- */
+function setPointer(e){const r=cv.getBoundingClientRect();pointerX=(e.clientX-r.left)}
+cv.addEventListener('pointerdown',e=>{setPointer(e);cv.setPointerCapture&&cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'||e.buttons||e.pointerType==='touch')setPointer(e)});
+addEventListener('keydown',e=>{keys[e.key]=true;if((e.key===' '||e.key==='Enter')&&state!=='play'){e.preventDefault();start()}});
+addEventListener('keyup',e=>{keys[e.key]=false});
+
+/* ---------- loop ---------- */
+function update(dt){
+  const g=G;g.t+=dt;
+  const d=depth();
+  g.speed=Math.min(330,120+d*4.2);
+  const dy=g.speed*dt;g.dist+=dy;
+  // diver steering
+  if(keys.ArrowLeft||keys.a)pointerX=Math.max(20,(pointerX??g.x)-420*dt);
+  if(keys.ArrowRight||keys.d)pointerX=Math.min(W-20,(pointerX??g.x)+420*dt);
+  const tx=pointerX==null?g.x:Math.max(22,Math.min(W-22,pointerX));
+  const stun=g.hitT>0?.35:1;
+  g.vx=(tx-g.x)*Math.min(1,dt*9)*stun/dt;g.x+=g.vx*dt;g.kick+=dt*(6+g.speed/60);
+  // air drains faster in the deep
+  g.air-=dt*(4.2+d*.06);
+  if(g.hitT>0)g.hitT-=dt;if(g.shake>0)g.shake-=dt*30;
+  if(g.comboT>0){g.comboT-=dt;if(g.comboT<=0)g.combo=0}
+  // scroll world
+  for(const it of g.items){it.y-=dy;
+    if(it.k==='je'){it.ph+=dt*2.4;it.y+=Math.sin(it.ph)*14*dt;it.x+=it.dx*dt;if(it.x<24||it.x>W-24)it.dx*=-1}
+    if(it.k==='bu'){it.w+=dt*3;it.y-=40*dt;it.x+=Math.sin(it.w)*.4}
+    if(it.k==='oy')it.open+=dt*2;
+    if(it.k==='sh'){it.y+=dy;if(it.warn>0){it.warn-=dt}else{it.x+=it.dir*it.v*dt}}
+  }
+  g.spawnY-=dy;while(g.spawnY<H+120){spawnRow(g.spawnY+120);g.spawnY+=88+Math.random()*40}
+  if(d>20){g.sharkT-=dt;if(g.sharkT<=0){spawnShark();g.sharkT=Math.max(2.6,7-d*.05)+Math.random()*2.5}}
+  // collisions
+  const hx=g.x,hy=g.y+8,hr=17;
+  for(const it of g.items){if(it.dead||it.k==='fx')continue;
+    if(it.k==='sh'&&it.warn>0)continue;
+    const dx=it.x-hx,dyy=it.y-hy,rr=(it.k==='sh'?it.r*1.4:it.r)+hr;
+    if(dx*dx+dyy*dyy<rr*rr*(it.k==='sh'?.55:1)){
+      if(it.k==='oy'){it.dead=1;g.combo++;g.comboT=1.6;const mult=Math.min(5,1+Math.floor(g.combo/4));const add=(it.gold?5:1)*mult;g.pearls+=add;
+        it.gold?sfx.gold():sfx.pearl(g.combo);float(it.x,it.y,(it.gold?'دانة! ':'')+'+'+AR(add)+(mult>1?' ×'+AR(mult):''),it.gold?'#f8de97':'#fbf6ea');burst(it.x,it.y,it.gold?'#f8de97':'#fbf6ea',10)}
+      else if(it.k==='bu'){it.dead=1;g.air=Math.min(100,g.air+8);sfx.bubble();burst(it.x,it.y,'#bff4ff',5)}
+      else if(it.k==='je'&&g.hitT<=0){g.air-=24;g.hitT=.9;g.shake=10;g.combo=0;sfx.hit();buzz(60);float(hx,hy-30,'قنديل! −٢٤','#ff9d90')}
+      else if(it.k==='sh'&&g.hitT<=0){g.air-=45;g.hitT=1.2;g.shake=18;g.combo=0;sfx.shark();buzz(140);float(hx,hy-30,'جرجور! −٤٥','#ff9d90')}
+    }}
+  g.items=g.items.filter(it=>!it.dead&&it.y>-120&&!(it.k==='sh'&&(it.x<-160||it.x>W+160)&&it.warn<=0));
+  // ambient
+  for(const p of g.fx){p.y-=dy*p.v;if(p.y<-10){Object.assign(p,plankton())}}
+  for(const t of g.texts){t.y-=40*dt;t.a-=dt*.9}g.texts=g.texts.filter(t=>t.a>0);
+  for(const s of g.sp||[]){s.x+=s.vx*dt;s.y+=s.vy*dt;s.vy-=60*dt;s.a-=dt*1.6}if(g.sp)g.sp=g.sp.filter(s=>s.a>0);
+  if(g.air<=0){g.air=0;gameOver()}
+  hud();
+}
+function float(x,y,txt,col){G.texts.push({x,y,txt,col,a:1.2})}
+function burst(x,y,col,n){G.sp=G.sp||[];for(let i=0;i<n;i++){const a=Math.random()*6.28,v=40+Math.random()*90;G.sp.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,a:1,col,r:1.5+Math.random()*2.5})}}
+
+/* ---------- drawing ---------- */
+function lerpC(a,b,t){const p=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));const A=p(a),B=p(b);return 'rgb('+A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(',')+')'}
+function seaColors(d){const stops=[[0,'#3fc4cc','#1a8fa6'],[12,'#1f8fa8','#0d5a7c'],[30,'#0d5577','#073251'],[55,'#062b47','#03162b'],[90,'#03142a','#010711']];
+  let i=0;while(i<stops.length-2&&d>stops[i+1][0])i++;const a=stops[i],b=stops[i+1],t=Math.max(0,Math.min(1,(d-a[0])/(b[0]-a[0])));
+  return [lerpC(a[1],b[1],t),lerpC(a[2],b[2],t)]}
+function draw(){
+  const g=G,d=g?depth():0;
+  cx.save();
+  if(g&&g.shake>0)cx.translate((Math.random()-.5)*g.shake,(Math.random()-.5)*g.shake);
+  const [c1,c2]=seaColors(d);const grd=cx.createLinearGradient(0,0,0,H);grd.addColorStop(0,c1);grd.addColorStop(1,c2);cx.fillStyle=grd;cx.fillRect(-20,-20,W+40,H+40);
+  // sun rays in the shallows
+  const ray=Math.max(0,1-d/22);
+  if(ray>0){cx.save();cx.globalAlpha=.10*ray;cx.fillStyle='#ffffff';const tt=(g?g.t:performance.now()/1000);
+    for(let i=0;i<6;i++){const x=(i*W/5+Math.sin(tt*.3+i)*30);cx.beginPath();cx.moveTo(x-10,-10);cx.lineTo(x+30,-10);cx.lineTo(x+120+i*10,H);cx.lineTo(x+40,H);cx.closePath();cx.fill()}cx.restore()}
+  if(!g){cx.restore();return}
+  // side coral/kelp silhouettes
+  drawWalls(d);
+  for(const p of g.fx){cx.globalAlpha=p.a*(d>40?1.6:1);cx.fillStyle=d>40?'#8ff7ff':'#e9fbff';cx.beginPath();cx.arc(p.x,p.y,p.r,0,6.28);cx.fill()}cx.globalAlpha=1;
+  // rope (السيب) from the dhow to the diver
+  cx.strokeStyle='rgba(222,196,140,.85)';cx.lineWidth=2.4;cx.beginPath();cx.moveTo(W/2+Math.sin(g.t*.7)*20,-10);cx.quadraticCurveTo((W/2+g.x)/2+Math.sin(g.t)*10,g.y*.5,g.x,g.y-6);cx.stroke();
+  for(const it of g.items){
+    if(it.k==='oy')drawOyster(it);else if(it.k==='bu')drawBubble(it);else if(it.k==='je')drawJelly(it,g.t);else if(it.k==='sh')drawShark(it,g.t)}
+  if(state!=='menu')drawDiver(g);
+  for(const s of g.sp||[]){cx.globalAlpha=Math.max(0,s.a);cx.fillStyle=s.col;cx.beginPath();cx.arc(s.x,s.y,s.r,0,6.28);cx.fill()}cx.globalAlpha=1;
+  cx.textAlign='center';cx.font='900 20px Cairo, sans-serif';
+  for(const t of g.texts){cx.globalAlpha=Math.min(1,t.a);cx.lineWidth=4;cx.strokeStyle='rgba(2,9,20,.6)';cx.strokeText(t.txt,t.x,t.y);cx.fillStyle=t.col;cx.fillText(t.txt,t.x,t.y)}cx.globalAlpha=1;
+  if(g.combo>=4){cx.font='900 16px Cairo, sans-serif';cx.fillStyle='rgba(248,222,151,.9)';cx.fillText('سلسلة ×'+AR(Math.min(5,1+Math.floor(g.combo/4))),g.x,g.y+56)}
+  // low-air vignette
+  if(g.air<30){const a=(1-g.air/30)*.5*(0.6+0.4*Math.sin(g.t*8));const v=cx.createRadialGradient(W/2,H/2,H*.2,W/2,H/2,H*.75);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,`rgba(160,20,20,${a})`);cx.fillStyle=v;cx.fillRect(0,0,W,H)}
+  cx.restore();
+}
+function drawWalls(d){const g=G,off=(g.dist*.6)%140;cx.fillStyle=d>40?'rgba(10,40,60,.55)':'rgba(8,60,70,.45)';
+  for(const side of [0,1]){cx.beginPath();const x0=side?W:0,s=side?-1:1;cx.moveTo(x0,-20);
+    for(let y=-140;y<H+160;y+=35){const k=Math.floor((y+off+g.dist*.6)/35);const w=14+((k*37)%23);cx.lineTo(x0+s*w,y-off)}cx.lineTo(x0,H+40);cx.closePath();cx.fill()}}
+function drawOyster(it){cx.save();cx.translate(it.x,it.y);const op=.25+.25*Math.max(0,Math.sin(it.open));
+  if(it.gold){cx.shadowColor='#f8de97';cx.shadowBlur=18}
+  cx.fillStyle=it.gold?'#b58a3c':'#8c7a6a';cx.beginPath();cx.ellipse(0,4,18,9,0,0,Math.PI);cx.fill();
+  cx.fillStyle=it.gold?'#d9ad55':'#a8968a';cx.beginPath();cx.ellipse(0,4,18,9+op*14,0,Math.PI,0);cx.fill();
+  cx.strokeStyle='rgba(60,40,30,.5)';cx.lineWidth=1;for(let i=-2;i<=2;i++){cx.beginPath();cx.moveTo(0,4);cx.lineTo(i*7,4-(9+op*14)*.9);cx.stroke()}
+  cx.shadowBlur=it.gold?24:12;cx.shadowColor=it.gold?'#ffe9a8':'#ffffff';
+  const pg=cx.createRadialGradient(-2,0,1,0,2,7);pg.addColorStop(0,'#ffffff');pg.addColorStop(1,it.gold?'#f2c560':'#e8e1d2');cx.fillStyle=pg;cx.beginPath();cx.arc(0,2,it.gold?7:6,0,6.28);cx.fill();cx.restore()}
+function drawBubble(it){cx.strokeStyle='rgba(220,250,255,.85)';cx.lineWidth=1.6;cx.beginPath();cx.arc(it.x,it.y,it.r,0,6.28);cx.stroke();
+  cx.fillStyle='rgba(220,250,255,.18)';cx.fill();cx.fillStyle='rgba(255,255,255,.8)';cx.beginPath();cx.arc(it.x-it.r*.35,it.y-it.r*.35,it.r*.25,0,6.28);cx.fill()}
+function drawJelly(it,t){cx.save();cx.translate(it.x,it.y);const p=Math.sin(it.ph)*.12;
+  cx.shadowColor='#ff8fd0';cx.shadowBlur=14;cx.fillStyle='rgba(255,150,210,.55)';cx.beginPath();cx.ellipse(0,0,it.r*(1+p),it.r*.75*(1-p),0,Math.PI,0);cx.fill();cx.shadowBlur=0;
+  cx.strokeStyle='rgba(255,170,220,.65)';cx.lineWidth=2;for(let i=-2;i<=2;i++){cx.beginPath();cx.moveTo(i*it.r*.35,0);for(let k=1;k<=5;k++)cx.lineTo(i*it.r*.35+Math.sin(t*4+k+i)*4,k*7);cx.stroke()}
+  cx.fillStyle='rgba(255,230,245,.7)';cx.beginPath();cx.ellipse(-it.r*.3,-it.r*.4,it.r*.18,it.r*.1,-.5,0,6.28);cx.fill();cx.restore()}
+function drawShark(it,t){
+  if(it.warn>0){const x=it.dir>0?18:W-18;cx.save();cx.globalAlpha=.5+.5*Math.sin(t*20);cx.fillStyle='#ff7a6b';cx.font='900 30px Cairo, sans-serif';cx.textAlign='center';cx.fillText('!',x,it.y+10);
+    cx.beginPath();cx.moveTo(x+(it.dir>0?-10:10),it.y-14);cx.lineTo(x+(it.dir>0?6:-6),it.y);cx.lineTo(x+(it.dir>0?-10:10),it.y+14);cx.fill();cx.restore();return}
+  cx.save();cx.translate(it.x,it.y);cx.scale(it.dir,1);const sw=Math.sin(t*10)*4;
+  cx.fillStyle='#6f8597';cx.beginPath();cx.moveTo(48,0);cx.quadraticCurveTo(20,-20,-30,-6);cx.lineTo(-56,-20+sw);cx.lineTo(-48,0);cx.lineTo(-56,20+sw);cx.lineTo(-30,6);cx.quadraticCurveTo(20,18,48,0);cx.fill();
+  cx.beginPath();cx.moveTo(4,-14);cx.lineTo(-6,-34);cx.lineTo(-16,-10);cx.fill();
+  cx.fillStyle='#c9d6df';cx.beginPath();cx.moveTo(44,2);cx.quadraticCurveTo(15,14,-26,5);cx.quadraticCurveTo(15,8,44,2);cx.fill();
+  cx.fillStyle='#0b1f33';cx.beginPath();cx.arc(30,-5,2.6,0,6.28);cx.fill();cx.restore()}
+function drawDiver(g){const x=g.x,y=g.y;cx.save();cx.translate(x,y);cx.rotate(Math.max(-.4,Math.min(.4,g.vx/700)));
+  if(g.hitT>0&&Math.floor(g.hitT*14)%2)cx.globalAlpha=.45;
+  const k=Math.sin(g.kick);
+  // legs kicking
+  cx.strokeStyle='#c98a5e';cx.lineWidth=7;cx.lineCap='round';
+  cx.beginPath();cx.moveTo(-6,26);cx.lineTo(-9+k*4,46);cx.lineTo(-10+k*7,58);cx.stroke();cx.beginPath();cx.moveTo(6,26);cx.lineTo(9-k*4,46);cx.lineTo(10-k*7,58);cx.stroke();
+  // body (short izar + bare torso, as the old Gulf divers dived)
+  cx.fillStyle='#d79a6c';cx.beginPath();cx.ellipse(0,12,13,17,0,0,6.28);cx.fill();
+  cx.fillStyle='#1d2b3a';cx.fillRect(-13,18,26,12);
+  // arms reaching forward
+  cx.strokeStyle='#d79a6c';cx.lineWidth=6;cx.beginPath();cx.moveTo(-11,4);cx.lineTo(-20-k*3,-4);cx.stroke();cx.beginPath();cx.moveTo(11,4);cx.lineTo(20+k*3,-4);cx.stroke();
+  // basket (الديين) on the chest
+  cx.fillStyle='#a3773d';cx.beginPath();cx.ellipse(0,16,8,6,0,0,6.28);cx.fill();cx.strokeStyle='#6d4b22';cx.lineWidth=1;cx.stroke();
+  // head = Bu Lulu
+  cx.save();cx.beginPath();cx.arc(0,-14,17,0,6.28);cx.closePath();cx.fillStyle='#d79a6c';cx.fill();cx.clip();
+  if(face.complete&&face.naturalWidth)cx.drawImage(face,-17,-31,34,34);cx.restore();
+  cx.strokeStyle='#f8de97';cx.lineWidth=2;cx.beginPath();cx.arc(0,-14,17,0,6.28);cx.stroke();
+  // nose clip (الفطام)
+  cx.fillStyle='#2b2017';cx.fillRect(-4,-14,8,3);
+  cx.restore();
+  // breath bubbles
+  if(state==='play'&&Math.random()<.06)G.items.push({k:'fx',x:x+(Math.random()-.5)*8,y:y-30,r:2+Math.random()*2,w:0,dead:false});
+}
+
+/* ---------- HUD ---------- */
+function hud(){const g=G;$('hP').textContent=AR(g.pearls);$('hD').textContent=AR(depth());$('airI').style.width=Math.max(0,g.air)+'%';$('air').classList.toggle('low',g.air<30)}
+
+/* ---------- flow ---------- */
+const QUOTES_GOOD=['يا سلام! الديين امتلى لولو 🦪','الحظ يحبني والله… والبحر بعد 😊','هذي غوصة تنحكى في المجلس!','النوخذة بيرضى علينا اليوم 😄'];
+const QUOTES_BAD=['ما عليه… الجاية أحلى 😊','البحر كريم، بس يبي صبر','قصّرنا هالمرة، نرجع له الصبح','خلّني أتنفس شوي وأرجع 😅'];
+function start(){if(state==='play')return;newGame();state='play';$('menu').hidden=true;$('over').hidden=true;$('hud').hidden=false;pointerX=null;last=performance.now();
+  try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();ac.resume&&ac.resume()}catch(e){}}
+function gameOver(){if(state!=='play')return;state='over';sfx.over();const p=G.pearls,d=Math.floor(depth());
+  const isNew=p>best.p;if(isNew||d>best.d){best={p:Math.max(best.p,p),d:Math.max(best.d,d)};store.set('ghawwas_best',best)}
+  $('oP').textContent=AR(p);$('oD').textContent=AR(d);$('oB').textContent=AR(best.p);$('oN').hidden=!isNew;
+  $('oQ').textContent=(p>=25?QUOTES_GOOD:QUOTES_BAD)[Math.random()*4|0];
+  $('oT').textContent=p>=60?'غوّاص من الطراز الأول!':p>=25?'غوصة طيبة!':'السيب سحبك للمحمل!';
+  setTimeout(()=>{$('over').hidden=false;$('hud').hidden=true;bestLine()},650)}
+$('go').addEventListener('click',start);$('again').addEventListener('click',start);
+document.addEventListener('visibilitychange',()=>{last=performance.now()});
+
+function frame(now){const dt=Math.min(.05,(now-last)/1000||0);last=now;
+  if(state==='play'){update(dt);
+    for(const it of G.items)if(it.k==='fx'){it.y-=60*dt;it.x+=Math.sin(G.t*6+it.y)*.3}
+  }
+  draw();
+  if(G)for(const it of G.items)if(it.k==='fx'){cx.strokeStyle='rgba(230,250,255,.7)';cx.lineWidth=1;cx.beginPath();cx.arc(it.x,it.y,it.r,0,6.28);cx.stroke()}
+  requestAnimationFrame(frame)}
+newGame();G.speed=0;requestAnimationFrame(t=>{last=t;frame(t)});
+// idle menu: gentle drift of the scene behind the menu
+setInterval(()=>{if(state!=='play'&&G){G.t+=.016;G.dist+=0.0;for(const p of G.fx){p.y-=.3;if(p.y<-10)Object.assign(p,plankton())}}},16);
+})();
+</script>
