@@ -1,0 +1,6 @@
+{
+  "name": "moor-demo",
+  "private": true,
+  "description": "Builds the time-limited buyer demo of Moor (online + purchases off, obfuscated). Run: npm i && node build.js",
+  "dependencies": { "javascript-obfuscator": "^4.1.1" }
+}

@@ -14,3 +14,8 @@ The card game as a Capacitor 8 app (`com.moorgame.cards`). The game itself is `w
   `moor_vip_monthly`, `moor_vip_yearly` (subscriptions, group `moor_vip`).
 - Coins are credited only after the purchase is verified, once per transaction id.
 - `SCHEDULE_EXACT_ALARM` is removed on purpose (reminders don't need exact timing).
+
+## Other folders
+- `promo-video/` — 26 s vertical promo video (Remotion). `npm i && npx remotion render MoorPromo out/moor-promo.mp4`
+- `demo/` — buyer demo builder (expires on a set date, online/purchases off, obfuscated): `npm i && node build.js` → `site/game.html` (serve with `wrapper.html` as index and `../www/fonts`).
+- `marketing/` — sales page, rendered promo video, 512 px store icon.
