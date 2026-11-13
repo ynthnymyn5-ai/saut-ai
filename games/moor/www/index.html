@@ -1145,10 +1145,105 @@ body.mode-moor #game #seat3,body #game #seat3.seat{left:6px!important;right:auto
 .mode-moor .gstrip .moorpos .cnt::before{content:"المور 👑"}
 html.nofx .mode-moor .gstrip .moorpos .moorbox,html.nofx #game .team::after{animation:none!important}
 @media (prefers-reduced-motion:reduce){.mode-moor .gstrip .moorpos .moorbox,#game .team::after{animation:none!important}}
+
+/* ===== شاشة تسجيل الدخول ===== */
+.authgate{position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;direction:rtl;
+  padding:calc(20px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom));overflow:auto;font-family:inherit}
+.authgate[hidden],.authgate [hidden]{display:none!important}
+.ag-bg{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(92,20,40,.75),rgba(14,6,8,.96) 70%),var(--agImg,none) center/cover;filter:saturate(1.1)}
+.ag-fx{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.ag-fx b{position:absolute;bottom:-10px;border-radius:50%;background:#f6dc93;box-shadow:0 0 10px #e3b75b;animation:agRise linear infinite}
+@keyframes agRise{to{transform:translateY(-110vh);opacity:0}}
+.ag-card{position:relative;width:100%;max-width:380px;text-align:center;padding:26px 22px 20px;border-radius:26px;
+  background:linear-gradient(180deg,rgba(32,12,16,.9),rgba(12,6,6,.94));border:1.5px solid rgba(227,183,91,.55);
+  box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 40px rgba(227,183,91,.15),inset 0 0 30px rgba(0,0,0,.4);animation:agIn .7s cubic-bezier(.2,1.3,.4,1)}
+.ag-card::before{content:"";position:absolute;inset:-2px;border-radius:27px;padding:2px;pointer-events:none;
+  background:conic-gradient(from var(--agA,0deg),transparent 0 70%,#f6dc93 80%,transparent 90%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:agSpin 5s linear infinite}
+@property --agA{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes agSpin{to{--agA:360deg}}
+@keyframes agIn{from{opacity:0;transform:translateY(30px) scale(.95)}}
+.ag-fan{position:relative;height:0}
+.ag-fan i{position:absolute;left:50%;top:-6px;width:46px;height:66px;margin-left:-23px;border-radius:7px;background:linear-gradient(160deg,#fff,#efe6d2);border:2px solid #e3b75b;box-shadow:0 8px 16px rgba(0,0,0,.5);transform-origin:50% 140%;animation:agFan 3.5s ease-in-out infinite}
+.ag-fan i:nth-child(1){--r:-24deg}.ag-fan i:nth-child(2){--r:0deg;animation-delay:.15s}.ag-fan i:nth-child(3){--r:24deg;animation-delay:.3s}
+.ag-fan i::after{content:"♥";position:absolute;inset:0;display:grid;place-items:center;font-size:24px;color:#c8102e}
+.ag-fan i:nth-child(1)::after{content:"♠";color:#111}.ag-fan i:nth-child(3)::after{content:"♦"}
+@keyframes agFan{0%,100%{transform:translateY(-34px) rotate(calc(var(--r)*.6))}50%{transform:translateY(-44px) rotate(var(--r))}}
+.ag-logo{position:relative;width:118px;height:118px;margin:4px auto 6px;display:block;filter:drop-shadow(0 10px 24px rgba(0,0,0,.6))}
+.ag-step{display:flex;flex-direction:column;gap:12px}
+.ag-step[hidden]{display:none!important}
+.authgate h1{margin:0;font-size:26px;font-weight:900;color:#f6dc93;text-shadow:0 2px 0 #6b3d10}
+.authgate h2{margin:0;font-size:22px;font-weight:900;color:#f6dc93}
+.authgate p{margin:0;color:#e9dcc0;font-size:14px;line-height:1.7}
+.ag-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:52px;border-radius:999px;border:0;font:inherit;font-size:17px;font-weight:900;cursor:pointer;transition:transform .12s}
+.ag-btn:active{transform:scale(.97)}
+.ag-btn:disabled{opacity:.55}
+.ag-google{background:#fff;color:#1f1f1f;box-shadow:0 6px 0 #c9c9c9,0 12px 24px rgba(0,0,0,.4)}
+.ag-phone{background:linear-gradient(180deg,#f6dc93,#d9a441);color:#2a1205;box-shadow:0 6px 0 #8a5a17,0 12px 24px rgba(0,0,0,.4)}
+.ag-btn:focus-visible,.ag-link:focus-visible,.authgate input:focus-visible,.authgate select:focus-visible{outline:3px solid #f6dc93;outline-offset:2px}
+.ag-terms{font-size:12px!important;opacity:.8}
+.authgate a,.ag-link{color:#f6dc93;background:none;border:0;font:inherit;font-size:13px;font-weight:800;cursor:pointer;text-decoration:underline}
+.ag-link:disabled{opacity:.5;text-decoration:none}
+.ag-sub{color:#cdb98f;font-size:13px}
+.ag-row{display:flex;gap:8px;direction:ltr}
+.ag-row select,.ag-row input{height:50px;border-radius:14px;border:1.5px solid rgba(227,183,91,.6);background:#140b07;color:#fff;font:inherit;font-size:17px;font-weight:800}
+.ag-row select{flex:none;padding:0 8px}
+.ag-row input{flex:1;min-width:0;padding:0 14px;letter-spacing:1px}
+.ag-otp{display:flex;justify-content:center;gap:7px}
+.ag-otp input{width:44px;height:54px;border-radius:12px;border:1.5px solid rgba(227,183,91,.6);background:#140b07;color:#f6dc93;text-align:center;font:inherit;font-size:24px;font-weight:900}
+.ag-otp input:focus{border-color:#f6dc93;box-shadow:0 0 12px rgba(246,220,147,.5)}
+.ag-pno{font-size:38px;font-weight:900;letter-spacing:2px;color:#ffe08a;text-shadow:0 0 18px rgba(255,210,100,.7),0 3px 0 #6b3d10;padding:6px 0;animation:agPno 1.2s cubic-bezier(.2,1.6,.4,1)}
+@keyframes agPno{from{transform:scale(.4);opacity:0}}
+.ag-err{min-height:20px;margin:10px 0 0!important;color:#ff9d90!important;font-weight:800;font-size:13px!important}
+html.nofx .ag-card::before,html.nofx .ag-fan i,html.nofx .ag-fx b{animation:none!important}
+@media (prefers-reduced-motion:reduce){.ag-card,.ag-card::before,.ag-fan i,.ag-fx b,.ag-pno{animation:none!important}}
 </style>
 </head>
 <body>
 
+
+<!-- ============ تسجيل الدخول ============ -->
+<section id="authGate" class="authgate" hidden>
+  <div class="ag-bg"></div><div class="ag-fx" id="agFx"></div>
+  <div class="ag-card">
+    <div class="ag-fan"><i></i><i></i><i></i></div>
+    <img class="ag-logo" id="agLogo" alt="مور">
+    <div class="ag-step" id="agStart">
+      <h1>أهلاً بك في المجلس</h1>
+      <p>سجّل دخولك عشان نحفظ لك اسمك ورقمك في المجلس، وتلعب مع ربعك من أي جوال.</p>
+      <button class="ag-btn ag-google" id="agGoogle" type="button"><svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg><span>الدخول بحساب Google</span></button>
+      <button class="ag-btn ag-phone" id="agPhoneBtn" type="button"><span>📱</span><span>الدخول برقم الجوال</span></button>
+      <p class="ag-terms">بالدخول توافق على <a href="#" id="agPriv">سياسة الخصوصية</a></p>
+    </div>
+    <form class="ag-step" id="agPhone" hidden>
+      <h2>رقم جوالك</h2>
+      <p>بنرسل لك رمز من ٦ أرقام برسالة نصية.</p>
+      <div class="ag-row">
+        <input id="agNum" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="5XXXXXXX" dir="ltr" maxlength="12" aria-label="رقم الجوال">
+        <select id="agCC" dir="ltr" aria-label="رمز الدولة">
+          <option value="+965">🇰🇼 +965</option><option value="+966">🇸🇦 +966</option><option value="+971">🇦🇪 +971</option>
+          <option value="+974">🇶🇦 +974</option><option value="+973">🇧🇭 +973</option><option value="+968">🇴🇲 +968</option>
+        </select>
+      </div>
+      <button class="ag-btn ag-phone" id="agSend" type="submit">أرسل الرمز</button>
+      <button class="ag-link" type="button" data-back>رجوع</button>
+    </form>
+    <form class="ag-step" id="agCode" hidden>
+      <h2>اكتب الرمز</h2>
+      <p id="agSentTo"></p>
+      <div class="ag-otp" id="agOtp" dir="ltr"></div>
+      <button class="ag-btn ag-phone" id="agVerify" type="submit">تأكيد</button>
+      <div class="ag-sub"><button class="ag-link" type="button" id="agResend" disabled>إعادة الإرسال</button> • <button class="ag-link" type="button" data-back>تغيير الرقم</button></div>
+    </form>
+    <div class="ag-step" id="agDone" hidden>
+      <h2 id="agHello">هلا والله!</h2>
+      <p>هذا رقمك في المجلس، يعرفك فيه ربعك:</p>
+      <div class="ag-pno" id="agPno" dir="ltr">M-0000000</div>
+      <button class="ag-btn ag-phone" id="agEnter" type="button">ادخل المجلس 👑</button>
+    </div>
+    <p class="ag-err" id="agErr" role="alert"></p>
+  </div>
+</section>
 <!-- ============ HOME ============ -->
 <section id="home" class="screen">
   <div class="home-wrap">
@@ -2806,6 +2901,8 @@ function openSettings(){
   openModal(`<h2 class="goldtxt">الإعدادات</h2>
   <div class="row" data-notr><span>اللغة • Language</span><div class="lseg"><button class="${P.lang!=='en'?'on':''}" onclick="setLang('ar')">العربية</button><button class="${P.lang==='en'?'on':''}" onclick="setLang('en')">English</button></div></div>
   <div class="row"><span>المؤثرات الصوتية</span><input type="checkbox" ${P.sfx?'checked':''} onchange="P.sfx=this.checked;save();$('#sndBtn').textContent=P.sfx?'🔊':'🔇'"></div>
+  ${AUTH?`<div class="row"><span>رقمك في المجلس</span><b dir="ltr" style="color:var(--gold2);letter-spacing:1px">${AUTH.pno}</b></div>
+  <div class="row"><span>${AUTH.phone?'📱 '+escH(AUTH.phone):(AUTH.email?'✉️ '+escH(AUTH.email):'حسابك')}</span><div class="lseg"><button onclick="authSignOut()">تسجيل الخروج</button><button onclick="confirmDelete()">حذف حسابي</button></div></div>`:''}
   <div class="row"><span>الموسيقى 🎶</span><div class="lseg"><button class="${musTrack()==='oud'?'on':''}" onclick="setMus('oud')">عود</button><button class="${musTrack()==='sawt'?'on':''}" onclick="setMus('sawt')">إيقاع شعبي</button><button class="${musTrack()==='off'?'on':''}" onclick="setMus('off')">بدون</button></div></div>
   <div class="row"><span>عرض المشاريع</span><div class="lseg"><button class="${!P.meldView?'on':''}" onclick="P.meldView='';save();openSettings();if(S&&S.mode==='moor')renderGround()">تلقائي</button><button class="${P.meldView==='mini'?'on':''}" onclick="P.meldView='mini';save();openSettings();if(S&&S.mode==='moor')renderGround()">مضغوط</button><button class="${P.meldView==='cards'?'on':''}" onclick="P.meldView='cards';save();openSettings();if(S&&S.mode==='moor')renderGround()">أوراق</button></div></div>
   <div class="row"><span>شكل الورق</span><div class="lseg"><button class="${P.deck!=='classic'?'on':''}" onclick="P.deck='lux';save();openSettings()">فاخر</button><button class="${P.deck==='classic'?'on':''}" onclick="P.deck='classic';save();openSettings()">كلاسيك</button></div></div>
@@ -2826,7 +2923,7 @@ function openSettings(){
 }
 function resetData(){try{localStorage.removeItem('moor_p')}catch(e){}P=JSON.parse(JSON.stringify(DEF));P.v2=1;P.vib=true;P.remind=false;save();setReminder(false);goHome();toast('انمسحت بياناتك ✓')}
 function openAbout(){openModal(`<h2 class="goldtxt">مور MOOR</h2><p style="text-align:center">الإصدار ${APPV}</p><p style="text-align:center;line-height:1.8">ألعاب ورق المجلس الخليجي: مور، بلوت، تركس، طرنيب — ضد شخصيات الكمبيوتر.<br>اللعبة للتسلية فقط، وما فيها أي رهان أو مقامرة أو فلوس حقيقية. العملات داخل اللعبة افتراضية: تنكسب باللعب أو تنشرى، وتنصرف على الشخصيات والطاولات والأشكال بس، وما تنصرف بفلوس ولا تُستخدم في أي رهان.</p><button class="ab close" onclick="openSettings()">رجوع</button>`)}
-function openPrivacy(){openModal(`<h2 class="goldtxt">سياسة الخصوصية</h2><div class="rules"><p>لعبة «مور» ما تجمع أي بيانات شخصية، وما فيها تسجيل دخول ولا إعلانات ولا أدوات تتبّع.</p><ul><li>تقدّمك وإعداداتك (العملات، الإحصائيات، الشخصية المختارة) تنحفظ على جهازك بس، وتقدر تمسحها من «مسح بياناتي».</li><li>أصوات الشخصيات تنطق عن طريق محرك النطق الموجود في جهازك، وما يرسل شي لنا.</li><li>التذكير اليومي (إذا فعّلته) إشعار محلي من جهازك، وتقدر توقفه أي وقت.</li><li>المشتريات والاشتراكات تتم عن طريق أبل أو قوقل مباشرة، وما نستلم أي بيانات دفع.</li><li>اللعبة ما تتواصل مع أي سيرفر لنا.</li></ul></div><button class="ab close" onclick="openSettings()">رجوع</button>`)}
+function openPrivacy(){openModal(`<h2 class="goldtxt">سياسة الخصوصية</h2><div class="rules"><p>نجمع أقل قدر من البيانات، وبس اللي تحتاجه اللعبة. ما فيها إعلانات ولا أدوات تتبّع، وما نبيع أو نشارك بياناتك.</p><ul><li><b>حسابك:</b> رقم جوالك (إذا دخلت بالرقم) أو إيميلك واسمك من Google، ورقمك في المجلس.</li><li><b>الأونلاين:</b> اسمك المستعار، ورسائل المجلس العام (تنحذف من العرض بعد ٣ أيام)، ونقاطك في ترتيب الأسبوع، والبلاغات.</li><li><b>المحادثة الصوتية:</b> ما تشتغل إلا إذا ضغطت المايك ووافقت، والصوت ما ينسجل ولا ينحفظ.</li><li><b>على جهازك بس:</b> العملات والإحصائيات والإعدادات. وأصوات الشخصيات من محرك النطق في جهازك.</li><li><b>المشتريات:</b> تتم عن طريق Google مباشرة، وما نستلم أي بيانات دفع.</li><li><b>سجل الأخطاء:</b> وصف تقني للأخطاء البرمجية بدون بياناتك الشخصية.</li><li><b>حذف حسابك:</b> من الإعدادات ← حذف حسابي، فوري ونهائي.</li></ul><p class="small">السياسة الكاملة: sautai.company/moor/privacy.html</p></div><button class="ab close" onclick="openSettings()">رجوع</button>`)}
 function _noop(){
 }
 function openRules(){
@@ -4465,6 +4562,65 @@ async function newsShow(){const tr=$('#nbTrack'),bar=$('#newsbar');if(!tr||!bar)
 (function(){const g=document.getElementById('game');if(!g)return;let was=g.classList.contains('hidden');
   new MutationObserver(()=>{const h=g.classList.contains('hidden');if(was&&!h)newsShow();was=h}).observe(g,{attributes:true,attributeFilter:['class']})})();
 
+
+/* ===== تسجيل الدخول (Supabase Auth): Google عبر الجهاز، أو رقم الجوال برمز SMS ===== */
+// فعّلها بعد الإعداد في Supabase وGoogle Cloud — راجع games/moor/AUTH_SETUP.md
+const AUTH_CFG={googleWebClientId:'',phone:false};
+const AUTHK='moor_auth';
+let AUTH=(()=>{try{return JSON.parse(localStorage.getItem(AUTHK)||'null')}catch(e){return null}})();
+function authOn(){return !!((AUTH_CFG.googleWebClientId&&CAP)||AUTH_CFG.phone)}
+function authSave(){try{AUTH?localStorage.setItem(AUTHK,JSON.stringify(AUTH)):localStorage.removeItem(AUTHK)}catch(e){}}
+async function authApi(path,body,token){const r=await fetch(SB_URL+'/auth/v1/'+path,{method:'POST',headers:Object.assign({apikey:SB_KEY,'Content-Type':'application/json'},token?{Authorization:'Bearer '+token}:{}),body:JSON.stringify(body||{})});
+  let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.msg||j.error_description||j.message||('خطأ '+r.status));return j}
+const playerNo=uid=>'M-'+(parseInt(String(uid).replace(/-/g,'').slice(0,10),16)%9000000+1000000);
+function authSession(j,extra){AUTH={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+((j.expires_in||3600)-60)*1000,
+    uid:j.user.id,phone:j.user.phone||'',email:j.user.email||'',name:(extra&&extra.name)||(j.user.user_metadata&&(j.user.user_metadata.full_name||j.user.user_metadata.name))||''};
+  AUTH.pno=playerNo(AUTH.uid);authSave();
+  P.nid='u'+AUTH.uid.replace(/-/g,'').slice(0,12);P.pno=AUTH.pno;if(!P.nick&&AUTH.name)P.nick=AUTH.name.split(' ')[0].slice(0,16);save()}
+async function authRefresh(){if(!AUTH||!AUTH.refresh_token)return;if(Date.now()<AUTH.expires_at)return;
+  try{const j=await authApi('token?grant_type=refresh_token',{refresh_token:AUTH.refresh_token});const keep={name:AUTH.name};authSession(j,keep)}catch(e){}}
+function authToken(){return AUTH&&AUTH.access_token}
+async function authSignOut(){try{if(AUTH)await authApi('logout',{},AUTH.access_token)}catch(e){}try{const SL=window.Capacitor&&Capacitor.Plugins.SocialLogin;SL&&await SL.logout({provider:'google'})}catch(e){}
+  AUTH=null;authSave();closeModal(true);if(authOn())agOpen()}
+async function authDelete(){if(!AUTH)return;try{const r=await fetch(SB_URL+'/rest/v1/rpc/delete_my_account',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+AUTH.access_token,'Content-Type':'application/json'},body:'{}'});if(!r.ok)throw 0;
+    try{localStorage.removeItem('moor_p')}catch(e){}AUTH=null;authSave();toast('انحذف حسابك وبياناته ✓');setTimeout(()=>location.reload(),900)}catch(e){toast('ما قدرنا نحذف الحساب الحين، حاول بعد شوي')}}
+function confirmDelete(){openModal(`<h2 class="goldtxt">حذف حسابي</h2><p style="text-align:center;line-height:1.8">بينحذف حسابك ورقمك في المجلس وكل بياناتك المحفوظة. ما تقدر ترجعها بعدين.</p>
+  <button class="btn-gold close" style="background:linear-gradient(180deg,#ff9d90,#c8452f)" onclick="authDelete()">احذف حسابي نهائياً</button><button class="ab close" onclick="openSettings()">رجوع</button>`)}
+/* ---- واجهة الشاشة ---- */
+const ag=id=>document.getElementById(id);
+function agErr(t){ag('agErr').textContent=t||''}
+function agStep(id){['agStart','agPhone','agCode','agDone'].forEach(k=>ag(k).hidden=k!==id);agErr('');const f=ag(id).querySelector('input');if(f)setTimeout(()=>f.focus(),60)}
+function agOpen(){const g=ag('authGate');ag('agLogo').src=A.logo;g.style.setProperty('--agImg',`url(${A.majlis})`);
+  ag('agGoogle').hidden=!(AUTH_CFG.googleWebClientId&&CAP);ag('agPhoneBtn').hidden=!AUTH_CFG.phone;
+  const fx=ag('agFx');if(!fx.children.length){let h='';for(let k=0;k<22;k++){const z=2+Math.random()*4;h+=`<b style="left:${(Math.random()*100).toFixed(1)}%;width:${z}px;height:${z}px;animation-duration:${(7+Math.random()*9).toFixed(1)}s;animation-delay:-${(Math.random()*12).toFixed(1)}s;opacity:${(.3+Math.random()*.5).toFixed(2)}"></b>`}fx.innerHTML=h}
+  g.hidden=false;agStep('agStart')}
+function agDone(){ag('agHello').textContent=`هلا والله${AUTH.name?' '+AUTH.name.split(' ')[0]:''}!`;ag('agPno').textContent=AUTH.pno;agStep('agDone');try{sfx('win');confetti()}catch(e){}}
+let agPhoneNo='',agTimer=null;
+function agBuildOtp(){const o=ag('agOtp');o.innerHTML=Array.from({length:6},(_,k)=>`<input inputmode="numeric" maxlength="1" aria-label="الرقم ${k+1}" autocomplete="${k?'off':'one-time-code'}">`).join('');
+  const ins=[...o.querySelectorAll('input')];ins.forEach((el,k)=>{el.addEventListener('input',()=>{el.value=el.value.replace(/\D/g,'').slice(-1);if(el.value&&ins[k+1])ins[k+1].focus();if(ins.every(x=>x.value))ag('agCode').requestSubmit()});
+    el.addEventListener('keydown',e=>{if(e.key==='Backspace'&&!el.value&&ins[k-1])ins[k-1].focus()});
+    el.addEventListener('paste',e=>{const t=(e.clipboardData.getData('text')||'').replace(/\D/g,'').slice(0,6);if(t.length>1){e.preventDefault();t.split('').forEach((d,i)=>ins[i]&&(ins[i].value=d));if(t.length===6)ag('agCode').requestSubmit()}})})}
+function agCountdown(){let n=60;const b=ag('agResend');b.disabled=true;clearInterval(agTimer);agTimer=setInterval(()=>{n--;b.textContent=n>0?`إعادة الإرسال (${n})`:'إعادة الإرسال';if(n<=0){b.disabled=false;clearInterval(agTimer)}},1000)}
+async function agSendCode(){const num=ag('agNum').value.replace(/\D/g,'').replace(/^0+/,'');if(num.length<7){agErr('اكتب رقم جوال صحيح');return}
+  agPhoneNo=ag('agCC').value+num;const b=ag('agSend');b.disabled=true;agErr('');
+  try{await authApi('otp',{phone:agPhoneNo});ag('agSentTo').innerHTML='أرسلنا الرمز إلى <bdi dir="ltr">'+escH(agPhoneNo)+'</bdi>';agBuildOtp();agStep('agCode');agCountdown()}
+  catch(e){agErr('ما قدرنا نرسل الرمز: '+e.message)}finally{b.disabled=false}}
+async function agVerifyCode(){const code=[...ag('agOtp').querySelectorAll('input')].map(x=>x.value).join('');if(code.length!==6){agErr('اكتب الرمز كامل (٦ أرقام)');return}
+  const b=ag('agVerify');b.disabled=true;agErr('');
+  try{const j=await authApi('verify',{type:'sms',phone:agPhoneNo,token:code});authSession(j);agDone()}
+  catch(e){agErr('الرمز غير صحيح أو انتهى، جرّب مرة ثانية')}finally{b.disabled=false}}
+async function agGoogleLogin(){const SL=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.SocialLogin;if(!SL){agErr('تسجيل Google يشتغل في التطبيق على الجوال');return}
+  const b=ag('agGoogle');b.disabled=true;agErr('');
+  try{if(!agGoogleLogin.init){await SL.initialize({google:{webClientId:AUTH_CFG.googleWebClientId}});agGoogleLogin.init=1}
+    const res=await SL.login({provider:'google',options:{}});const r=res&&res.result||{};if(!r.idToken)throw new Error('ما وصلنا رد من Google');
+    const j=await authApi('token?grant_type=id_token',{provider:'google',id_token:r.idToken});authSession(j,{name:r.profile&&(r.profile.name||r.profile.givenName)||''});agDone()}
+  catch(e){const m=String(e&&e.message||e);if(!/cancel/i.test(m))agErr('ما تم تسجيل الدخول: '+m)}finally{b.disabled=false}}
+(function(){ag('agGoogle').onclick=agGoogleLogin;ag('agPhoneBtn').onclick=()=>agStep('agPhone');
+  ag('agPhone').addEventListener('submit',e=>{e.preventDefault();agSendCode()});ag('agCode').addEventListener('submit',e=>{e.preventDefault();agVerifyCode()});
+  ag('agResend').onclick=()=>{agStep('agPhone');agSendCode()};document.querySelectorAll('#authGate [data-back]').forEach(b=>b.onclick=()=>agStep(b.closest('#agCode')?'agPhone':'agStart'));
+  ag('agPriv').onclick=e=>{e.preventDefault();try{openPrivacy()}catch(x){}};
+  ag('agEnter').onclick=()=>{ag('authGate').hidden=true;try{renderHome()}catch(e){}};
+  if(AUTH){authRefresh();P.pno=AUTH.pno}else if(authOn())agOpen();})();
 </script>
 </body>
 </html>
