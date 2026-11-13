@@ -1113,6 +1113,43 @@ body.mode-moor #game #seat1,body #game #seat1.seat{right:6px!important;left:auto
 body.mode-moor #game #seat3,body #game #seat3.seat{left:6px!important;right:auto!important}
 #game #seat2{translate:0 -4px}
 #game #me{translate:0 -12px}
+
+/* ===== compact, distinctive team chips (gold / silver) — frees room so the table grows upward ===== */
+#game .topbar{padding:4px 10px 2px!important;gap:6px!important}
+#game .logo-mini img{height:44px!important}
+#game .team{height:38px;padding:2px 11px!important;border-radius:999px!important;gap:6px!important;position:relative;overflow:hidden;isolation:isolate;border-width:1.5px!important}
+#game .team>div{display:flex;align-items:center;gap:7px}
+#game .team .ic{font-size:16px!important;filter:drop-shadow(0 0 4px rgba(255,220,140,.6))}
+#game .team .nm{font-size:10.5px!important;line-height:1!important}
+#game .team .sc{font-size:18px!important;line-height:1!important;font-variant-numeric:tabular-nums}
+#game .team.gold{background:linear-gradient(135deg,#5a3f10,#2a1c06 60%,#3d2a0a)!important;border-color:#f2c45a!important;box-shadow:0 0 0 2px rgba(0,0,0,.4),0 0 14px rgba(242,196,90,.35)!important}
+#game .team.gold .nm{color:#ffe7a6!important}
+#game .team.gold .sc{color:#ffe08a;text-shadow:0 0 8px rgba(255,210,100,.8)}
+#game .team.silver{background:linear-gradient(135deg,#3a444c,#161c21 60%,#2a3238)!important;border-color:#d7e1ea!important;box-shadow:0 0 0 2px rgba(0,0,0,.4),0 0 12px rgba(215,225,234,.25)!important}
+#game .team.silver .nm{color:#e3eaf0!important}
+#game .team.silver .sc{color:#f4f8fb;text-shadow:0 0 8px rgba(220,235,250,.7)}
+#game .team::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%);transform:translateX(-130%);animation:teamShine 5s ease-in-out infinite}
+#game .team.silver::after{animation-delay:2.5s}
+@keyframes teamShine{0%,70%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
+/* ===== deck + Moor piles on one gold-rimmed tray ===== */
+.decktray{position:relative;display:flex;flex-direction:row;gap:9px;align-items:flex-end;padding:6px 9px 5px;border-radius:14px;
+  background:radial-gradient(ellipse at 50% 25%,#1f6243,#08281a 75%);border:1.5px solid #d9ac4f;
+  box-shadow:0 0 0 2px rgba(0,0,0,.45),0 6px 14px rgba(0,0,0,.55),0 0 16px rgba(246,220,147,.28),inset 0 0 10px rgba(0,0,0,.5)}
+.decktray::before{content:"";position:absolute;inset:-3px;border-radius:17px;padding:2px;pointer-events:none;
+  background:conic-gradient(from var(--dtA,0deg),transparent 0 72%,rgba(255,232,160,.95) 82%,transparent 92%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:dtSpin 4.5s linear infinite}
+@property --dtA{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes dtSpin{to{--dtA:360deg}}
+.decktray .moorpos{position:static!important;display:flex!important;flex-direction:column!important;gap:4px!important;align-items:center}
+.decktray .pilebox{gap:4px}
+.mode-moor .decktray .pile,.mode-moor .decktray .moorbox{--cw:28px!important;--cw-base:28px!important}
+.decktray .cnt{padding:0 6px!important;border-radius:8px!important;background:rgba(3,20,12,.85)!important;border:1px solid rgba(217,172,79,.75)!important;min-width:34px}
+.decktray .cnt b{font-size:11.5px!important}
+.decktray .cnt::before{display:block;font-size:8.5px;font-weight:800;color:#f6dc93;line-height:1.3}
+.decktray>.pilebox:not(.moorpos) .cnt::before{content:"الورق"}
+.decktray>.moorpos .cnt::before{content:"المور 👑"}
+html.nofx .decktray::before,html.nofx #game .team::after{animation:none!important;opacity:0}
+@media (prefers-reduced-motion:reduce){.decktray::before,#game .team::after{animation:none!important;opacity:0}}
 </style>
 </head>
 <body>
@@ -1728,13 +1765,13 @@ function renderPiles(){
   pe.classList.toggle('can',hd);de.classList.toggle('can',hd&&g.length>0);
   const mb=$('#moorBox');if(mb){const left=S.moorPiles.filter(x=>x.length).length;
     setH(mb,S.moorPiles.map((x,k)=>x.length?`<div style="position:absolute;left:${k*9}px;top:${k*5}px">${backHTML()}</div>`:'').join('')||'<div class="empty-slot" style="width:100%;height:100%"></div>');
-    $('#moorN').textContent=`${left?left+' × ١١':'—'}`;
+    $('#moorN').textContent=`${left?left+' × 11':'—'}`;
     setH($('#moorT'),`👑${S.moorTaken[0]?'✓':'—'} 🌴${S.moorTaken[1]?'✓':'—'}`)}
 }
 function renderGround(){
   const g=$('#ground');g.classList.add('split');
   if(!g.dataset.built){g.dataset.built=1;g.innerHTML='<div class="gstrip" id="gStrip"></div><div class="gcol us" id="gUs"></div><div class="gcol them" id="gThem"></div>';
-    const st=$('#gStrip');st.appendChild($('.moorpos'));st.appendChild($('.center.moorOnly'))}
+    const st=$('#gStrip');const tr=document.createElement('div');tr.className='decktray';tr.id='deckTray';tr.appendChild($('#pile').parentElement);tr.appendChild($('.moorpos'));st.appendChild(tr);st.appendChild($('.center.moorOnly'))}
   const canTarget=S.turn===0&&S.phase==='play'&&S.sel.size>0;
   const head=t=>{const v=teamProjects(t),b=(S.moorTaken[t]?'🎴 ':'')+(v.length?v.join('+'):'')+(closingOK(t)?' ✓':'');return b.trim()?`<div class="gbadge ${closingOK(t)?'ok':''}">${b}</div>`:''};
   const body=t=>{const ms=S.melds.filter(m=>m.team===t);if(!ms.length)return '';const mini=meldMini(ms.length);
