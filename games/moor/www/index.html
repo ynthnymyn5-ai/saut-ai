@@ -1131,25 +1131,20 @@ body.mode-moor #game #seat3,body #game #seat3.seat{left:6px!important;right:auto
 #game .team::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%);transform:translateX(-130%);animation:teamShine 5s ease-in-out infinite}
 #game .team.silver::after{animation-delay:2.5s}
 @keyframes teamShine{0%,70%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
-/* ===== deck + Moor piles on one gold-rimmed tray ===== */
-.decktray{position:relative;display:flex;flex-direction:row;gap:9px;align-items:flex-end;padding:6px 9px 5px;border-radius:14px;
-  background:radial-gradient(ellipse at 50% 25%,#1f6243,#08281a 75%);border:1.5px solid #d9ac4f;
-  box-shadow:0 0 0 2px rgba(0,0,0,.45),0 6px 14px rgba(0,0,0,.55),0 0 16px rgba(246,220,147,.28),inset 0 0 10px rgba(0,0,0,.5)}
-.decktray::before{content:"";position:absolute;inset:-3px;border-radius:17px;padding:2px;pointer-events:none;
-  background:conic-gradient(from var(--dtA,0deg),transparent 0 72%,rgba(255,232,160,.95) 82%,transparent 92%);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:dtSpin 4.5s linear infinite}
-@property --dtA{syntax:'<angle>';inherits:false;initial-value:0deg}
-@keyframes dtSpin{to{--dtA:360deg}}
-.decktray .moorpos{position:static!important;display:flex!important;flex-direction:column!important;gap:4px!important;align-items:center}
-.decktray .pilebox{gap:4px}
-.mode-moor .decktray .pile,.mode-moor .decktray .moorbox{--cw:28px!important;--cw-base:28px!important}
-.decktray .cnt{padding:0 6px!important;border-radius:8px!important;background:rgba(3,20,12,.85)!important;border:1px solid rgba(217,172,79,.75)!important;min-width:34px}
-.decktray .cnt b{font-size:11.5px!important}
-.decktray .cnt::before{display:block;font-size:8.5px;font-weight:800;color:#f6dc93;line-height:1.3}
-.decktray>.pilebox:not(.moorpos) .cnt::before{content:"الورق"}
-.decktray>.moorpos .cnt::before{content:"المور 👑"}
-html.nofx .decktray::before,html.nofx #game .team::after{animation:none!important;opacity:0}
-@media (prefers-reduced-motion:reduce){.decktray::before,#game .team::after{animation:none!important;opacity:0}}
+/* ===== deck and Moor piles: bigger cards, Moor set apart on its own ===== */
+.mode-moor .gstrip{justify-content:space-between!important;align-items:flex-end!important}
+.mode-moor .gstrip .pile{--cw:40px!important;--cw-base:40px!important;filter:drop-shadow(0 5px 8px rgba(0,0,0,.6))}
+.mode-moor .gstrip .moorbox{--cw:42px!important;--cw-base:42px!important}
+.mode-moor .gstrip .moorpos{display:flex!important;flex-direction:column!important;gap:4px!important;align-items:center;margin-inline-end:auto}
+.mode-moor .gstrip .moorpos .moorbox{filter:drop-shadow(0 0 7px rgba(255,214,110,.55)) drop-shadow(0 5px 8px rgba(0,0,0,.6));animation:moorGlow 2.8s ease-in-out infinite}
+@keyframes moorGlow{50%{filter:drop-shadow(0 0 13px rgba(255,214,110,.85)) drop-shadow(0 5px 8px rgba(0,0,0,.6))}}
+.mode-moor .gstrip .deckbox,.mode-moor .gstrip .moorpos{gap:4px}
+.mode-moor .gstrip .deckbox .cnt,.mode-moor .gstrip .moorpos .cnt{padding:0 7px!important;min-width:38px}
+.mode-moor .gstrip .deckbox .cnt::before,.mode-moor .gstrip .moorpos .cnt::before{display:block;font-size:9px;font-weight:800;color:#f6dc93;line-height:1.3}
+.mode-moor .gstrip .deckbox .cnt::before{content:"الورق"}
+.mode-moor .gstrip .moorpos .cnt::before{content:"المور 👑"}
+html.nofx .mode-moor .gstrip .moorpos .moorbox,html.nofx #game .team::after{animation:none!important}
+@media (prefers-reduced-motion:reduce){.mode-moor .gstrip .moorpos .moorbox,#game .team::after{animation:none!important}}
 </style>
 </head>
 <body>
@@ -1771,7 +1766,7 @@ function renderPiles(){
 function renderGround(){
   const g=$('#ground');g.classList.add('split');
   if(!g.dataset.built){g.dataset.built=1;g.innerHTML='<div class="gstrip" id="gStrip"></div><div class="gcol us" id="gUs"></div><div class="gcol them" id="gThem"></div>';
-    const st=$('#gStrip');const tr=document.createElement('div');tr.className='decktray';tr.id='deckTray';tr.appendChild($('#pile').parentElement);tr.appendChild($('.moorpos'));st.appendChild(tr);st.appendChild($('.center.moorOnly'))}
+    const st=$('#gStrip');$('#pile').parentElement.classList.add('deckbox');st.appendChild($('.moorpos'));st.appendChild($('.center.moorOnly'))}
   const canTarget=S.turn===0&&S.phase==='play'&&S.sel.size>0;
   const head=t=>{const v=teamProjects(t),b=(S.moorTaken[t]?'🎴 ':'')+(v.length?v.join('+'):'')+(closingOK(t)?' ✓':'');return b.trim()?`<div class="gbadge ${closingOK(t)?'ok':''}">${b}</div>`:''};
   const body=t=>{const ms=S.melds.filter(m=>m.team===t);if(!ms.length)return '';const mini=meldMini(ms.length);
