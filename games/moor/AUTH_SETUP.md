@@ -36,5 +36,5 @@ Supabase ← المشروع `kzvjkokwliqjjqnwbgsa` ← **SQL Editor** ← الص
 ## ٤) Play Console
 - **App access**: اختر «All or some functionality is restricted» وحط رقم الجوال التجريبي والرمز.
 - **Data safety**: أضف **Personal info ← Phone number** و **Email address** و **Name** (Collected، Required، App functionality)، و **Account management** كغرض.
-- **Data deletion**: رابط حذف الحساب: `https://www.sautai.company/moor/account-deletion.html`
-  (يشتغل بعد دمج الفرع في `main` مثل صفحة الخصوصية).
+- **Data deletion**: رابط حذف الحساب: `https://moor-game.vercel.app/account-deletion.html`
+  (موقع مور الخاص على Vercel، مشروع `moor-game`).
