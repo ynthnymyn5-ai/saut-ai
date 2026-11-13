@@ -1064,6 +1064,49 @@ html.nofx .gm.tap .gmfan .card,html.nofx .gm.tap .gmfelt::before,html.nofx #hero
 #tw>.ibtns .ib{width:40px!important;height:40px!important;font-size:18px!important}
 @media (max-height:760px){#tw>.ibtns{top:58px!important;gap:6px}#tw>.ibtns .ib{width:34px!important;height:34px!important;font-size:15px!important}}
 @media (max-height:680px){#tw>.ibtns{top:56px!important;gap:4px}#tw>.ibtns .ib{width:30px!important;height:30px!important;font-size:13px!important;border-width:2px!important}}
+
+/* ===== شريط أخبار المجلس: ملك المجلس هالأسبوع بتأثير أسطوري ===== */
+#game .g-grid{grid-template-rows:auto auto 1fr auto auto}
+.newsbar{position:relative;z-index:6;height:28px;margin:4px 8px 0;border-radius:14px;overflow:hidden;display:flex;align-items:center;isolation:isolate;
+  background:linear-gradient(90deg,#1a0610,#2a0a1a 40%,#140818);box-shadow:0 4px 14px rgba(0,0,0,.55),inset 0 0 12px rgba(0,0,0,.6)}
+.newsbar::before{content:"";position:absolute;inset:0;border-radius:14px;padding:1.5px;z-index:3;pointer-events:none;
+  background:conic-gradient(from var(--nbA,0deg),#f6dc93,#b07cff,#5ef0c4,#ffd36b,#ff7aa8,#f6dc93);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  animation:nbSpin 5s linear infinite}
+@property --nbA{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes nbSpin{to{--nbA:360deg}}
+.nb-aur{position:absolute;inset:0;z-index:0;opacity:.55;background:linear-gradient(110deg,transparent 10%,rgba(176,124,255,.35) 30%,rgba(94,240,196,.25) 45%,rgba(246,220,147,.35) 60%,transparent 80%);background-size:300% 100%;animation:nbAur 9s ease-in-out infinite alternate}
+@keyframes nbAur{from{background-position:0% 0}to{background-position:100% 0}}
+.nb-lbl{position:relative;z-index:2;flex:none;height:100%;display:flex;align-items:center;padding:0 10px 0 12px;font-size:11px;font-weight:900;color:#2a1205;
+  background:linear-gradient(180deg,#ffe9a8,#d9a441);box-shadow:4px 0 10px rgba(0,0,0,.5);border-radius:0 14px 14px 0}
+.nb-view{position:relative;z-index:1;flex:1;min-width:0;height:100%;overflow:hidden;direction:ltr;
+  -webkit-mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.nb-track{position:absolute;top:0;right:0;height:100%;display:flex;direction:rtl;align-items:center;white-space:nowrap;will-change:transform;animation:nbRun var(--nbT,40s) linear infinite}
+@keyframes nbRun{from{transform:translateX(0)}to{transform:translateX(50%)}}
+.nb-it{direction:rtl;display:inline-flex;align-items:center;gap:6px;padding:0 22px;font-size:12.5px;font-weight:800;color:#f3e7cc}
+.nb-it img{width:20px;height:20px;border-radius:50%;object-fit:cover;object-position:50% 20%;border:1.5px solid #f6dc93}
+.nb-it small{font-size:11px;color:#cdb98f;font-weight:700}
+.nb-sep{color:#f6dc93;opacity:.6;font-size:10px}
+.nb-king{gap:7px}
+.nb-king .nb-name{font-weight:900;font-size:14px;background:linear-gradient(90deg,#fff6d8,#f6c75a 30%,#fff 50%,#e2a93c 70%,#fff6d8);background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 6px rgba(246,200,90,.75));animation:nbName 2.6s linear infinite}
+@keyframes nbName{to{background-position:-200% 0}}
+.nb-crown{position:relative;display:inline-block;font-size:15px;filter:drop-shadow(0 0 6px #ffd36b);animation:nbBob 1.6s ease-in-out infinite}
+.nb-crown::after{content:"✦";position:absolute;font-size:8px;color:#fff3c4;left:50%;top:50%;animation:nbOrbit 1.8s linear infinite;text-shadow:0 0 6px #ffd36b}
+@keyframes nbBob{50%{transform:translateY(-2px) rotate(-6deg)}}
+@keyframes nbOrbit{from{transform:rotate(0) translateX(11px) rotate(0)}to{transform:rotate(360deg) translateX(11px) rotate(-360deg)}}
+.nb-king img{width:22px;height:22px;border-color:#ffe08a;box-shadow:0 0 10px rgba(255,211,107,.8)}
+.nb-comet{position:absolute;z-index:4;top:50%;left:-30%;width:90px;height:2px;border-radius:2px;pointer-events:none;opacity:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.95));box-shadow:0 0 10px #fff,0 0 20px #b07cff}
+.nb-comet::after{content:"";position:absolute;right:-3px;top:-3px;width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 12px #fff,0 0 22px #ffd36b}
+.newsbar.comet .nb-comet{animation:nbComet 1.3s ease-in forwards}
+@keyframes nbComet{0%{left:-30%;opacity:0;transform:translateY(-8px) rotate(4deg)}15%{opacity:1}100%{left:120%;opacity:0;transform:translateY(6px) rotate(4deg)}}
+.newsbar.flare{animation:nbFlare 1.2s ease-out}
+@keyframes nbFlare{30%{box-shadow:0 0 22px rgba(255,211,107,.9),0 0 40px rgba(176,124,255,.6),inset 0 0 18px rgba(255,240,200,.5)}}
+.newsbar::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(105deg,transparent 35%,rgba(255,245,215,.35) 50%,transparent 65%);transform:translateX(-120%);animation:nbShine 4.5s ease-in-out infinite}
+@keyframes nbShine{0%,60%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+html.nofx .newsbar::before,html.nofx .nb-aur,html.nofx .newsbar::after,html.nofx .nb-comet,html.nofx .nb-crown::after{animation:none!important}
+@media (prefers-reduced-motion:reduce){.nb-track,.newsbar::before,.nb-aur,.newsbar::after,.nb-crown,.nb-crown::after,.nb-king .nb-name{animation:none!important}.nb-track{position:static}}
 </style>
 </head>
 <body>
@@ -1113,6 +1156,7 @@ html.nofx .gm.tap .gmfan .card,html.nofx .gm.tap .gmfelt::before,html.nofx #hero
 <section id="game" class="screen hidden">
   <div class="bg" id="gameBg"></div>
   <div class="g-grid">
+    <div class="newsbar" id="newsbar" aria-label="شريط الأخبار"><div class="nb-aur"></div><div class="nb-lbl">أخبار المجلس</div><div class="nb-view"><div class="nb-track" id="nbTrack"></div></div><i class="nb-comet"></i></div>
     <div class="topbar">
       <div class="team gold"><span class="ic" id="ic0">👑</span><div><div class="nm" id="nm0">الفريق الذهبي</div><div class="sc" id="sc0">0</div></div></div>
       <div class="logo-mini"><img id="logoMini" alt="مور"></div>
@@ -4355,6 +4399,33 @@ function musSync(){try{const a=musEl(),v=musTarget();if(v>0&&a.paused){const pr=
   const g=document.getElementById('game');if(g)new MutationObserver(musSync).observe(g,{attributes:true,attributeFilter:['class']});
   if(typeof toggleSound==='function'){const ts=toggleSound;window.toggleSound=function(){ts.apply(this,arguments);musSync()}}
 })();
+
+/* ---- شريط أخبار المجلس ---- */
+const NEWS={rows:null,at:0,timer:null};
+async function newsLoad(){if(NEWS.rows&&Date.now()-NEWS.at<5*60e3)return NEWS.rows;
+  try{const r=await fetch(SB_URL+`/rest/v1/lb_week?select=name,avatar,points,wins&week=eq.${isoWeek()}&order=points.desc,updated_at.asc&limit=3`,{headers:PCHAT.hdr()});
+    if(!r.ok)throw 0;const j=await r.json();NEWS.rows=Array.isArray(j)?j:[];NEWS.at=Date.now()}catch(e){NEWS.rows=NEWS.rows||[]}
+  return NEWS.rows}
+function newsItems(rows){const it=[],nm=x=>escH(String(x.name||'لاعب').slice(0,24)),av=x=>`<img src="${charImg(x.avatar)}" alt="">`;
+  if(rows[0])it.push(`<span class="nb-it nb-king"><span class="nb-crown">👑</span>${av(rows[0])}<small>ملك المجلس هالأسبوع</small><span class="nb-name">${nm(rows[0])}</span><small>${arNum(rows[0].points||0)} نقطة • ${arNum(rows[0].wins||0)} فوز</small></span>`);
+  else it.push(`<span class="nb-it nb-king"><span class="nb-crown">👑</span><small>عرش المجلس فاضي هالأسبوع…</small><span class="nb-name">كن أنت الملك!</span></span>`);
+  if(rows[1])it.push(`<span class="nb-it">🥈 ${av(rows[1])}<b>${nm(rows[1])}</b><small>${arNum(rows[1].points||0)} نقطة</small></span>`);
+  if(rows[2])it.push(`<span class="nb-it">🥉 ${av(rows[2])}<b>${nm(rows[2])}</b><small>${arNum(rows[2].points||0)} نقطة</small></span>`);
+  const g=GAMES.find(x=>x[0]===(S&&S.mode&&S.mode!=='moor'?S.mode:(P.game||'moor')));
+  it.push(`<span class="nb-it">🎴 تلعب الحين: <b>${g?g[1]:'مور'}</b></span>`);
+  it.push(`<span class="nb-it">🔥 كوّش مرتين ورا بعض… وولّع الطاولة</span>`);
+  it.push(`<span class="nb-it">🏅 كأس المجلس مفتوح هالأسبوع: ٣ أدوار والبطل ياخذ الجائزة</span>`);
+  it.push(`<span class="nb-it">✨ انضموا للمجلس: سعود، مبارك، بو لولو، صقر، حمّود، أم صالح، نورة، موضي</span>`);
+  return it.join('<span class="nb-sep">◆</span>')+'<span class="nb-sep">◆</span>'}
+async function newsShow(){const tr=$('#nbTrack'),bar=$('#newsbar');if(!tr||!bar)return;
+  const draw=rows=>{const h=newsItems(rows);tr.innerHTML=h+h;requestAnimationFrame(()=>{const w=tr.scrollWidth/2;tr.style.setProperty('--nbT',Math.max(18,w/38)+'s')})};
+  draw(NEWS.rows||[]);draw(await newsLoad());
+  clearInterval(NEWS.timer);NEWS.timer=setInterval(()=>{if($('#game').classList.contains('hidden')||document.hidden)return;
+    if(document.documentElement.classList.contains('nofx'))return;
+    const r=Math.random();if(r<.35){bar.classList.remove('comet');void bar.offsetWidth;bar.classList.add('comet')}
+    else if(r<.45){bar.classList.remove('flare');void bar.offsetWidth;bar.classList.add('flare')}},7000)}
+(function(){const g=document.getElementById('game');if(!g)return;let was=g.classList.contains('hidden');
+  new MutationObserver(()=>{const h=g.classList.contains('hidden');if(was&&!h)newsShow();was=h}).observe(g,{attributes:true,attributeFilter:['class']})})();
 </script>
 </body>
 </html>
