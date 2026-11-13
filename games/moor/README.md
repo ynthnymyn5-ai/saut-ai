@@ -19,3 +19,4 @@ The card game as a Capacitor 8 app (`com.moorgame.cards`). The game itself is `w
 - `promo-video/` — 26 s vertical promo video (Remotion). `npm i && npx remotion render MoorPromo out/moor-promo.mp4`
 - `demo/` — buyer demo builder (expires on a set date, online/purchases off, obfuscated): `npm i && node build.js` → `site/game.html` (serve with `wrapper.html` as index and `../www/fonts`).
 - `marketing/` — sales page, rendered promo video, 512 px store icon.
+- `music/compose.py` — generates the original Kuwaiti-folk-style background loop (`www/audio/moor-sawt.mp3`): oud in maqam Bayati, mirwas and hand-claps. `python compose.py out.wav` then encode to mp3.
