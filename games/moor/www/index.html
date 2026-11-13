@@ -1016,6 +1016,29 @@ body.mode-moor #game .ground.split{bottom:calc(var(--tb) + 74px)!important}
 .gm.real b{font-size:15px;margin-top:0}.gm.real small{line-height:1.25}
 .gm.real:active{transform:scale(.97)}
 #charsH.chars{display:grid;grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:calc((100% - 32px)/4.6);overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;padding-bottom:6px;scrollbar-width:none}#charsH.chars::-webkit-scrollbar{display:none}#charsH .ch{scroll-snap-align:start}
+
+/* game picker tap flourish */
+.gm.real{isolation:isolate}
+.gm.tap{animation:gmPop .55s cubic-bezier(.2,1.6,.4,1)}
+@keyframes gmPop{0%{transform:scale(.9)}45%{transform:scale(1.08) translateY(-6px)}100%{transform:translateY(-3px)}}
+.gm.tap .gmfan .card{animation:gmFanOut .7s cubic-bezier(.2,1.4,.4,1)}
+.gm.tap .gmfan .card:nth-child(2){animation:gmFlip .7s cubic-bezier(.2,1.2,.4,1)}
+@keyframes gmFanOut{0%{transform:translateX(0) rotate(0)}50%{transform:translateX(calc(var(--i)*20px)) translateY(-14px) rotate(calc(var(--r)*1.9))}100%{transform:translateX(calc(var(--i)*12px)) translateY(-5px) rotate(calc(var(--r)*1.2))}}
+@keyframes gmFlip{0%{transform:translateY(0) rotateY(0)}50%{transform:translateY(-20px) rotateY(180deg) scale(1.12)}100%{transform:translateY(-5px) rotateY(360deg)}}
+.gm.tap .gmfelt::before{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(105deg,transparent 30%,rgba(255,245,210,.55) 50%,transparent 70%);transform:translateX(-120%);animation:gmShine .8s ease-out}
+@keyframes gmShine{to{transform:translateX(120%)}}
+.gmring{position:absolute;inset:0;border-radius:14px;pointer-events:none;z-index:4;animation:gmRing .85s ease-out forwards}
+@keyframes gmRing{0%{box-shadow:0 0 0 0 var(--gc);opacity:1}100%{box-shadow:0 0 0 16px var(--gc);opacity:0}}
+.gmspark{position:fixed;z-index:9999;pointer-events:none;font-weight:900;line-height:1;text-shadow:0 0 6px currentColor,0 0 14px currentColor,0 1px 0 rgba(0,0,0,.6);will-change:transform,opacity}
+#hero.tint{animation:heroTint 1.1s ease-out}
+@keyframes heroTint{0%{box-shadow:inset 0 0 0 0 transparent}30%{box-shadow:inset 0 0 70px 10px var(--gtint)}100%{box-shadow:inset 0 0 0 0 transparent}}
+.start.go{animation:startGo .6s cubic-bezier(.2,1.5,.4,1)}
+@keyframes startGo{40%{transform:scale(1.05);filter:brightness(1.18)}}
+.ch-tag.quip{color:var(--gold2);animation:quipIn .35s cubic-bezier(.2,1.5,.4,1)}
+.ch-tag.quip b{color:#fff}
+@keyframes quipIn{0%{opacity:0;transform:translateY(6px) scale(.96)}100%{opacity:1;transform:none}}
+html.nofx .gm.tap .gmfan .card,html.nofx .gm.tap .gmfelt::before,html.nofx #hero.tint{animation:none!important}
+@media (prefers-reduced-motion:reduce){.gm.tap,.gm.tap .gmfan .card,.gm.tap .gmfelt::before,#hero.tint,.start.go,.ch-tag.quip{animation:none!important}}
 </style>
 </head>
 <body>
@@ -2693,6 +2716,32 @@ function openRules(){
 
 /* ================= MULTI-GAME: بلوت / تركس / طرنيب ================= */
 const GMFAN={moor:[{s:'C',r:2},{j:1},{s:'H',r:1}],baloot:[{s:'S',r:9},{s:'S',r:11},{s:'S',r:1}],trix:[{s:'S',r:12},{s:'H',r:13},{s:'H',r:12}],tarneeb:[{s:'D',r:10},{s:'D',r:1},{s:'D',r:13}]};
+
+/* ---- لمسة اختيار اللعبة: نبضة + مروحة الورق + شرارات بلون اللعبة + كلمة من شخصيتك ---- */
+const GMFX={moor:{sym:['👑','✦','♥','✦'],col:'#f6dc93',glow:'rgba(214,52,86,.6)',say:['مور؟ هذي لعبة أهل الذوق 👑','نزّل وكوّش… ولا تنسى المشاريع!']},
+ baloot:{sym:['♠','✦','♣','✦'],col:'#9ff0c0',glow:'rgba(40,170,100,.6)',say:['بلوت! صن ولا حكم؟ ♠','جهّز مشاريعك… السرا والبلوت 😏']},
+ trix:{sym:['♥','✦','♛','✦'],col:'#e2c6ff',glow:'rgba(140,80,220,.6)',say:['تركس! انتبه من البنات ♥','ملك الكبة لا يطيح عليك 😅']},
+ tarneeb:{sym:['♦','✦','♠','✦'],col:'#bcd8ff',glow:'rgba(50,120,220,.6)',say:['طرنيب! زايد على قدّك ♦','الطرنيب يقلب الطاولة 😎']}};
+function pickGame(k){
+  P.game=k;save();renderHome();
+  const el=document.querySelector('#gamesH .g-'+k),fx=GMFX[k];if(!el||!fx)return;
+  try{sfx('shuffle')}catch(e){}
+  const calm=document.documentElement.classList.contains('nofx')||matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.style.setProperty('--gc',fx.glow);el.classList.remove('tap');void el.offsetWidth;el.classList.add('tap');
+  const ring=document.createElement('i');ring.className='gmring';el.appendChild(ring);setTimeout(()=>{ring.remove();el.classList.remove('tap')},900);
+  const hero=$('#hero');if(hero){hero.style.setProperty('--gtint',fx.glow);hero.classList.remove('tint');void hero.offsetWidth;hero.classList.add('tint')}
+  const sb=$('#startBtn');if(sb){sb.classList.remove('go');void sb.offsetWidth;sb.classList.add('go')}
+  if(!calm){const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height*.38;
+    for(let i=0;i<18;i++){const sp=document.createElement('span');sp.className='gmspark';sp.textContent=fx.sym[i%fx.sym.length];
+      sp.style.cssText=`left:${cx}px;top:${cy}px;color:${fx.col};font-size:${18+Math.random()*14}px`;document.body.appendChild(sp);
+      const a=-Math.PI/2+(Math.random()-.5)*2.6,d=60+Math.random()*90,ex=Math.cos(a)*d,ey=Math.sin(a)*d,rot=(Math.random()-.5)*160;
+      const an=sp.animate([{transform:'translate(-50%,-50%) scale(.3)',opacity:1,easing:'cubic-bezier(.2,.9,.3,1)'},{transform:`translate(calc(-50% + ${ex*.8}px),calc(-50% + ${ey*.8}px)) rotate(${rot*.6}deg) scale(1.15)`,opacity:1,offset:.7,easing:'ease-in'},{transform:`translate(calc(-50% + ${ex}px),calc(-50% + ${ey+24}px)) rotate(${rot}deg) scale(.8)`,opacity:0}],
+        {duration:1000+Math.random()*500});an.onfinish=()=>sp.remove()}}
+  const ch=CHARS.find(c=>c.id===P.char)||CHARS[0],line=pick(fx.say),tg=$('#chTag');
+  if(tg){tg.innerHTML=`<b>${ch.name}:</b> «${line}»`;tg.classList.remove('quip');void tg.offsetWidth;tg.classList.add('quip');clearTimeout(tg._q);
+    tg._q=setTimeout(()=>{if(P.game===k){tg.textContent=ch.tag;tg.classList.remove('quip')}},3200)}
+  try{if(P.voice)speak(line,ch)}catch(e){}
+}
 function gmFan(k){const cs=GMFAN[k]||[],rot=[-16,0,16];return `<div class="gmfan">${cs.map((c,i)=>cardHTML(Object.assign({id:'gm'+k+i},c),'gmc').replace('class="card',`style="--i:${i-1};--r:${rot[i]}deg" class="card`)).join('')}</div>`}
 const GAMES=[['moor','مور','👑','الورق الخليجي'],['baloot','بلوت','♠️','صن وحكم ومشاريع'],['trix','تركس','♥️','ممالك وعقود'],['tarneeb','طرنيب','♦️','مزايدة وطرنيب']];
 const SNAME={S:'سبيت ♠',H:'هاص ♥',D:'ديمن ♦',C:'شريا ♣'};
@@ -3239,7 +3288,7 @@ function renderHome(){
   $('#charsH').innerHTML=CHARS.map(c=>`<button class="ch ${P.char===c.id?'sel':''}" data-id="${c.id}" onclick="if(!owns('char','${c.id}')){openShop('chars');return}const f=P.char!=='${c.id}';P.char='${c.id}';save();renderHome();pokeHome('${c.id}',f)"><div class="av">${faceHTML(c.id)}</div><span>${c.name}</span></button>`).join('');
   $('#chTag').textContent=CHARS.find(c=>c.id===P.char).tag;
   document.querySelectorAll('#diffSeg button').forEach(b=>{b.classList.toggle('on',b.dataset.d===P.diff);b.onclick=()=>{P.diff=b.dataset.d;save();renderHome()}});
-  $('#gamesH').innerHTML=GAMES.map(([k,n,ic,sub])=>`<button class="gm real g-${k} ${P.game===k?'sel':''}" onclick="P.game='${k}';save();renderHome()"><div class="gmfelt">${gmFan(k)}</div><b>${n}</b><small>${sub}</small></button>`).join('');
+  $('#gamesH').innerHTML=GAMES.map(([k,n,ic,sub])=>`<button class="gm real g-${k} ${P.game===k?'sel':''}" onclick="pickGame('${k}')"><div class="gmfelt">${gmFan(k)}</div><b>${n}</b><small>${sub}</small></button>`).join('');
   const g=P.game||'moor';let opts,cur,setf;
   if(g==='moor'){opts=[[251,'٢٥١']];cur=251;setf=()=>{};$('#targetLbl').textContent='عدد النقاط للفوز'}
   else if(g==='baloot'){opts=[[152,'١٥٢']];cur=152;setf=()=>{};$('#targetLbl').textContent='عدد النقاط للفوز'}

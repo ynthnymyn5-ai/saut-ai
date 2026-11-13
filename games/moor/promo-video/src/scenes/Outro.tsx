@@ -59,7 +59,7 @@ export const Outro: React.FC = () => {
           scale: interpolate(frame, [26, 40, 60, 75, 90], [0.7, 1, 1.06, 1, 1.06], { ...clamp, easing: Easing.bezier(0.2, 1.4, 0.4, 1) }),
         }}
       >
-        متوفرة على أندرويد
+        قريباً على أندرويد
       </div>
     </AbsoluteFill>
   );
