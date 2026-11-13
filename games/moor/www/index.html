@@ -1039,6 +1039,25 @@ body.mode-moor #game .ground.split{bottom:calc(var(--tb) + 74px)!important}
 @keyframes quipIn{0%{opacity:0;transform:translateY(6px) scale(.96)}100%{opacity:1;transform:none}}
 html.nofx .gm.tap .gmfan .card,html.nofx .gm.tap .gmfelt::before,html.nofx #hero.tint{animation:none!important}
 @media (prefers-reduced-motion:reduce){.gm.tap,.gm.tap .gmfan .card,.gm.tap .gmfelt::before,#hero.tint,.start.go,.ch-tag.quip{animation:none!important}}
+
+/* table slam on sweep */
+#tw.slam{animation:twSlam .55s cubic-bezier(.3,1.8,.5,1)}
+#tw.slam-big{animation:twSlamBig .8s cubic-bezier(.3,1.8,.5,1)}
+@keyframes twSlam{0%{transform:none}12%{transform:translateY(7px) scale(.985)}30%{transform:translate(-4px,-3px) rotate(-.6deg)}50%{transform:translate(3px,1px) rotate(.4deg)}72%{transform:translate(-1px,0)}100%{transform:none}}
+@keyframes twSlamBig{0%{transform:none}10%{transform:translateY(12px) scale(.975)}24%{transform:translate(-8px,-5px) rotate(-1.1deg)}40%{transform:translate(6px,2px) rotate(.8deg)}56%{transform:translate(-4px,-1px) rotate(-.4deg)}74%{transform:translate(2px,0)}100%{transform:none}}
+#tw.onfire #rimEl{animation:fireRim .55s ease-in-out infinite alternate}
+@keyframes fireRim{from{box-shadow:0 0 10px rgba(255,120,40,.5),0 0 26px rgba(255,80,20,.25)}to{box-shadow:0 0 22px rgba(255,150,50,.9),0 0 50px rgba(255,80,20,.5)}}
+.slamhand,.slamboom{position:fixed;z-index:9998;pointer-events:none;line-height:1;will-change:transform,opacity}
+.slamhand{font-size:64px;filter:drop-shadow(0 10px 10px rgba(0,0,0,.55))}
+.slamboom{font-size:46px}
+.slamwave{position:fixed;z-index:9997;pointer-events:none;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:3px solid rgba(255,232,170,.95);animation:slamWave .6s ease-out forwards}
+.slamwave.big{border-color:rgba(255,190,90,.95);animation-duration:.8s}
+@keyframes slamWave{to{transform:scale(13);opacity:0;border-width:1px}}
+.moorrays{position:fixed;z-index:9996;pointer-events:none;width:440px;height:440px;margin:-220px 0 0 -220px;border-radius:50%;
+  background:repeating-conic-gradient(rgba(255,222,140,.42) 0 8deg,transparent 8deg 22deg);
+  -webkit-mask:radial-gradient(circle,#000 18%,transparent 68%);mask:radial-gradient(circle,#000 18%,transparent 68%);animation:moorRays 1.4s ease-out forwards}
+@keyframes moorRays{0%{transform:scale(.3) rotate(0);opacity:0}25%{opacity:1}100%{transform:scale(1.25) rotate(70deg);opacity:0}}
+@media (prefers-reduced-motion:reduce){#tw.slam,#tw.slam-big,#tw.onfire #rimEl{animation:none!important}}
 </style>
 </head>
 <body>
@@ -1434,7 +1453,40 @@ const SEATEL=i=>i===0?$('#me'):$('#seat'+i);
 function spd(ms){return P.fast?ms*.55:ms}
 
 function startMatch(){if(NET)goHomeNet();if((P.game||'moor')==='moor'&&!P.tutDone&&!P.tutAsked){P.tutAsked=1;save();openModal(`<h2 class="goldtxt" style="text-align:center">🎓 أول مرة تلعب مور؟</h2><p style="text-align:center">شرح سريع تلعبه بنفسك (دقيقتين) وتاخذ <b>٥٠٠ 🪙</b></p><button class="btn-gold close" onclick="startTutorial()">علّمني 🎓</button><button class="ab close" onclick="closeModal(true);startMatch()">أعرف ألعب</button>`);return}$('#bidPanel').classList.add('hidden');closeModal(true);if((P.game||'moor')!=='moor')return startTrick(P.game);startMoor()}
-function startMoor(){
+
+/* ---- ضرب الطاولة عند التكويش + سلسلة التكويش + لمعة المور ---- */
+let SWEEPRUN={tm:-1,n:0};
+const calmFx=()=>document.documentElement.classList.contains('nofx')||matchMedia('(prefers-reduced-motion: reduce)').matches;
+function slamSfx(big){if(!P.sfx)return;try{ac();const t=AC.currentTime+.01;
+  tn(t,'sine',95,40,.5,big?.6:.45);                       // ضربة الكف على الخشب
+  nz(t,.2,170,big?.55:.38,'lowpass',.7);                  // طقّة الطاولة
+  nz(t+.004,.06,1300,.14,'bandpass',1);
+  for(let k=0;k<9;k++)nz(t+.05+k*.021+Math.random()*.01,.024,3000+Math.random()*1600,.05,'bandpass',2); // الورق يرتج
+  [[2637,.30],[3136,.40],[2794,.55]].forEach(([f,d])=>{tn(t+d,'sine',f,0,.4,.035);tn(t+d,'sine',f*2.76,0,.2,.012)}); // استكانات الشاي تتخبط
+}catch(e){}}
+function tableSlam(i,n){
+  const big=n>=5,tw=$('#tw'),tb=$('#tableEl'),seat=SEATEL(i),calm=calmFx();
+  slamSfx(big);try{haptic('heavy');setTimeout(()=>haptic('medium'),130)}catch(e){}
+  if(tw&&!matchMedia('(prefers-reduced-motion: reduce)').matches){tw.classList.remove('slam','slam-big');void tw.offsetWidth;tw.classList.add(big?'slam-big':'slam');setTimeout(()=>tw.classList.remove('slam','slam-big'),800)}
+  if(!calm&&seat&&tb){const sr=seat.getBoundingClientRect(),tr=tb.getBoundingClientRect();
+    const sx=sr.left+sr.width/2,sy=sr.top+sr.height/2,cx=tr.left+tr.width/2,cy=tr.top+tr.height/2;
+    const hx=sx+(cx-sx)*.45,hy=sy+(cy-sy)*.45;
+    const hand=document.createElement('span');hand.className='slamhand';hand.textContent='✋';hand.style.left=hx+'px';hand.style.top=hy+'px';document.body.appendChild(hand);
+    hand.animate([{transform:'translate(-50%,-120%) scale(2.3) rotate(-18deg)',opacity:0},{transform:'translate(-50%,-50%) scale(1) rotate(0)',opacity:1,offset:.22,easing:'ease-out'},{transform:'translate(-50%,-50%) scale(1.05)',opacity:1,offset:.7},{transform:'translate(-50%,-40%) scale(.9)',opacity:0}],{duration:900}).onfinish=()=>hand.remove();
+    setTimeout(()=>{const w=document.createElement('i');w.className='slamwave'+(big?' big':'');w.style.left=hx+'px';w.style.top=hy+'px';document.body.appendChild(w);setTimeout(()=>w.remove(),800);
+      const b=document.createElement('span');b.className='slamboom';b.textContent='💥';b.style.left=hx+'px';b.style.top=hy+'px';document.body.appendChild(b);
+      b.animate([{transform:'translate(-50%,-50%) scale(.4)',opacity:1},{transform:'translate(-50%,-50%) scale(1.5)',opacity:0}],{duration:550,easing:'ease-out'}).onfinish=()=>b.remove();
+      try{goldBurst(big?30:16,hx,hy)}catch(e){}
+      document.querySelectorAll('#tableEl .card').forEach((c,k)=>{try{c.animate([{translate:'0 0',rotate:'0deg'},{translate:`0 -${5+Math.random()*(big?16:9)}px`,rotate:`${(Math.random()-.5)*(big?14:7)}deg`,offset:.4},{translate:'0 0',rotate:'0deg'}],{duration:420,delay:k*6,easing:'cubic-bezier(.3,1.5,.5,1)'})}catch(e){}});
+    },190);}
+  const tm=team(i);if(SWEEPRUN.tm===tm)SWEEPRUN.n++;else SWEEPRUN={tm,n:1};
+  if(SWEEPRUN.n>=2){const k=SWEEPRUN.n;setTimeout(()=>{banner((k===2?'تكويشتين ورا بعض!':'سلسلة تكويش ×'+arNum(k)+'!')+' 🔥');if(tw){tw.classList.add('onfire');clearTimeout(tw._f);tw._f=setTimeout(()=>tw.classList.remove('onfire'),4500)}},750)}
+  else if(big)setTimeout(()=>banner('تكويش كبير! 🔥'),750);
+}
+function moorShine(){if(calmFx())return;const tb=$('#tableEl');if(!tb)return;const r=tb.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+  const e=document.createElement('i');e.className='moorrays';e.style.left=x+'px';e.style.top=y+'px';document.body.appendChild(e);setTimeout(()=>e.remove(),1500);
+  try{goldBurst(28,x,y)}catch(err){}}
+function startMoor(){SWEEPRUN={tm:-1,n:0};
   const others=CHARS.filter(c=>c.id!==P.char);shuffle(others);
   const me=CHARS.find(c=>c.id===P.char);
   document.body.className='mode-moor';setTop('الفريق الذهبي',0,'الفريق الفضي',0,'👑','🌴');
@@ -1792,7 +1844,7 @@ async function drawPile(i){
 }
 async function takeGround(i){
   const cs=S.discard.splice(0);const pr=fly($('#disc'),i===0?$('#hand'):SEATEL(i),cardHTML(cs[cs.length-1]));renderPiles();await pr;
-  S.players[i].hand.push(...cs);sfx(cs.length>=2?'sweep':'draw');
+  S.players[i].hand.push(...cs);sfx(cs.length>=2?'sweep':'draw');if(cs.length>=2)try{tableSlam(i,cs.length)}catch(e){}
   if(cs.length>=2){banner('تكويش!');setTimeout(()=>react(i,'laugh',pick(['تكويش!!! 👑','كوّشت الأرض كلها 😎','شكراً على الهدايا 😏','هذي كلها لي!'])),1300);if(i===0){P.stats.tk++;track('sweep')}
     const prev=(i+3)%4;setTimeout(()=>{if(S.mode==='moor')react(prev,'sad',prev===0?null:pick(GEN.bad))},2100);
     const o=[1,2,3].filter(k=>team(k)!==team(i)&&k!==prev);if(o.length)setTimeout(()=>react(pick(o),'shock',pick(GEN.sweep)),3200)}
@@ -1802,7 +1854,7 @@ async function takeMoor(i){
   const t=team(i),k=S.moorPiles.findIndex(x=>x.length);if(k<0||S.moorTaken[t])return false;
   const pile=S.moorPiles[k];S.moorPiles[k]=[];S.moorTaken[t]=true;delete S.moorNext[i];
   await fly($('#moorBox'),i===0?$('#hand'):SEATEL(i),backHTML());
-  S.players[i].hand.push(...pile);sfx('moor');banner('المور! 🎴');
+  S.players[i].hand.push(...pile);sfx('moor');banner('المور! 🎴');try{moorShine()}catch(e){}
   react(i,'laugh',pick(['سحبت المور! 🎴','جاء المور يا حلوين 😎','المور لنا!']));
   const o=[1,2,3].filter(x=>team(x)!==t);if(o.length)setTimeout(()=>react(pick(o),'shock'),900);
   if(i===0){sortHand();S.newIds=new Set(pile.map(c=>c.id))}
