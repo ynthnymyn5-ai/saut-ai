@@ -1197,6 +1197,29 @@ html.nofx .mode-moor .gstrip .moorpos .moorbox,html.nofx #game .team::after{anim
 .ag-err{min-height:20px;margin:10px 0 0!important;color:#ff9d90!important;font-weight:800;font-size:13px!important}
 html.nofx .ag-card::before,html.nofx .ag-fan i,html.nofx .ag-fx b{animation:none!important}
 @media (prefers-reduced-motion:reduce){.ag-card,.ag-card::before,.ag-fan i,.ag-fx b,.ag-pno{animation:none!important}}
+
+/* ===== melds: wider area + bigger tiles so laid-down cards read clearly (shrink as the table fills) ===== */
+.mode-moor .gcol .meld.mini{gap:2px!important;padding:4px 5px!important}
+.mode-moor .gcol .mtile{width:22px;height:39px;font-size:15.5px;border-radius:4.5px;box-shadow:0 2px 3px rgba(0,0,0,.35)}
+.mode-moor .gcol .mtile em{font-size:14.5px}
+.mode-moor .gcol .mtile.ten span{font-size:14px;letter-spacing:-2px;margin-left:-2px}
+.mode-moor .gcol.d1 .mtile{width:19px;height:35px;font-size:14px}.mode-moor .gcol.d1 .mtile em{font-size:13px}
+.mode-moor .gcol.d2 .mtile{width:17px;height:31px;font-size:12.5px}.mode-moor .gcol.d2 .mtile em{font-size:11.5px}
+.mode-moor .gcol.d3 .mtile{width:15px;height:28px;font-size:11px}.mode-moor .gcol.d3 .mtile em{font-size:10.5px}
+.mode-moor .gcol .meld.mini .mtag{font-size:10px;top:-10px}
+@media (max-width:370px){
+ .mode-moor .gcol .mtile{width:19px;height:35px;font-size:14px}.mode-moor .gcol .mtile em{font-size:13px}
+ .mode-moor .gcol.d1 .mtile{width:17px;height:31px;font-size:12.5px}
+ .mode-moor .gcol.d2 .mtile,.mode-moor .gcol.d3 .mtile{width:15px;height:28px;font-size:11px}}
+
+/* long melds stay on one line: tiles overlap a little instead of wrapping */
+.mode-moor .gcol .meld.mini{flex-wrap:nowrap!important}
+.mode-moor .gcol .meld.mini:has(> .mtile:nth-child(5)){gap:0!important}
+.mode-moor .gcol .meld.mini:has(> .mtile:nth-child(6)) .mtile:not(:first-child){margin-left:-5px}
+.mode-moor .gcol .meld.mini:has(> .mtile:nth-child(7)) .mtile:not(:first-child){margin-left:-8px}
+.mode-moor .gcol .meld.mini:has(> .mtile:nth-child(9)) .mtile:not(:first-child){margin-left:-10px}
+.mode-moor .gcol .meld.mini:has(> .mtile:nth-child(11)) .mtile:not(:first-child){margin-left:-12px}
+.mode-moor .gcol .meld.mini .mtile{position:relative;box-shadow:-1px 0 2px rgba(0,0,0,.35),0 2px 3px rgba(0,0,0,.3)}
 </style>
 </head>
 <body>
