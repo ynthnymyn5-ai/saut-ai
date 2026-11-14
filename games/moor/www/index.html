@@ -2600,8 +2600,21 @@ async function ttsInit(){if(!(CAP&&NP.TextToSpeech))return;const want=P.lang==='
 function ttsMissing(){openModal(`<h2 class="goldtxt">🔈 صوت الشخصيات</h2><p style="text-align:center;line-height:1.8">جوالك ما فيه صوت نطق ${P.lang==='en'?'إنجليزي':'عربي'}، عشان كذا كلام الشخصيات يطلع غير مفهوم.<br>ثبّت الصوت من إعدادات الجوال (مجاني)، أو كمّل بدون أصوات الكلام.</p>
   <button class="btn-gold close" onclick="closeModal();try{NP.TextToSpeech.openInstall()}catch(e){}">⬇️ ثبّت الصوت ${P.lang==='en'?'الإنجليزي':'العربي'}</button>
   <button class="ab close" onclick="P.voice=false;save();closeModal();toast('وقّفنا أصوات الكلام — المؤثرات شغالة 🔊')">كمّل بدون أصوات الكلام</button>`)}
+
+/* ---- أصوات مسجّلة لشخصيات معيّنة (مثل أبو شنب): ملفات voices/<id>/<n>.mp3 بنفس ترتيب جمله ---- */
+const VOICED={};   // مثال: {abushanab:11} — عدد الجمل المسجّلة لكل شخصية
+const VOICE_KEYS=['idle','meld','taunt','finish','sad'];
+let VOICE_EL=null;
+function voicedIndex(ch,text){if(!VOICED[ch.id])return -1;const all=[];VOICE_KEYS.forEach(k=>(ch[k]||[]).forEach(l=>all.push(l)));const i=all.indexOf(text);return i<VOICED[ch.id]?i:-1}
+function voicedPlay(text,ch,who){const i=voicedIndex(ch,text);if(i<0)return false;
+  try{if(VOICE_EL){VOICE_EL.pause();VOICE_EL=null}try{speechSynthesis.cancel()}catch(e){}try{NP.TextToSpeech&&NP.TextToSpeech.stop()}catch(e){}
+    const a=new Audio(`voices/${ch.id}/${i+1}.mp3`);a.volume=1;VOICE_EL=a;
+    a.onloadedmetadata=()=>{if(who!=null)startTalk(who,Math.min(7000,a.duration*1000+150))};
+    a.onended=()=>{if(who!=null)stopTalk(who)};a.onerror=()=>{if(who!=null)stopTalk(who)};
+    const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{});return true}catch(e){return false}}
 function speak(text,ch,who){
   if(!P.voice||!P.sfx)return;
+  if(P.lang!=='en'&&voicedPlay(text,ch,who))return;   // صوت مسجّل خاص للشخصية إذا موجود
   const v0=P.voices[ch.id]||{},vc=vClamp(v0.pitch??ch.pitch,v0.rate??ch.rate);
   if(CAP&&NP.TextToSpeech){if(TTSV.ok===false)return;try{const t=ttsText(P.lang==='en'?trEN(text):text);if(!t)return;
     const opt={text:t,lang:TTSV.lang||(P.lang==='en'?'en-US':'ar-SA'),rate:vc.rate,pitch:vc.pitch,volume:1,category:'ambient'};if(TTSV.idx>=0)opt.voice=TTSV.idx;
