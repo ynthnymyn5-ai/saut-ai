@@ -2453,11 +2453,29 @@ function fxBubble(host,text){document.querySelectorAll('.fbub').forEach(b=>b.rem
   setTimeout(()=>b.classList.remove('show'),2300);setTimeout(()=>b.remove(),2600)}
 function setReact(host,kind){['laugh','angry','happy','shock','sad','idle'].forEach(k=>host.classList.remove('r-'+k));void host.offsetWidth;host.classList.add('r-'+kind);clearTimeout(host._r);host._r=setTimeout(()=>host.classList.remove('r-'+kind),kind==='sad'?2300:1700)}
 // لمس شخصية في الشاشة الرئيسية
+
+/* ---- صوت حقيقي خاص لشخصية (أبو شنب): يشتغل لما تختاره وفي استوديو الأصوات، وفمه يتحرك معه ---- */
+const CHAR_INTRO={abushanab:'voices/abushanab/intro.mp3'};
+let CHAR_INTRO_EL=null;
+function charIntroStop(){if(!CHAR_INTRO_EL)return;const a=CHAR_INTRO_EL;CHAR_INTRO_EL=null;try{a.pause()}catch(e){}if(a.host)try{stopTalk(a.host)}catch(e){}
+  try{if(MUS.el&&MUS._duck){MUS._duck=0;musSync()}}catch(e){}}
+function charIntro(id,host){if(!P.sfx)return;charIntroStop();
+  try{speechSynthesis.cancel()}catch(e){}try{NP.TextToSpeech&&NP.TextToSpeech.stop()}catch(e){}
+  host=host||document.querySelector(`#charsH .ch[data-id="${id}"]`);
+  const a=new Audio(CHAR_INTRO[id]);a.cid=id;a.host=host;a.volume=1;CHAR_INTRO_EL=a;
+  try{if(MUS.el&&!MUS.el.paused){MUS._duck=1;MUS.el.volume=Math.min(MUS.el.volume,.1)}}catch(e){}   // نوطي الموسيقى وهو يتكلم
+  let iv=null;
+  a.onplaying=()=>{if(!host)return;clearInterval(iv);startTalk(host,600);iv=setInterval(()=>{if(CHAR_INTRO_EL!==a||a.paused){clearInterval(iv);return}startTalk(host,600)},500)};
+  const end=()=>{clearInterval(iv);if(CHAR_INTRO_EL===a)charIntroStop()};a.onended=end;a.onerror=end;
+  const pr=a.play();if(pr&&pr.catch)pr.catch(end)}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)charIntroStop()});
 function pokeHome(id,first){
   const host=document.querySelector(`#charsH .ch[data-id="${id}"]`),ch=CHARS.find(c=>c.id===id);if(!host||!ch)return;
   const n=first?1:pokeLevel('h'+id),kind=first?'happy':pokeKind(n),line=first?ch.tag:pokeLine(n,ch);
   setReact(host,kind);fxParticles(host,RX[kind],3);funny(kind,null,ch);haptic(n>=3?'heavy':'medium');
   if(kind==='laugh')startTalk(host,1500,true);else if(kind==='shock')mouthHold(host,1,900);
+  if(first&&CHAR_INTRO[id]){fxBubble(host,ch.tag);setTimeout(()=>charIntro(id,host),350);return}
+  if(CHAR_INTRO_EL&&CHAR_INTRO_EL.cid===id){charIntroStop();return}
   fxBubble(host,line);setTimeout(()=>{startTalk(host,Math.min(3200,900+line.length*75));speak(line,ch,host)},kind==='laugh'?1000:350);
 }
 // لمس شخصية على الطاولة
@@ -2904,7 +2922,7 @@ function openVoices(){
   ${CHARS.map(c=>{const v=P.voices[c.id]||{};return `<div class="vrow"><img src="${A[c.id]}"><div><b>${c.name}</b>
    <label>النبرة</label><input type="range" min="0.4" max="2" step="0.05" value="${v.pitch??c.pitch}" oninput="setV('${c.id}','pitch',this.value)">
    <label>السرعة</label><input type="range" min="0.6" max="1.6" step="0.05" value="${v.rate??c.rate}" oninput="setV('${c.id}','rate',this.value)"></div>
-   <button class="ab" onclick="P.voice=true;speak('${c.meld[0]}',CHARS.find(x=>x.id==='${c.id}'))">▶︎</button></div>`}).join('')}
+   <button class="ab" onclick="${CHAR_INTRO[c.id]?`charIntro('${c.id}')`:`P.voice=true;speak('${c.meld[0]}',CHARS.find(x=>x.id==='${c.id}'))`}">▶︎</button></div>`}).join('')}
   <div class="row"><span>تشغيل أصوات الشخصيات أثناء اللعب</span><input type="checkbox" ${P.voice?'checked':''} onchange="P.voice=this.checked;save()"></div>
   <div class="small">${arVoice?'':'ملاحظة: إذا ما سمعت صوت عربي، ثبّت اللغة العربية في إعدادات النطق في جوالك.'}</div>
   <button class="ab close" onclick="closeModal()">إغلاق</button>`);
