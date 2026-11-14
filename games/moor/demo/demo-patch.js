@@ -1,6 +1,6 @@
 /* ===== نسخة تجريبية للعرض على المشتري ===== */
 (function(){
-  var UNTIL=Date.parse('2026-11-15T00:00:00+03:00');
+  var UNTIL=Date.parse('__UNTIL__');
   var css=document.createElement('style');
   css.textContent='#demoWm{position:fixed;inset:0;pointer-events:none;z-index:99998;overflow:hidden}'+
     '#demoWm i{position:absolute;left:-50%;width:200%;text-align:center;transform:rotate(-28deg);font:900 34px Cairo,sans-serif;color:rgba(246,220,147,.07);white-space:nowrap;letter-spacing:6px}'+
@@ -12,7 +12,7 @@
   var wm=document.createElement('div');wm.id='demoWm';var h='';
   for(var k=0;k<14;k++)h+='<i style="top:'+(k*9-10)+'%">نسخة تجريبية • مور • نسخة تجريبية • مور • نسخة تجريبية</i>';
   wm.innerHTML=h;document.body.appendChild(wm);
-  var tag=document.createElement('div');tag.id='demoTag';tag.textContent='نسخة تجريبية • تنتهي ١٥ نوفمبر';document.body.appendChild(tag);
+  var tag=document.createElement('div');tag.id='demoTag';tag.textContent='نسخة تجريبية • تنتهي __UNTIL_LABEL__';document.body.appendChild(tag);
   function ended(){var e=document.getElementById('demoEnd');if(e)return;e=document.createElement('div');e.id='demoEnd';
     e.innerHTML='<b>انتهت النسخة التجريبية</b><div>شكراً لتجربة لعبة «مور».<br>للنسخة الكاملة تواصل مع المالك.</div>';document.body.appendChild(e);
     try{speechSynthesis.cancel()}catch(x){}}
