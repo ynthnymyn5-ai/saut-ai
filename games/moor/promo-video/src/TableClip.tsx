@@ -12,6 +12,7 @@ const VID = 9 * S; // slowed table video length
 const HOLD = 40; // zoom on the last frame
 const END = 120; // end card
 export const TC_FRAMES = VID + HOLD + END;
+export const TC_CLIP = VID + HOLD;
 
 type BubbleProps = { from: number; to: number; who: string; text: string; style: React.CSSProperties; tail: "down" | "up" | "left" | "right"; big?: boolean };
 
@@ -84,7 +85,7 @@ const EndCard: React.FC = () => {
   );
 };
 
-export const TableClip: React.FC = () => {
+export const TableClip: React.FC<{ clipOnly?: boolean }> = ({ clipOnly }) => {
   const t = (s: number) => Math.round(s * S);
   return (
     <AbsoluteFill style={{ background: "#000" }}>
@@ -99,11 +100,11 @@ export const TableClip: React.FC = () => {
       <Bubble from={t(7.5)} to={t(9.0)} who="أم صالح" text="ههههه شوفوا وجهه! 😂" tail="up" style={{ left: 760, top: 590 }} />
       <Bubble from={VID + 2} to={VID + HOLD - 4} who="أبو شنب" text="الشنب ما ينكسر يا حبيبي 👑" tail="down" style={{ left: 30, top: 30 }} />
 
-      <Sequence durationInFrames={VID + HOLD}><LogoBadge /></Sequence>
-      <Sequence from={VID + HOLD}><EndCard /></Sequence>
+      {!clipOnly && <Sequence durationInFrames={VID + HOLD}><LogoBadge /></Sequence>}
+      {!clipOnly && <Sequence from={VID + HOLD}><EndCard /></Sequence>}
 
       {/* sound */}
-      <Audio src={staticFile("moor-oud.mp3")} volume={(f) => interpolate(f, [0, 15, TC_FRAMES - 30, TC_FRAMES], [0, 0.75, 0.75, 0], clamp)} />
+      {!clipOnly && <Audio src={staticFile("moor-oud.mp3")} volume={(f) => interpolate(f, [0, 15, TC_FRAMES - 30, TC_FRAMES], [0, 0.75, 0.75, 0], clamp)} />}
       <Sequence from={t(0.6)} durationInFrames={20}><Audio src={staticFile("slap.mp3")} volume={0.45} /></Sequence>
       <Sequence from={t(3.9)} durationInFrames={20}><Audio src={staticFile("slap.mp3")} volume={1} /></Sequence>
       <Sequence from={t(4.15)} durationInFrames={30}><Audio src={staticFile("whoosh.mp3")} volume={0.8} /></Sequence>
