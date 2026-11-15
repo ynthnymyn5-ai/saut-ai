@@ -1,6 +1,7 @@
 import React from "react";
 import { Composition, Folder } from "remotion";
 import { MoorPromo } from "./MoorPromo";
+import { TableClip, TC_FRAMES, TC_H, TC_W } from "./TableClip";
 import { Characters } from "./scenes/Characters";
 import { Gameplay } from "./scenes/Gameplay";
 import { Games } from "./scenes/Games";
@@ -26,6 +27,7 @@ export const RemotionRoot: React.FC = () => (
       ))}
     </Folder>
     {/* 870 frames of scenes minus 5 transitions × 15 frames = 795 frames (26.5 s) */}
+    <Composition id="MoorTable" component={TableClip} width={TC_W} height={TC_H} fps={FPS} durationInFrames={TC_FRAMES} />
     <Composition id="MoorPromo" component={MoorPromo} width={W} height={H} fps={FPS} durationInFrames={795} />
   </>
 );
