@@ -31,6 +31,9 @@ const astOwned=id=>{const a=astOf(id);return !!a&&(!a[8]||!!P.vip||(P.owned.anim
 const AST_IMG={"laugh": "e_laugh", "angry": "e_angry", "sad": "e_surrender", "cry": "e_shock", "shock": "salem", "love": "noura", "cool": "saud", "sleepy": "lulu", "think": "e_think", "dizzy": "bunduq", "nervous": "saqr", "party": "umsaleh", "shush": "muqrin", "facepalm": "mubarak", "flex": "abushanab", "pray": "moudi", "clap": "e_laugh", "rich": "e_happy", "wave": "e_wow", "gloat": "e_gloat", "fire": "nawaf", "scared": "hammoud"};
 // تعبيرات فيديو حقيقية (WebP متحرك) داخل www/stickers
 const AST_VID={abushanab_angry:'stickers/abushanab-angry.webp'};
+// صوت التعبير (يشتغل مع ظهور الملصق إذا مؤثرات الصوت شغالة)
+const AST_SND={abushanab_angry:'stickers/abushanab-angry.mp3'};
+function astSound(id){try{if(!AST_SND[id]||!P.sfx)return;const a=new Audio(AST_SND[id]);a.volume=Math.min(1,sfxVol()*1.15);a.play().catch(()=>{})}catch(e){}}
 function astSVG(id){const a=astOf(id);if(!a)return'';if(AST_VID[id])return `<img class="astv" src="${AST_VID[id]}" alt="${a[1]}" loading="lazy" decoding="async">`;const [,,mdl,br,ey,mo,props,anim]=a,L=42,R=78,EY=54,my=82;let s='';
   s+=`<clipPath id="ast-clip"><rect x="2" y="2" width="116" height="120" rx="18"/></clipPath><image href="${A[AST_IMG[id]]||''}" x="2" y="2" width="116" height="120" preserveAspectRatio="xMidYMid slice" clip-path="url(#ast-clip)"/>`;
   if(props.includes('red'))s+=`<rect class="ap-red" x="2" y="2" width="116" height="120" rx="18" fill="#ff1a0a" style="mix-blend-mode:multiply"/>`;
@@ -71,7 +74,7 @@ function animGridHTML(owned){return `<div class="astgrid">${AST.filter(a=>owned?
 function animShopHTML(){return `<div class="fbanner"><span>تعبيرات متحركة 🎭</span></div><p class="small" style="text-align:center">اشترِ التعبير مرة وحدة واستخدمه في كل مباراة من زر 😄</p>${animGridHTML(false)}`}
 function openAnimShop(){openShop('anim')}
 function buyAnim(id){const a=astOf(id);if(!a||astOwned(id))return;if(P.coins<a[8]){toast('عملاتك ما تكفي 😅');try{if(IAP.on)setTimeout(()=>openShop('coins'),700)}catch(e){}return}
-  P.coins-=a[8];P.owned.anim=(P.owned.anim||[]).concat(id);save();sfx('meld');try{renderHome()}catch(e){}
+  P.coins-=a[8];P.owned.anim=(P.owned.anim||[]).concat(id);save();sfx('meld');setTimeout(()=>astSound(id),400);try{renderHome()}catch(e){}
   openModal(`<div class="astwow">${astSVG(id)}</div><h2 class="goldtxt" style="text-align:center">صار عندك «${a[1]}» 🎉</h2><p class="small" style="text-align:center">تلقاه في زر الإيموجي 😄 وقت اللعب</p><button class="btn-gold close" onclick="openShop('anim')">رجوع للمتجر</button>`)}
 // ردود الكمبيوتر: أحياناً يرسل تعبير متحرك يناسب ردة فعله
 const AST_MOOD={laugh:['laugh','gloat','clap','party'],angry:['angry','fire','facepalm'],happy:['love','party','clap','cool','rich'],shock:['shock','scared','dizzy','nervous'],sad:['sad','cry','facepalm','pray']};
@@ -81,7 +84,7 @@ let AST_T=0;
       const host=i===0?$('#me'):$('#seat'+i),tw=$('#tw');if(!host||!tw)return;const T=tw.getBoundingClientRect(),r=host.getBoundingClientRect();
       const s=document.createElement('div');s.className='sticker astk';s.innerHTML=astSVG(id);
       s.style.left=Math.max(4,Math.min(T.width-110,r.left-T.left+r.width/2-52))+'px';s.style.top=Math.max(4,(i===0?T.height-120:r.top-T.top+r.height/2-52))+'px';
-      tw.appendChild(s);setTimeout(()=>s.remove(),3200);return}
+      tw.appendChild(s);astSound(id);setTimeout(()=>s.remove(),3200);return}
     return st0(i,key)};
   const rc0=window.react;if(typeof rc0==='function')window.react=function(i,kind,line){const r=rc0.apply(this,arguments);
     try{if(i>0&&S&&!S.net&&AST_MOOD[kind]&&Date.now()-AST_T>6000&&Math.random()<.3){AST_T=Date.now();setTimeout(()=>{if(S&&!S.over)window.sticker(i,'a:'+pick(AST_MOOD[kind]))},500)}}catch(e){}return r};
