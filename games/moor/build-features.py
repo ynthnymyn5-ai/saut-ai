@@ -102,7 +102,9 @@ css = r'''
 .astpic{width:64px;height:66px;border-radius:12px;background:#fff8e6;overflow:hidden}
 .ast{width:100%;height:100%;overflow:visible;display:block}
 .astk{width:104px!important;height:108px!important;background:#fff8e6;border-radius:20px;border:3px solid #e3b75b;box-shadow:0 10px 24px rgba(0,0,0,.45);padding:2px;animation:astPop .35s cubic-bezier(.3,1.6,.5,1)}
-.astk img{display:none}
+.astk img:not(.astv){display:none}
+.astv{width:100%;height:100%;object-fit:cover;border-radius:12px;display:block}
+.astk .astv{border-radius:16px}
 .astwow{width:150px;height:155px;margin:6px auto;background:#fff8e6;border-radius:24px;border:3px solid #e3b75b}
 @keyframes astPop{from{transform:scale(.2) rotate(-12deg)}to{transform:none}}
 .ast-body,.ast text,.ast g,.ast rect,.ast path,.ast circle{transform-box:fill-box;transform-origin:center}

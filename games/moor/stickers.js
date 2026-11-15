@@ -2,6 +2,7 @@
    «مور» — تعبيرات متحركة (رسم أصلي بالـ SVG) تنشرى من المتجر وتنرسل وقت اللعب
    ===================================================================== */
 const AST=[ // id, name, model(m=رجل w=امرأة), brows, eyes, mouth, props, anim, price
+  ['abushanab_angry','أبو شنب معصّب 🔥','m','','','',[],'none',5000],
   ['laugh','ضحك','m','up','happy','laugh',['joy'],'bounce',0],
   ['angry','معصّب','m','angry','angry','grit',['steam','vein','red'],'shake',0],
   ['sad','زعلان','w','sad','teary','frown',['tear'],'droop',0],
@@ -28,7 +29,9 @@ const AST=[ // id, name, model(m=رجل w=امرأة), brows, eyes, mouth, props
 const astOf=id=>AST.find(a=>a[0]===id);
 const astOwned=id=>{const a=astOf(id);return !!a&&(!a[8]||!!P.vip||(P.owned.anim||[]).includes(id))};
 const AST_IMG={"laugh": "e_laugh", "angry": "e_angry", "sad": "e_surrender", "cry": "e_shock", "shock": "salem", "love": "noura", "cool": "saud", "sleepy": "lulu", "think": "e_think", "dizzy": "bunduq", "nervous": "saqr", "party": "umsaleh", "shush": "muqrin", "facepalm": "mubarak", "flex": "abushanab", "pray": "moudi", "clap": "e_laugh", "rich": "e_happy", "wave": "e_wow", "gloat": "e_gloat", "fire": "nawaf", "scared": "hammoud"};
-function astSVG(id){const a=astOf(id);if(!a)return'';const [,,mdl,br,ey,mo,props,anim]=a,L=42,R=78,EY=54,my=82;let s='';
+// تعبيرات فيديو حقيقية (WebP متحرك) داخل www/stickers
+const AST_VID={abushanab_angry:'stickers/abushanab-angry.webp'};
+function astSVG(id){const a=astOf(id);if(!a)return'';if(AST_VID[id])return `<img class="astv" src="${AST_VID[id]}" alt="${a[1]}" loading="lazy" decoding="async">`;const [,,mdl,br,ey,mo,props,anim]=a,L=42,R=78,EY=54,my=82;let s='';
   s+=`<clipPath id="ast-clip"><rect x="2" y="2" width="116" height="120" rx="18"/></clipPath><image href="${A[AST_IMG[id]]||''}" x="2" y="2" width="116" height="120" preserveAspectRatio="xMidYMid slice" clip-path="url(#ast-clip)"/>`;
   if(props.includes('red'))s+=`<rect class="ap-red" x="2" y="2" width="116" height="120" rx="18" fill="#ff1a0a" style="mix-blend-mode:multiply"/>`;
   if(props.includes('blue'))s+=`<rect class="ap-red" x="2" y="2" width="116" height="120" rx="18" fill="#3a6cff" style="mix-blend-mode:multiply"/>`;
