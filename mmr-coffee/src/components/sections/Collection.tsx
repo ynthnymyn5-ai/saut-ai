@@ -2,7 +2,8 @@
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useRef, useState } from "react";
-import { CURRENCY, products } from "@/lib/data";
+import { CURRENCY, formatPrice, products } from "@/lib/data";
+import { media } from "@/lib/media";
 import { useCapability } from "@/lib/capability";
 import { LazyCanvas } from "../ui/LazyCanvas";
 import { LuxButton } from "../ui/Magnetic";
@@ -87,8 +88,8 @@ export function Collection({ go }: { go: (id: string) => void }) {
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-smoke">From</p>
                   <p className="font-display text-5xl font-bold tabular-nums text-cream">
-                    <span className="mr-1 align-top text-xl text-gold">{CURRENCY}</span>
-                    {p.price}
+                    {formatPrice(p.price)}
+                    <span className="ml-2 align-top font-mono text-xs tracking-[0.2em] text-gold">{CURRENCY}</span>
                   </p>
                 </div>
                 <LuxButton onClick={() => setDetail(true)}>Discover product</LuxButton>
@@ -139,6 +140,17 @@ export function Collection({ go }: { go: (id: string) => void }) {
                   Close
                 </button>
               </div>
+              {media.product(p.id) && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={media.product(p.id)!.src}
+                  width={media.product(p.id)!.width}
+                  height={media.product(p.id)!.height}
+                  alt={p.name}
+                  decoding="async"
+                  className="aspect-[4/3] w-full rounded-2xl object-cover"
+                />
+              )}
               <h3 className="font-display text-5xl font-extrabold leading-[0.9] text-cream">{p.name}</h3>
               <p className="font-serif text-2xl italic text-gold-soft">{p.tagline}</p>
               <p className="text-cream/70">{p.description}</p>
@@ -156,8 +168,8 @@ export function Collection({ go }: { go: (id: string) => void }) {
               </div>
               <div className="mt-auto flex items-end justify-between gap-4">
                 <p className="font-display text-5xl font-bold tabular-nums text-cream">
-                  <span className="mr-1 align-top text-xl text-gold">{CURRENCY}</span>
-                  {p.price}
+                  {formatPrice(p.price)}
+                  <span className="ml-2 align-top font-mono text-xs tracking-[0.2em] text-gold">{CURRENCY}</span>
                 </p>
                 <LuxButton
                   onClick={() => {

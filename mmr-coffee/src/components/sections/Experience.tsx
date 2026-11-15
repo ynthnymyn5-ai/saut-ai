@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import { useCapability } from "@/lib/capability";
 import { LazyCanvas } from "../ui/LazyCanvas";
 import { FadeUp, RevealLines } from "../ui/Reveal";
+import { media } from "@/lib/media";
 
 const LiquidField = dynamic(() => import("../three/LiquidField").then((m) => m.LiquidField), { ssr: false });
 
@@ -14,15 +15,32 @@ const moments = [
 
 export function Experience() {
   const cap = useCapability();
+  const film = media.experience();
   return (
     <section id="experience" className="relative min-h-[110svh] overflow-hidden bg-roast py-32" aria-labelledby="exp-title">
-      <LazyCanvas
-        className="absolute inset-0"
-        camera={{ position: [0, 0, 5], fov: 45 }}
-        fallback={<div className="liquid-fallback absolute inset-0" />}
-      >
-        <LiquidField lite={cap.tier !== "high"} />
-      </LazyCanvas>
+      {film ? (
+        <video
+          className="absolute inset-0 h-full w-full object-cover"
+          poster={film.poster}
+          autoPlay={!cap.reduced}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden
+        >
+          {film.webm && <source src={film.webm} type="video/webm" />}
+          <source src={film.src} type="video/mp4" />
+        </video>
+      ) : (
+        <LazyCanvas
+          className="absolute inset-0"
+          camera={{ position: [0, 0, 5], fov: 45 }}
+          fallback={<div className="liquid-fallback absolute inset-0" />}
+        >
+          <LiquidField lite={cap.tier !== "high"} />
+        </LazyCanvas>
+      )}
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-void via-transparent to-void" />
 
       <div className="gutter relative z-10 flex min-h-[80svh] flex-col justify-between gap-24">

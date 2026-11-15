@@ -3,3 +3,6 @@ node_modules
 out
 *.tsbuildinfo
 next-env.d.ts
+media-src/**
+!media-src/README.md
+!media-src/*/

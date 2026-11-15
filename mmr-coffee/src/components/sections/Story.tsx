@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { LazyCanvas } from "../ui/LazyCanvas";
 import { FadeUp, RevealLines } from "../ui/Reveal";
 import { StageFallback } from "../ui/Fallbacks";
+import { media } from "@/lib/media";
 
 const Sculpture = dynamic(() => import("../three/Sculpture").then((m) => m.Sculpture), { ssr: false });
 
@@ -17,6 +18,7 @@ const recipe = [
 export function Story() {
   const drag = useRef(0);
   const start = useRef<{ x: number; d: number } | null>(null);
+  const photo = media.story();
   return (
     <section id="story" className="relative bg-void" aria-labelledby="story-title">
       <div className="grid min-h-[100svh] grid-cols-1 lg:grid-cols-2">
@@ -48,7 +50,7 @@ export function Story() {
         </div>
         <div
           className="relative h-[70svh] touch-pan-y lg:h-auto"
-          data-cursor="Drag"
+          data-cursor={photo ? undefined : "Drag"}
           onPointerDown={(e) => (start.current = { x: e.clientX, d: drag.current })}
           onPointerMove={(e) => {
             if (start.current) drag.current = start.current.d + (e.clientX - start.current.x) * 0.012;
@@ -56,12 +58,20 @@ export function Story() {
           onPointerUp={() => (start.current = null)}
           onPointerLeave={() => (start.current = null)}
         >
-          <LazyCanvas className="absolute inset-0" camera={{ position: [0, 0, 9.5], fov: 35 }} fallback={<StageFallback />}>
-            <Sculpture drag={drag} />
-          </LazyCanvas>
+          {photo ? (
+            <div className="absolute inset-0 overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photo.src} width={photo.width} height={photo.height} alt="Inside MMR" loading="lazy" decoding="async" className="story-kenburns h-full w-full object-cover" />
+              <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-void via-transparent to-transparent" />
+            </div>
+          ) : (
+            <LazyCanvas className="absolute inset-0" camera={{ position: [0, 0, 9.5], fov: 35 }} fallback={<StageFallback />}>
+              <Sculpture drag={drag} />
+            </LazyCanvas>
+          )}
           <div className="pointer-events-none absolute bottom-8 left-8 right-8 flex justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-smoke">
-            <span>Fig. 01 — Arabica, roasted &amp; raw gold</span>
-            <span>Drag to turn</span>
+            <span>{photo ? "Fig. 01 — At the bar" : "Fig. 01 — Arabica, roasted & raw gold"}</span>
+            {!photo && <span>Drag to turn</span>}
           </div>
         </div>
       </div>

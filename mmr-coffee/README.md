@@ -1,6 +1,6 @@
 # MMR — Beyond Coffee
 
-An immersive 3D website for MMR, a luxury specialty coffee brand. Every 3D object is built in code (no downloaded models, textures or HDRs), so the site ships light and works offline.
+An immersive 3D website for MMR, a luxury specialty coffee brand. Every 3D object is built in code (no downloaded models, textures or HDRs). Real photography and film plug in through `media-src/` (see below).
 
 ```bash
 cd mmr-coffee
@@ -34,7 +34,19 @@ Interaction layer: custom cursor with labels, magnetic buttons, masked line reve
 - `prefers-reduced-motion`: no smooth scroll, no preloader animation, no liquid wipe, slowed scenes.
 - Drink illustrations are generated SVG (≈1 KB each) rather than photos.
 
+## Real photos and video
+1. Put the brand's files in `media-src/` using the names in [`media-src/README.md`](media-src/README.md) (story photo, experience film, product photos, one photo per menu drink).
+2. Run `npm run media` (needs ffmpeg). Images become WebP (menu 900 px, products 1400 px, story 2000 px); the film becomes MP4 + WebM (1600 px, max 20 s, no audio) with a poster frame.
+3. Run `npm run build`. Each slot shows the real media automatically; empty slots keep the 3D scene or illustration.
+
+| Slot | Replaces |
+|---|---|
+| `story` | the bean sculpture in Our Story |
+| `experience` | the liquid shader behind "More than a coffee" |
+| `products/<id>` | adds a photograph to each product sheet (the 3D showcase stays) |
+| `menu/<drink>` | the generated drink illustration in the menu and hover preview |
+
 ## Edit content
-- Products, menu, prices and currency: `src/lib/data.ts` (`CURRENCY` is `$`).
+- Products, menu and prices: `src/lib/data.ts`. Prices are Kuwaiti dinar, shown with three decimals (`formatPrice`).
 - Social, contact, location and privacy links: `links` in `src/lib/data.ts`. They currently point to placeholders.
 - Colors and fonts: `tailwind.config.ts`, `src/app/layout.tsx`.
