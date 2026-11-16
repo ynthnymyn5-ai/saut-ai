@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>لوحة الإدارة | معهد تيك ماركن</title>
+  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="admin-body">
+  <header class="admin-top">
+    <div class="container nav-wrap">
+      <a href="/" class="brand brand-light">
+        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="currentColor"/><path d="M11 21l6 6 12-14" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="brand-text"><strong>Tickmarkin</strong><small>لوحة الإدارة</small></span>
+      </a>
+      <button class="btn btn-ghost btn-sm hidden" id="logout">تسجيل الخروج</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="login-view" class="container hidden">
+      <form class="form-card login-box" id="login-form">
+        <h1 style="font-size:1.5rem">دخول الإدارة</h1>
+        <p class="muted">أدخل كلمة مرور لوحة الإدارة.</p>
+        <div class="form-alert hidden" role="alert"></div>
+        <div class="field"><label for="password">كلمة المرور</label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn btn-primary" type="submit" style="width:100%;margin-top:16px">دخول</button>
+      </form>
+    </section>
+
+    <section id="dash-view" class="container admin-wrap hidden">
+      <div class="kpis" id="kpis"></div>
+      <div class="tabs" role="tablist">
+        <button class="pill" role="tab" data-tab="regs" aria-pressed="true">طلبات التسجيل</button>
+        <button class="pill" role="tab" data-tab="msgs" aria-pressed="false">الرسائل <span id="unread-badge"></span></button>
+      </div>
+
+      <div id="tab-regs">
+        <div class="toolbar">
+          <input type="search" id="f-q" placeholder="بحث بالاسم أو الجوال أو رقم الطلب" aria-label="بحث">
+          <select id="f-status" aria-label="الحالة"><option value="">كل الحالات</option></select>
+          <select id="f-course" aria-label="الدورة"><option value="">كل الدورات</option></select>
+          <a class="btn btn-outline btn-sm" href="/api/admin/export.csv">تصدير Excel (CSV)</a>
+          <button class="btn btn-outline btn-sm" id="refresh">تحديث</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>الطلب</th><th>المتدرب</th><th>الدورة</th><th>الحضور</th><th>ملاحظات</th><th>الحالة</th><th></th></tr></thead>
+            <tbody id="regs-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="tab-msgs" class="hidden">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>التاريخ</th><th>المرسل</th><th>الموضوع</th><th>الرسالة</th><th></th></tr></thead>
+            <tbody id="msgs-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="/js/admin.js" defer></script>
+</body>
+</html>

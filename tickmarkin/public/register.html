@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>التسجيل في دورة | معهد تيك ماركن</title>
+  <meta name="description" content="سجّل في دورات معهد تيك ماركن خلال دقيقتين.">
+  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="register">
+<!--#header-->
+<main id="main">
+  <section class="page-hero">
+    <div class="container">
+      <div class="crumbs"><a href="/">الرئيسية</a> / التسجيل</div>
+      <h1>التسجيل في دورة</h1>
+      <p>عبّئ النموذج وسيتواصل معك فريق القبول خلال يوم عمل لتأكيد مقعدك.</p>
+    </div>
+  </section>
+  <section class="block">
+    <div class="container" id="register-wrap">
+      <div class="layout-side">
+        <form class="form-card" id="register-form" novalidate>
+          <div class="form-alert hidden" role="alert"></div>
+          <div class="form-grid">
+            <div class="field full" data-field="courseId"><label for="courseId">الدورة <span class="req">*</span></label><select id="courseId" name="courseId" required><option value="">جارٍ التحميل…</option></select><div class="err"></div></div>
+            <div class="field" data-field="name"><label for="r-name">الاسم الكامل <span class="req">*</span></label><input id="r-name" name="name" type="text" autocomplete="name" required><div class="err"></div></div>
+            <div class="field" data-field="phone"><label for="r-phone">رقم الجوال <span class="req">*</span></label><input id="r-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="05xxxxxxxx" required><div class="err"></div></div>
+            <div class="field" data-field="email"><label for="r-email">البريد الإلكتروني</label><input id="r-email" name="email" type="email" autocomplete="email" dir="ltr"><div class="err"></div></div>
+            <div class="field" data-field="studentType"><label for="r-type">الفئة</label>
+              <select id="r-type" name="studentType"><option>موظف / باحث عن عمل</option><option>طالب جامعي</option><option>طالب مدرسة</option><option>ولي أمر يسجّل ابنه</option><option>جهة / شركة</option></select><div class="err"></div></div>
+            <div class="field full" data-field="mode"><label>طريقة الحضور <span class="req">*</span></label>
+              <div class="radio-row"><label><input type="radio" name="mode" value="حضوري" checked> حضوري في المعهد</label><label><input type="radio" name="mode" value="عن بُعد"> عن بُعد (بث مباشر)</label></div><div class="err"></div></div>
+            <div class="field full" data-field="notes"><label for="r-notes">ملاحظات (اختياري)</label><textarea id="r-notes" name="notes" placeholder="مثلاً: الوقت المفضّل للتواصل، مستواك الحالي، أو أي سؤال"></textarea><div class="err"></div></div>
+            <div class="hp" aria-hidden="true"><label>اتركه فارغاً<input name="website" tabindex="-1" autocomplete="off"></label></div>
+            <div class="field full" data-field="agree"><label class="check"><input type="checkbox" name="agree"> <span>أوافق على شروط التسجيل وسياسة الاسترداد، وعلى تواصل المعهد معي بخصوص الطلب.</span></label><div class="err"></div></div>
+            <div class="full"><button class="btn btn-primary" type="submit" style="min-width:200px">إرسال طلب التسجيل</button></div>
+          </div>
+        </form>
+        <aside class="card side-card" id="selected-course"></aside>
+      </div>
+    </div>
+  </section>
+</main>
+<!--#footer-->
+<script src="/js/main.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>تواصل معنا | معهد تيك ماركن</title>
+  <meta name="description" content="تواصل مع معهد تيك ماركن عبر الهاتف أو واتساب أو البريد أو نموذج المراسلة.">
+  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="contact">
+<!--#header-->
+<main id="main">
+  <section class="page-hero">
+    <div class="container">
+      <div class="crumbs"><a href="/">الرئيسية</a> / تواصل معنا</div>
+      <h1>تواصل معنا</h1>
+      <p>نسعد بالرد على استفساراتك حول الدورات والتسجيل والشراكات.</p>
+    </div>
+  </section>
+  <section class="block">
+    <div class="container layout-side">
+      <form class="form-card" id="contact-form" novalidate>
+        <h2 style="font-size:1.4rem">أرسل لنا رسالة</h2>
+        <div class="form-alert hidden" role="alert"></div>
+        <div class="form-grid">
+          <div class="field" data-field="name"><label for="c-name">الاسم <span class="req">*</span></label><input id="c-name" name="name" type="text" autocomplete="name" required><div class="err"></div></div>
+          <div class="field" data-field="contact"><label for="c-contact">البريد أو الجوال <span class="req">*</span></label><input id="c-contact" name="contact" type="text" autocomplete="email" required><div class="err"></div></div>
+          <div class="field full" data-field="subject"><label for="c-subject">الموضوع</label>
+            <select id="c-subject" name="subject"><option>استفسار عن دورة</option><option>التسجيل والرسوم</option><option>دورات للشركات والجهات</option><option>الانضمام كمدرب</option><option>أخرى</option></select><div class="err"></div></div>
+          <div class="field full" data-field="message"><label for="c-message">رسالتك <span class="req">*</span></label><textarea id="c-message" name="message" required></textarea><div class="err"></div></div>
+          <div class="hp" aria-hidden="true"><label>اتركه فارغاً<input name="website" tabindex="-1" autocomplete="off"></label></div>
+          <div class="full"><button class="btn btn-primary" type="submit">إرسال الرسالة</button></div>
+        </div>
+      </form>
+      <aside class="card side-card">
+        <h3>بيانات التواصل</h3>
+        <ul class="info-list">
+          <li><span>الهاتف</span><span><a href="tel:+966500000000" dir="ltr">+966 50 000 0000</a></span></li>
+          <li><span>واتساب</span><span><a href="https://wa.me/966500000000" target="_blank" rel="noopener">راسلنا الآن</a></span></li>
+          <li><span>البريد</span><span><a href="mailto:info@tickmarkin.com">info@tickmarkin.com</a></span></li>
+          <li><span>العنوان</span><span>الرياض، حي العليا، طريق الملك فهد</span></li>
+          <li><span>الدوام</span><span>الأحد – الخميس، 9ص – 9م</span></li>
+        </ul>
+        <div class="map-box" style="margin-top:18px">
+          <iframe title="موقع المعهد على الخريطة" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Olaya,Riyadh&output=embed"></iframe>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+<!--#footer-->
+<script src="/js/main.js" defer></script>
+</body>
+</html>
