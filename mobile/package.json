@@ -1,6 +1,7 @@
 {
   "name": "saut-ai-mobile",
-  "version": "1.0.0",
+  "version": "1.3.0",
+  "androidVersionCode": 3,
   "private": true,
   "description": "SAUT AI Android/iOS shell (Capacitor) around the live web app.",
   "scripts": {

@@ -20,5 +20,5 @@
     "captureInput": true,
     "webContentsDebuggingEnabled": false
   },
-  "appendUserAgent": "SautAIApp/1.2"
+  "appendUserAgent": "SautAIApp/1.3"
 }

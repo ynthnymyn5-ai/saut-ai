@@ -41,6 +41,13 @@ jobs:
           # microphone for the voice assistant and live voice tests
           sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />#' $M
           grep -n "permission" $M | tee -a ../build-android.log
+          # app version from mobile/package.json (versionCode must go up for every release)
+          VN=$(node -p "require('./package.json').version")
+          VC=$(node -p "require('./package.json').androidVersionCode")
+          G=android/app/build.gradle
+          sed -i -E "s/versionCode [0-9]+/versionCode $VC/; s/versionName \"[^\"]*\"/versionName \"$VN\"/" $G
+          grep -nE "versionCode|versionName" $G | tee -a ../build-android.log
+          grep -q "versionCode $VC" $G && grep -q "versionName \"$VN\"" $G || { echo "version not applied to $G"; exit 1; }
           npx cap sync android 2>&1 | tee -a ../build-android.log
       - name: Build debug APK
         working-directory: mobile/android
