@@ -37,15 +37,14 @@ jobs:
         run: |
           npx cap add android 2>&1 | tee -a ../build-android.log
           npm run assets 2>&1 | tee -a ../build-android.log || echo "assets step failed (default icon kept)" | tee -a ../build-android.log
-          M=android/app/src/main/AndroidManifest.xml
-          # microphone for the voice assistant and live voice tests
-          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />#' $M
-          grep -n "permission" $M | tee -a ../build-android.log
+          # permissions, allowBackup=false, App Links and the app version (scripts/patch-android.mjs)
+          node scripts/patch-android.mjs 2>&1 | tee -a ../build-android.log
+          test ${PIPESTATUS[0]} -eq 0
           npx cap sync android 2>&1 | tee -a ../build-android.log
       - name: Build debug APK
         working-directory: mobile/android
         run: ./gradlew assembleDebug --no-daemon 2>&1 | tail -40 | tee -a ../../build-android.log
-      - name: Build signed release bundle (if keystore secrets exist)
+      - name: Build signed release APK + bundle (if keystore secrets exist)
         if: ${{ env.KS != '' }}
         env:
           KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -55,13 +54,17 @@ jobs:
         working-directory: mobile/android
         run: |
           echo "$KS" | base64 -d > release.jks
-          ./gradlew bundleRelease --no-daemon -Pandroid.injected.signing.store.file=$PWD/release.jks -Pandroid.injected.signing.store.password="$KS_PASS" -Pandroid.injected.signing.key.alias="$KEY_ALIAS" -Pandroid.injected.signing.key.password="$KEY_PASS" 2>&1 | tail -20 | tee -a ../../build-android.log
+          ./gradlew assembleRelease bundleRelease --no-daemon -Pandroid.injected.signing.store.file=$PWD/release.jks -Pandroid.injected.signing.store.password="$KS_PASS" -Pandroid.injected.signing.key.alias="$KEY_ALIAS" -Pandroid.injected.signing.key.password="$KEY_PASS" 2>&1 | tail -20 | tee -a ../../build-android.log
+          # SHA-256 of the release key: put it in ANDROID_CERT_SHA256 on Vercel so App Links verify
+          keytool -list -v -keystore release.jks -storepass "$KS_PASS" -alias "$KEY_ALIAS" | grep -i "SHA256:" | sed 's/^\s*/release cert /' | tee -a ../../build-android.log
+          rm -f release.jks
       - name: Publish to android-build branch
         if: always()
         working-directory: .
         run: |
           mkdir -p /tmp/out
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk /tmp/out/saut-ai.apk 2>/dev/null || true
+          cp mobile/android/app/build/outputs/apk/release/app-release.apk /tmp/out/saut-ai-release.apk 2>/dev/null || true
           cp mobile/android/app/build/outputs/bundle/release/app-release.aab /tmp/out/saut-ai.aab 2>/dev/null || true
           cp build-android.log /tmp/out/ 2>/dev/null || true
           echo "${GITHUB_SHA}" > /tmp/out/commit.txt
@@ -75,5 +78,6 @@ jobs:
           name: saut-ai-android
           path: |
             mobile/android/app/build/outputs/apk/debug/app-debug.apk
+            mobile/android/app/build/outputs/apk/release/app-release.apk
             mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: warn

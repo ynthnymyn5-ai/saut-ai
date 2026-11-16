@@ -89,7 +89,7 @@ export function AdminPanel({ data }: { data: AdminData }) {
       <header className="sticky top-0 z-30 border-b border-line bg-ink/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-8">
           <div className="flex items-center gap-3"><Logo size={28} /><Badge tone="blue">ADMIN</Badge>{data.demo && <DemoBadge />}</div>
-          <div className="flex items-center gap-2"><LanguageSwitcher /><Link href="/dashboard" className="flex items-center gap-1 text-xs text-muted hover:text-white"><ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />{ar ? "لوحة العميل" : "Customer dashboard"}</Link></div>
+          <div className="flex items-center gap-2"><LanguageSwitcher /><Link href="/dashboard" aria-label={ar ? "لوحة العميل" : "Customer dashboard"} className="flex items-center gap-1 text-xs text-muted hover:text-white"><ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" /><span className="hidden sm:inline">{ar ? "لوحة العميل" : "Customer dashboard"}</span></Link></div>
         </div>
         <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-2 sm:px-8">
           {TABS.map(([k, I, en, arL]) => (

@@ -95,7 +95,7 @@ export function EmployeeWizard({ demo }: { demo: boolean }) {
   const Next = locale === "ar" ? ChevronLeft : ChevronRight;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <div className="grid gap-6 lg:grid-cols-[1fr_320px] [&>*]:min-w-0">
       <div>
         {/* progress */}
         <div className="mb-6 flex gap-1.5 overflow-x-auto pb-1">

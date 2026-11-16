@@ -4,6 +4,7 @@ import { getDict } from "@/lib/i18n/server";
 import { I18nProvider } from "@/lib/i18n/client";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ErrorReporter } from "@/components/ErrorReporter";
+import { NativeBridge } from "@/components/native/NativeBridge";
 
 export const metadata: Metadata = {
   title: { default: "SAUT AI — Your Business. Our Intelligence.", template: "%s · SAUT AI" },
@@ -33,7 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <ErrorReporter />
         <I18nProvider locale={locale}>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>{children}<NativeBridge /></ToastProvider>
         </I18nProvider>
       </body>
     </html>

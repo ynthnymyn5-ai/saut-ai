@@ -1,6 +1,7 @@
 {
   "name": "saut-ai-mobile",
-  "version": "1.0.0",
+  "version": "1.4.0",
+  "androidVersionCode": 4,
   "private": true,
   "description": "SAUT AI Android/iOS shell (Capacitor) around the live web app.",
   "scripts": {
@@ -10,8 +11,15 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/browser": "^7.0.5",
     "@capacitor/core": "^7.0.0",
-    "@capacitor/ios": "^7.0.0"
+    "@capacitor/haptics": "^7.0.5",
+    "@capacitor/ios": "^7.0.0",
+    "@capacitor/network": "^7.0.4",
+    "@capacitor/share": "^7.0.4",
+    "@capacitor/splash-screen": "^7.0.5",
+    "@capacitor/status-bar": "^7.0.6"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

@@ -1,10 +1,11 @@
 "use client";
-import { Bike, Camera, Link2, MapPin, Package, Plus, Printer, Send, ShoppingBag, Trash2 } from "lucide-react";
+import { Bike, Camera, Link2, MapPin, Package, Plus, Printer, Send, Share2, ShoppingBag, Trash2 } from "lucide-react";
 import { SalesAnalytics } from "@/components/dashboard/SalesAnalytics";
 import { waMeUrl } from "@/lib/links";
 import { DeliveryZones } from "@/components/dashboard/DeliveryZones";
 import { MenuImport } from "@/components/dashboard/MenuImport";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { canShare, shareLink } from "@/lib/native";
 import { Badge, Button, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui/primitives";
 import { ErrorNote, useApi, useMutate, useTr } from "@/components/os/shared";
 import { useToast } from "@/components/ui/Toast";
@@ -29,6 +30,8 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
   const mutate = useMutate();
   const toastApi = useToast();
   const toast = (title: string) => toastApi({ kind: "success", title });
+  const [shareable, setShareable] = useState(false);
+  useEffect(() => setShareable(canShare()), []);
   const [tab, setTab] = useState<"orders" | "products" | "zones" | "sales">("orders");
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
@@ -132,7 +135,7 @@ export function OrdersView({ demo, canEdit, canManageProducts }: { demo: boolean
                           <div className="mt-3 flex flex-wrap gap-2">
                             <a href={`/print/order/${o.id}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs hover:bg-white/5"><Printer className="h-3.5 w-3.5" />{tr("Print", "طباعة")}</a>
                             {detail.data.order.trackingUrl && <>
-                              <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(detail.data!.order.trackingUrl!); toast(tr("Tracking link copied", "تم نسخ رابط التتبع")); } catch { /* clipboard blocked */ } }} className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs hover:bg-white/5"><Link2 className="h-3.5 w-3.5" />{tr("Copy tracking link", "نسخ رابط التتبع")}</button>
+                              <button type="button" onClick={async () => { const r = await shareLink({ title: `${tr("Order", "طلب")} #${o.order_no}`, text: `${tr("Follow your order", "تابع طلبك")} #${o.order_no}`, url: detail.data!.order.trackingUrl! }); if (r === "copied") toast(tr("Tracking link copied", "تم نسخ رابط التتبع")); }} className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs hover:bg-white/5">{shareable ? <Share2 className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}{shareable ? tr("Share tracking link", "مشاركة رابط التتبع") : tr("Copy tracking link", "نسخ رابط التتبع")}</button>
                               {waMeUrl(o.customer?.phone, `${tr("Follow your order", "تابع طلبك")} #${o.order_no}: ${detail.data.order.trackingUrl}`) && <a href={waMeUrl(o.customer?.phone, `${tr("Follow your order", "تابع طلبك")} #${o.order_no}: ${detail.data.order.trackingUrl}`)!} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs hover:bg-white/5"><Send className="h-3.5 w-3.5" />{tr("Send link on WhatsApp", "أرسل الرابط بالواتساب")}</a>}
                             </>}
                           </div>
