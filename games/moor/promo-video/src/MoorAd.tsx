@@ -92,9 +92,9 @@ const Music: React.FC = () => {
 const T = 15;
 export const AD_FRAMES = TC_CLIP + 150 + 180 + 180 + 150 + 150 + 150 - 6 * T;
 
-export const MoorAd: React.FC = () => (
+export const MoorAd: React.FC<{ music?: boolean }> = ({ music = true }) => (
   <>
-    <Music />
+    {music && <Music />}
     <TransitionSeries>
       <TransitionSeries.Sequence durationInFrames={TC_CLIP}><TableVertical /></TransitionSeries.Sequence>
       <TransitionSeries.Transition presentation={fade()} timing={linearTiming({ durationInFrames: T })} />
