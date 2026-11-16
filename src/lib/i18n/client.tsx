@@ -26,7 +26,11 @@ export function useSetLocale() {
       document.cookie = `saut_locale=${l}; path=/; max-age=31536000; samesite=lax`;
       document.documentElement.lang = l;
       document.documentElement.dir = l === "ar" ? "rtl" : "ltr";
-      start(() => router.refresh());
+      // On a language URL (/ar, /en) load the other one: both serve the same route, so a client
+      // navigation would keep the layout (and its language) as it was. Elsewhere the cookie is enough.
+      const p = window.location.pathname;
+      if (p === "/ar" || p === "/en") window.location.replace(`/${l}${window.location.hash}`);
+      else start(() => router.refresh());
     },
   };
 }

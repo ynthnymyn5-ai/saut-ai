@@ -11,9 +11,19 @@ const PROTECTED = ["/dashboard", "/admin", "/print"];
  *    (Admin *role* checks happen server-side in the admin layout and every admin API route.)
  */
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next({ request: req });
+  // /ar and /en are the homepage in one language (own URLs for search engines and shared links); ?lang=
+  // does the same on any page. Either wins over the cookie and applies to this request too.
+  const path0 = req.nextUrl.pathname;
+  const lang = path0 === "/ar" || path0 === "/en" ? path0.slice(1) : req.nextUrl.searchParams.get("lang");
+  const forced = lang === "ar" || lang === "en" ? lang : null;
+  if (forced) req.cookies.set(LOCALE_COOKIE, forced);
+  const res = path0 === "/ar" || path0 === "/en"
+    ? NextResponse.rewrite(new URL(`/${req.nextUrl.search}`, req.url), { request: { headers: req.headers } })
+    : NextResponse.next({ request: { headers: req.headers } });
 
-  if (!req.cookies.get(LOCALE_COOKIE)) {
+  if (forced) {
+    res.cookies.set(LOCALE_COOKIE, forced, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+  } else if (!req.cookies.get(LOCALE_COOKIE)) {
     const accept = req.headers.get("accept-language") ?? "";
     const locale = /^ar\b|,\s*ar\b/i.test(accept) || accept.toLowerCase().startsWith("ar") ? "ar" : "en";
     res.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
@@ -46,5 +56,5 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   // Static assets, PWA files and server-to-server endpoints skip the session refresh.
-  matcher: ["/((?!_next/static|_next/image|favicon.svg|icon.svg|icons/|brand/|sw.js|manifest.webmanifest|offline.html|api/webhooks|api/telephony|api/internal|api/cron|api/widget|api/client-error|widget/|widget.js).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.svg|icon.svg|icons/|brand/|sw.js|robots.txt|sitemap.xml|opengraph-image|manifest.webmanifest|offline.html|api/webhooks|api/telephony|api/internal|api/cron|api/widget|api/client-error|widget/|widget.js).*)"],
 };
