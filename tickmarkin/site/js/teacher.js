@@ -11,7 +11,7 @@
     for (const c of children.flat(Infinity)) if (c !== null && c !== undefined && c !== false) el.append(c instanceof Node ? c : String(c));
     return el;
   }
-  const waLink = (p) => 'https://wa.me/' + String(p).replace(/^\+/, '').replace(/^0/, '966');
+  const waLink = (phone) => { const d = String(phone).replace(/^\+/, '').replace(/^00/, ''); return 'https://wa.me/' + (d.length === 8 ? '965' + d : d.replace(/^0/, '966')); };
   const phoneLinks = (p) => p ? h('span', { class: 'sub' }, h('a', { href: 'tel:' + p, dir: 'ltr' }, p), ' · ', h('a', { href: waLink(p), target: '_blank', rel: 'noopener' }, 'واتساب')) : h('span', { class: 'muted' }, '—');
   let D = null;
 

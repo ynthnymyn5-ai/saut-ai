@@ -22,7 +22,7 @@
   const money = (n) => (Number(n) || 0).toLocaleString('en-US', { maximumFractionDigits: 3 }) + ' د.ك';
   const fmtDate = (iso) => iso ? new Date(iso.length === 10 ? iso + 'T00:00:00' : iso).toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
   const today = () => new Date().toISOString().slice(0, 10);
-  const waLink = (phone) => 'https://wa.me/' + String(phone).replace(/^\+/, '').replace(/^0/, '966');
+  const waLink = (phone) => { const d = String(phone).replace(/^\+/, '').replace(/^00/, ''); return 'https://wa.me/' + (d.length === 8 ? '965' + d : d.replace(/^0/, '966')); }; // 8-digit numbers are Kuwaiti (+965)
 
   let S = { students: [], teachers: [], classes: [], fees: [], payments: [], balances: {}, paymentMethods: [], registrations: [], messages: [], storage: '' };
   let current = 'overview';
