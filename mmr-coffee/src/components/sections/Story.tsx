@@ -61,7 +61,7 @@ export function Story() {
           {photo ? (
             <div className="absolute inset-0 overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo.src} width={photo.width} height={photo.height} alt="Inside MMR" loading="lazy" decoding="async" className="story-kenburns h-full w-full object-cover" />
+              <img src={photo.src} width={photo.width} height={photo.height} alt="An Mmar paper cup on the counter" loading="lazy" decoding="async" className="story-kenburns h-full w-full object-cover" />
               <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-void via-transparent to-transparent" />
             </div>
           ) : (
@@ -70,7 +70,7 @@ export function Story() {
             </LazyCanvas>
           )}
           <div className="pointer-events-none absolute bottom-8 left-8 right-8 flex justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-smoke">
-            <span>{photo ? "Fig. 01 — At the bar" : "Fig. 01 — Arabica, roasted & raw gold"}</span>
+            <span>{photo ? "Fig. 01 — Mmar, to go" : "Fig. 01 — Arabica, roasted & raw gold"}</span>
             {!photo && <span>Drag to turn</span>}
           </div>
         </div>

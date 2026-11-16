@@ -1,1 +1,12 @@
-{}
+{
+  "hero": {
+    "src": "/media/hero.webp",
+    "width": 1284,
+    "height": 709
+  },
+  "story": {
+    "src": "/media/story.webp",
+    "width": 752,
+    "height": 1380
+  }
+}

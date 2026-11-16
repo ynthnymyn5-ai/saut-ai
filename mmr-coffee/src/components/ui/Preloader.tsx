@@ -14,11 +14,17 @@ export function Preloader({ onDone }: { onDone: () => void }) {
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    document.documentElement.style.overflow = "hidden";
-    const finish = () => {
-      document.documentElement.style.overflow = "";
-      setGone(true);
-    };
+    let seen = false;
+    try {
+      seen = sessionStorage.getItem("mmar-intro") === "1";
+      sessionStorage.setItem("mmar-intro", "1");
+    } catch {}
+    const finish = () => setGone(true);
+    if (seen) {
+      onDone();
+      finish();
+      return;
+    }
     if (reduced) {
       const t = setTimeout(() => {
         onDone();
@@ -29,28 +35,25 @@ export function Preloader({ onDone }: { onDone: () => void }) {
     const ctx = gsap.context(() => {
       const c = { v: 0 };
       const tl = gsap.timeline();
-      tl.to(c, { v: 100, duration: 1.9, ease: "power2.inOut", onUpdate: () => setCount(Math.round(c.v)) }, 0)
-        .to(".pl-fill", { scaleX: 1, duration: 1.9, ease: "power2.inOut" }, 0)
-        .from(".pl-logo .logo-glyph", { y: 120, duration: 1.1, ease: "expo.out", stagger: 0.08 }, 0.4)
-        .from(".pl-logo .logo-accent", { x: -40, opacity: 0, duration: 0.9, ease: "expo.out", stagger: 0.1 }, 1.0)
-        .from(".pl-ar", { yPercent: 110, duration: 1, ease: "expo.out" }, 1.1)
-        .from(".pl-tag", { opacity: 0, y: 10, duration: 0.8, ease: "power2.out" }, 1.2)
-        .to(".pl-meta", { opacity: 0, duration: 0.3 }, 2.0)
-        .to(".pl-brand", { y: -40, opacity: 0, duration: 0.7, ease: "expo.in" }, 2.15)
-        .add(() => onDone(), 2.55)
-        .to(".pl-top", { yPercent: -100, duration: 1.2, ease: "expo.inOut" }, 2.6)
-        .to(".pl-bottom", { yPercent: 100, duration: 1.2, ease: "expo.inOut" }, 2.6)
+      tl.to(c, { v: 100, duration: 1.0, ease: "power2.inOut", onUpdate: () => setCount(Math.round(c.v)) }, 0)
+        .to(".pl-fill", { scaleX: 1, duration: 1.0, ease: "power2.inOut" }, 0)
+        .from(".pl-logo .logo-glyph", { y: 120, duration: 0.8, ease: "expo.out", stagger: 0.05 }, 0.1)
+        .from(".pl-logo .logo-accent", { x: -40, opacity: 0, duration: 0.6, ease: "expo.out", stagger: 0.06 }, 0.45)
+        .from(".pl-ar", { yPercent: 110, duration: 0.7, ease: "expo.out" }, 0.5)
+        .from(".pl-tag", { opacity: 0, y: 10, duration: 0.5, ease: "power2.out" }, 0.6)
+        .to(".pl-meta", { opacity: 0, duration: 0.2 }, 1.05)
+        .to(".pl-brand", { y: -30, opacity: 0, duration: 0.45, ease: "expo.in" }, 1.15)
+        .add(() => onDone(), 1.35)
+        .to(".pl-top", { yPercent: -100, duration: 0.8, ease: "expo.inOut" }, 1.35)
+        .to(".pl-bottom", { yPercent: 100, duration: 0.8, ease: "expo.inOut" }, 1.35)
         .add(finish);
     }, root);
-    return () => {
-      ctx.revert();
-      document.documentElement.style.overflow = "";
-    };
+    return () => ctx.revert();
   }, [onDone]);
 
   if (gone) return null;
   return (
-    <div ref={root} className="fixed inset-0 z-[100]" role="status" aria-label="Loading Mmar">
+    <div ref={root} className="pointer-events-none fixed inset-0 z-[100]" role="status" aria-label="Loading Mmar">
       <div className="pl-top absolute inset-x-0 top-0 h-1/2 bg-void">
         <svg className="absolute -bottom-px left-0 h-10 w-full text-void" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden>
           <path d="M0 0 H100 V4 Q75 10 50 5 T0 6 Z" fill="currentColor" />

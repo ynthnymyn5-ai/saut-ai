@@ -44,22 +44,3 @@ export function Sculpture({ drag }: { drag: { current: number } }) {
     </>
   );
 }
-
-export function FooterBean() {
-  const ref = useRef<THREE.Group>(null);
-  const gold = useMemo(() => new THREE.MeshStandardMaterial({ color: "#d6b37a", metalness: 1, roughness: 0.18 }), []);
-  useFrame((s) => {
-    if (!ref.current) return;
-    ref.current.rotation.y = s.clock.elapsedTime * 0.6;
-    ref.current.rotation.z = Math.sin(s.clock.elapsedTime * 0.7) * 0.3;
-    ref.current.position.y = Math.sin(s.clock.elapsedTime * 1.1) * 0.08;
-  });
-  return (
-    <>
-      <Studio intensity={1.2} />
-      <group ref={ref}>
-        <Bean material={gold} scale={1.2} rotation={[0.4, 0, 0.3]} />
-      </group>
-    </>
-  );
-}

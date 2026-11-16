@@ -54,7 +54,7 @@ export function Journey() {
   }, []);
 
   return (
-    <section id="journey" ref={section} className="relative h-[600vh] bg-void" aria-label="The journey of an MMR coffee">
+    <section id="journey" ref={section} className="relative h-[340vh] bg-void" aria-label="The journey of an MMR coffee">
       <div className="sticky top-0 h-[100svh] w-full overflow-hidden">
         <LazyCanvas className="absolute inset-0" camera={{ fov: 35, position: [0, 0, 10] }} fallback={<StageFallback label="The journey" />}>
           <JourneyScene progress={progress} lite={cap.tier !== "high"} />

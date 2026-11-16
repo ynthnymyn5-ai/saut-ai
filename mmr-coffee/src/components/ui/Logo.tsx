@@ -31,12 +31,24 @@ export function MmarLogo({ title = "Mmar", fill = "currentColor", ...rest }: SVG
   );
 }
 
-/** Arabic brand name set under the Latin wordmark. */
-export function ArabicName({ className = "" }: { className?: string }) {
+/**
+ * مرمر as drawn on the shop's hanging sign: two round mīm bowls joined by a short neck,
+ * a rāʾ that runs left and drops into a teardrop, and the shadda with its bar above.
+ * Sized by font-size (1em tall), so text-size classes scale it.
+ */
+export function ArabicName({ className = "", fill = "currentColor" }: { className?: string; fill?: string }) {
   return (
-    <span lang="ar" dir="rtl" className={`font-arabic font-bold leading-none ${className}`}>
-      مرمر
-    </span>
+    <svg viewBox="0 0 315 180" role="img" aria-label="مرمر" className={`inline-block ${className}`} style={{ height: "1em", width: "1.75em" }}>
+      <g fill={fill} stroke={fill}>
+        <ellipse cx="263" cy="124" rx="46" ry="53" stroke="none" />
+        <ellipse cx="148" cy="118" rx="54" ry="52" stroke="none" />
+        <path d="M192 140H226" strokeWidth="26" strokeLinecap="round" fill="none" />
+        <path d="M112 112Q76 92 52 104Q40 112 32 126" strokeWidth="26" strokeLinecap="round" fill="none" />
+        <circle cx="27" cy="138" r="22" stroke="none" />
+        <rect x="131" y="6" width="30" height="5" rx="1.5" stroke="none" />
+        <path d="M133 19v7q0 9 6.5 9t6.5-9q0 9 6.5 9t6.5-9v-7" strokeWidth="5" fill="none" strokeLinecap="round" />
+      </g>
+    </svg>
   );
 }
 

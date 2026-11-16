@@ -1,10 +1,7 @@
 "use client";
-import dynamic from "next/dynamic";
-import { LazyCanvas } from "../ui/LazyCanvas";
 import { ArabicName, MmarLogo } from "../ui/Logo";
 import { links } from "@/lib/data";
 
-const FooterBean = dynamic(() => import("../three/Sculpture").then((m) => m.FooterBean), { ssr: false });
 
 export function Footer() {
   return (
@@ -12,9 +9,7 @@ export function Footer() {
       <div className="gutter">
         <div className="flex flex-col gap-12 md:flex-row md:items-start md:justify-between">
           <div className="flex items-center gap-6">
-            <LazyCanvas className="h-28 w-28 shrink-0" camera={{ position: [0, 0, 3.2], fov: 35 }} gl={{ alpha: true }} fallback={<MmarLogo className="m-4 h-10 w-auto text-gold" />}>
-              <FooterBean />
-            </LazyCanvas>
+            <ArabicName className="footer-float shrink-0 text-[72px] text-gold" />
             <p className="font-serif text-3xl italic text-gold-soft md:text-4xl">Crafted for the moment.</p>
           </div>
           <nav aria-label="Footer" className="grid grid-cols-2 gap-x-16 gap-y-3 font-mono text-[11px] uppercase tracking-[0.28em]">
@@ -41,7 +36,7 @@ export function Footer() {
             </linearGradient>
           </defs>
         </MmarLogo>
-        <ArabicName className="text-[clamp(40px,9vw,140px)] text-gold/80" />
+        <ArabicName className="text-[clamp(40px,9vw,140px)] text-gold opacity-80" />
         <p lang="ar" dir="rtl" className="font-arabic text-lg text-smoke md:text-2xl">قهوة حي مختصة…</p>
       </div>
     </footer>

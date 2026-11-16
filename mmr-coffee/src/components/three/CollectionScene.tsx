@@ -1,5 +1,4 @@
 "use client";
-import { ContactShadows } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -9,6 +8,7 @@ import { Cup } from "./Cup";
 import { GoldDust } from "./GoldDust";
 import { Smoke } from "./Smoke";
 import { Studio } from "./Studio";
+import { Halo } from "./Halo";
 import { ColdBrewBottle, ReserveTin } from "./Vessels";
 import { products } from "@/lib/data";
 
@@ -66,7 +66,7 @@ export function CollectionScene({ active, drag, lite }: { active: number; drag: 
           <ColdBrewBottle scale={0.78} />
         </group>
       </group>
-      <ContactShadows position={[0, -0.77, 0]} opacity={0.7} scale={6} blur={2.4} far={3} />
+      <Halo position={[0, -0.76, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={3.6} color="#000000" intensity={0.85} shadow />
       <GoldDust count={lite ? 120 : 300} spread={[10, 6, 6]} size={0.8} />
     </>
   );

@@ -35,6 +35,7 @@ export function Experience() {
       ) : (
         <LazyCanvas
           className="absolute inset-0"
+          dpr={0.5}
           camera={{ position: [0, 0, 5], fov: 45 }}
           fallback={<div className="liquid-fallback absolute inset-0" />}
         >

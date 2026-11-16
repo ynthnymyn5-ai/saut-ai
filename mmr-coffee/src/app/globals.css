@@ -12,8 +12,6 @@ html {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
-html.lenis, html.lenis body { height: auto; }
-.lenis.lenis-smooth { scroll-behavior: auto !important; }
 
 body {
   @apply bg-void font-sans text-cream;
@@ -76,6 +74,9 @@ h1, h2, h3 { text-wrap: balance; }
 
 .story-kenburns { animation: kenburns 24s ease-in-out infinite alternate; transform-origin: 60% 40%; }
 @keyframes kenburns { from { transform: scale(1.04); } to { transform: scale(1.14) translate(-1.5%, -1%); } }
+
+.footer-float { animation: float 6s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(-8px) rotate(-3deg); } }
 
 .liquid-fallback { background: radial-gradient(60% 50% at 30% 40%, rgba(192,138,91,.35), transparent 70%), radial-gradient(50% 50% at 70% 70%, rgba(214,179,122,.18), transparent 70%), #140d09; }
 

@@ -6,6 +6,7 @@ import { useCapability } from "@/lib/capability";
 
 // The 3D runtime (three + fiber) loads only when the first canvas is about to appear.
 const Canvas = dynamic(() => import("@react-three/fiber").then((m) => m.Canvas), { ssr: false });
+const PerformanceMonitor = dynamic(() => import("@react-three/drei").then((m) => m.PerformanceMonitor), { ssr: false });
 
 type Props = Omit<CanvasProps, "children"> & {
   children: ReactNode;
@@ -16,27 +17,29 @@ type Props = Omit<CanvasProps, "children"> & {
 };
 
 /**
- * Mounts a WebGL canvas only when it nears the viewport, pauses rendering when it leaves,
- * and shows a designed static fallback on devices without WebGL.
+ * Mounts a WebGL canvas one screen before it scrolls into view (so shaders are ready),
+ * renders only while it is actually on screen, caps the pixel ratio, and lowers it
+ * further if the device cannot hold a steady frame rate.
  */
 export function LazyCanvas({ children, fallback, className, eager, dpr, gl, ...rest }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(!!eager);
   const [visible, setVisible] = useState(!!eager);
   const cap = useCapability();
+  const maxDpr = typeof dpr === "number" ? dpr : cap.tier === "high" ? 1.5 : 1;
+  const [scale, setScale] = useState(1);
 
   useEffect(() => {
     const el = host.current;
     if (!el) return;
-    const io = new IntersectionObserver(
-      ([e]) => {
-        setVisible(e.isIntersecting);
-        if (e.isIntersecting) setMounted(true);
-      },
-      { rootMargin: "100% 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
+    const near = new IntersectionObserver(([e]) => e.isIntersecting && setMounted(true), { rootMargin: "100% 0px" });
+    const onScreen = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { rootMargin: "0px" });
+    near.observe(el);
+    onScreen.observe(el);
+    return () => {
+      near.disconnect();
+      onScreen.disconnect();
+    };
   }, []);
 
   const showFallback = cap.ready && cap.tier === "none";
@@ -46,11 +49,12 @@ export function LazyCanvas({ children, fallback, className, eager, dpr, gl, ...r
         fallback
       ) : mounted && cap.ready ? (
         <Canvas
-          dpr={dpr ?? (cap.tier === "high" ? [1, 2] : [1, 1.4])}
+          dpr={Math.max(0.5, Math.min(typeof window === "undefined" ? 1 : window.devicePixelRatio, maxDpr) * scale)}
           frameloop={visible ? "always" : "never"}
-          gl={{ antialias: cap.tier === "high", powerPreference: "high-performance", alpha: false, ...(gl as object) }}
+          gl={{ antialias: cap.tier === "high", powerPreference: "high-performance", alpha: false, stencil: false, ...(gl as object) }}
           {...rest}
         >
+          <PerformanceMonitor flipflops={3} onDecline={() => setScale((s) => Math.max(0.5, s - 0.25))} onIncline={() => setScale((s) => Math.min(1, s + 0.25))} />
           <Suspense fallback={null}>{children}</Suspense>
         </Canvas>
       ) : (

@@ -4,6 +4,7 @@ Then run `npm run media` (needs ffmpeg). Files are resized, converted to WebP / 
 
 | File | Where it appears | Tips |
 |---|---|---|
+| `hero.jpg` | Opening photo at the top of the site (currently the espresso tray) | Landscape, at least 2000 px wide for sharp desktop screens. |
 | `story.jpg` | Our Story, right half (full height) | Portrait or square, at least 1600 px wide. Hands, roasting, the bar. |
 | `experience.mp4` (or `.mov`) | Full-width background of "More than a coffee" | 10–20 s, no talking needed (audio is removed), slow close-ups of pouring/crema. First 20 s are used. |
 | `products/signature.jpg` | Product sheet for MMR Signature | Product on a dark background works best. |

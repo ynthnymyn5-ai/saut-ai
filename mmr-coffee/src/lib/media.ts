@@ -11,6 +11,7 @@ export const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").r
 export const media = {
   menu: (name: string) => m[`menu/${slug(name)}`],
   product: (id: string) => m[`products/${id}`],
+  hero: () => m["hero"],
   story: () => m["story"],
   experience: () => m["experience"],
 };

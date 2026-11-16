@@ -2,18 +2,19 @@
 // Converts raw photos/videos in media-src/ into web-ready files in public/media/
 // and records them in src/lib/media.json. Requires ffmpeg on PATH.
 //
+//   media-src/hero.jpg                  -> opening photograph (top of the site)
 //   media-src/story.jpg                 -> Our Story photograph
 //   media-src/experience.mp4|mov        -> Experience background film
 //   media-src/products/<id>.jpg         -> signature | velvet | gold | coldbrew
 //   media-src/menu/<drink-name>.jpg     -> e.g. flat-white.jpg, iced-americano.jpg
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 
 const SRC = "media-src", OUT = "public/media", MANIFEST = "src/lib/media.json";
 const IMG = new Set([".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff"]);
 const VID = new Set([".mp4", ".mov", ".m4v", ".webm"]);
-const widths = { menu: 900, products: 1400, story: 2000 };
+const widths = { menu: 900, products: 1400, story: 2000, hero: 2400 };
 
 try { execFileSync("ffmpeg", ["-version"], { stdio: "ignore" }); } catch { console.error("ffmpeg is required: https://ffmpeg.org/download.html"); process.exit(1); }
 
@@ -25,7 +26,8 @@ const probe = (file) => {
 };
 const kb = (f) => Math.round(statSync(f).size / 1024);
 
-const manifest = {};
+// Keep entries for files already converted earlier; only the files found now are replaced.
+const manifest = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, "utf8")) : {};
 function image(file, key, maxW) {
   const out = join(OUT, `${key}.webp`);
   mkdirSync(join(OUT, key.split("/").slice(0, -1).join("/") || "."), { recursive: true });
@@ -45,6 +47,8 @@ function video(file, key) {
 }
 
 const find = (dir, name) => existsSync(dir) ? readdirSync(dir).find((f) => basename(f, extname(f)).toLowerCase() === name) : undefined;
+const hero = find(SRC, "hero");
+if (hero && IMG.has(extname(hero).toLowerCase())) image(join(SRC, hero), "hero", widths.hero);
 const story = find(SRC, "story");
 if (story && IMG.has(extname(story).toLowerCase())) image(join(SRC, story), "story", widths.story);
 const exp = find(SRC, "experience");

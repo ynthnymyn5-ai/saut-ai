@@ -15,14 +15,17 @@ export function Cursor() {
     setEnabled(true);
     document.documentElement.classList.add("has-cursor");
     let x = innerWidth / 2, y = innerHeight / 2, rx = x, ry = y, raf = 0;
-    let scale = 1, target = 1;
+    let scale = 1, target = 1, current = "";
     const move = (e: PointerEvent) => {
       x = e.clientX;
       y = e.clientY;
       const el = (e.target as HTMLElement).closest<HTMLElement>("[data-cursor], a, button");
       const l = el?.dataset.cursor ?? "";
       target = el ? (l ? 3.2 : 1.8) : 1;
-      setLabel(l);
+      if (l !== current) {
+        current = l;
+        setLabel(l);
+      }
     };
     const loop = () => {
       rx += (x - rx) * 0.16;

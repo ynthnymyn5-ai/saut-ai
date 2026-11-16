@@ -11,27 +11,28 @@ STATIC_EXPORT=1 npm run build   # fully static site in ./out (any static host)
 ```
 
 ## Stack
-Next.js 14 (App Router) · React 18 · TypeScript · Tailwind CSS · Three.js · React Three Fiber + drei · GSAP ScrollTrigger · Framer Motion · Lenis
+Next.js 14 (App Router) · React 18 · TypeScript · Tailwind CSS · Three.js · React Three Fiber + drei · GSAP ScrollTrigger · Framer Motion
 
 ## Sections
 | Section | What happens | Files |
 |---|---|---|
-| Opening sequence | Bean mark draws itself, extraction counter, MMR letters rise, the screen parts on a liquid seam | `components/ui/Preloader.tsx` |
-| Hero | Cinematic camera swoop onto a floating gold-rimmed cup with live crema, orbiting beans, slow-motion coffee ribbon with droplets, steam, gold dust; mouse parallax and scroll depth | `sections/Hero.tsx`, `three/HeroScene.tsx` |
+| Opening sequence (≈1.4 s, once per visit) | The Mmar wordmark and مرمر rise in, then the screen parts | `components/ui/Preloader.tsx` |
+| Hero | The shop's espresso-tray photograph with a cinematic push-in and scroll parallax (no WebGL, loads instantly) | `sections/Hero.tsx` |
 | The Journey (scroll story) | Pinned 600vh scene driven by ScrollTrigger: green beans → roasting vortex with embers → beans pour into an espresso machine → espresso fills a glass over milk → the Signature under a spotlight with a gold halo | `sections/Journey.tsx`, `three/JourneyScene.tsx`, `three/Machine.tsx`, `three/Vessels.tsx` |
 | Signature Collection | One product at a time, lit like a fragrance campaign; drag to rotate; product sheet drawer | `sections/Collection.tsx`, `three/CollectionScene.tsx` |
 | The MMR Experience | Full-bleed liquid-coffee shader that bends around the pointer, macro "lenses", marquee | `sections/Experience.tsx`, `three/LiquidField.tsx` |
-| Our Story | Split screen: editorial copy + a draggable gold/espresso bean sculpture | `sections/Story.tsx`, `three/Sculpture.tsx` |
+| Our Story | Split screen: editorial copy + the Mmar paper-cup photograph (3D bean sculpture if no photo) | `sections/Story.tsx` |
 | Menu | Four categories, editorial rows, hover preview that follows the cursor | `sections/Menu.tsx`, `ui/DrinkArt.tsx` |
-| Footer | Gold gradient wordmark, spinning gold bean, links | `sections/Footer.tsx` |
+| Footer | Gold gradient wordmark, مرمر sign mark, tagline, links | `sections/Footer.tsx` |
 
-Interaction layer: custom cursor with labels, magnetic buttons, masked line reveals, liquid wipe page transitions on navigation, film grain, Lenis smooth scroll synced to GSAP.
+Interaction layer: custom cursor with labels, magnetic buttons, masked line reveals, native browser scrolling with smooth anchor navigation.
 
 ## Performance and accessibility
 - The 3D runtime is code-split and only downloads when the first canvas is about to appear (first load ≈ 186 kB JS).
-- Every canvas mounts one screen before it scrolls into view and stops rendering when it leaves.
-- Device tiers (`lib/capability.ts`): **high** (desktop) gets antialiasing, 2× pixel ratio, shadows and full particle counts; **low** (phones, tablets, ≤4 cores/4 GB) gets fewer beans/particles and no ribbon; **none** (no WebGL) gets designed static fallbacks.
-- `prefers-reduced-motion`: no smooth scroll, no preloader animation, no liquid wipe, slowed scenes.
+- Every canvas mounts one screen before it scrolls into view, renders only while on screen, caps its pixel ratio at the screen's (1.5× max on desktop, 1× on phones) and lowers it further if the frame rate drops.
+- The hero and story are photographs, so the first screen needs no 3D at all.
+- Device tiers (`lib/capability.ts`): **high** (desktop) gets antialiasing and full particle counts; **low** (phones, tablets, ≤4 cores/4 GB) gets fewer beans/particles and no ribbon; **none** (no WebGL) gets designed static fallbacks.
+- `prefers-reduced-motion`: no preloader animation, no parallax, instant jumps, slowed scenes.
 - Drink illustrations are generated SVG (≈1 KB each) rather than photos.
 
 ## Real photos and video
