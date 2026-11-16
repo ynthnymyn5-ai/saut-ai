@@ -142,11 +142,45 @@ function createSupabaseStore(url, key, fetchImpl = fetch) {
   });
 }
 
+// ---------- Supabase via the secured tm_api() function (publishable key + server secret) ----------
+// Used when no service-role key is available. The publishable key alone cannot touch the tables:
+// every call must carry TM_DB_SECRET, whose SHA-256 is stored in the private tm_config table.
+function createSupabaseRpcStore(url, publishableKey, secret, fetchImpl = fetch) {
+  const endpoint = url.replace(/\/+$/, '') + '/rest/v1/rpc/tm_api';
+  const headers = { apikey: publishableKey, 'Content-Type': 'application/json' };
+  if (publishableKey.split('.').length === 3) headers.Authorization = 'Bearer ' + publishableKey;
+  async function rpc(op, k, id, payload) {
+    if (!COLLECTIONS[k]) throw new Error('unknown collection ' + k);
+    const r = await fetchImpl(endpoint, { method: 'POST', headers, body: JSON.stringify({ p_secret: secret, p_op: op, p_collection: k, p_id: id ?? null, p_payload: payload ?? {} }) });
+    const text = await r.text();
+    if (!r.ok) {
+      const err = new Error(`supabase rpc ${op} ${k} → ${r.status}: ${text.slice(0, 300)}`);
+      err.upstream = r.status;
+      if (r.status === 409 || /duplicate key|23505/.test(text)) err.conflict = true;
+      throw err;
+    }
+    return text ? JSON.parse(text) : null;
+  }
+  return withLegacy({
+    kind: 'supabase',
+    list: async (k) => (await rpc('list', k)).map((r) => fromRow(COLLECTIONS[k].cols, r)),
+    add: async (k, rec) => fromRow(COLLECTIONS[k].cols, await rpc('add', k, null, toRow(COLLECTIONS[k].cols, rec))),
+    update: async (k, id, patch) => {
+      const row = await rpc('update', k, id, toRow(COLLECTIONS[k].cols, patch));
+      return row ? fromRow(COLLECTIONS[k].cols, row) : null;
+    },
+    remove: async (k, id) => (await rpc('remove', k, id)) !== null,
+  });
+}
+
 function createStore(options = {}) {
   if (options.store) return options.store;
   const url = options.supabaseUrl ?? process.env.SUPABASE_URL;
   const key = options.supabaseKey ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (url && key) return createSupabaseStore(url, key, options.fetch);
+  const pub = options.supabasePublishableKey ?? process.env.SUPABASE_PUBLISHABLE_KEY;
+  const secret = options.dbSecret ?? process.env.TM_DB_SECRET;
+  if (url && pub && secret) return createSupabaseRpcStore(url, pub, secret, options.fetch);
   if (process.env.VERCEL) {
     // Vercel's file system is not persistent: refuse to store anything rather than silently lose data.
     console.error('[store] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set on Vercel.');
@@ -156,4 +190,4 @@ function createStore(options = {}) {
   return createFileStore(options.dataFile || process.env.DATA_FILE || path.join(__dirname, '..', 'data', 'db.json'));
 }
 
-module.exports = { createStore, createFileStore, createSupabaseStore, COLLECTIONS };
+module.exports = { createStore, createFileStore, createSupabaseStore, createSupabaseRpcStore, COLLECTIONS };
