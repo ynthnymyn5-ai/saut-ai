@@ -46,7 +46,8 @@ export function Landing() {
         <div className="grid-bg pointer-events-none absolute inset-0" />
         <div className="pointer-events-none absolute -top-40 start-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-violet/20 blur-[120px] rtl:translate-x-1/2" />
         <Section className="grid items-center gap-12 pt-28 sm:pt-36 lg:grid-cols-[1.1fr_.9fr]">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+          {/* CSS, not framer-motion: the hero is the LCP element and must not wait for JavaScript to appear. */}
+          <div className="hero-in">
             <Badge tone="violet" className="mb-6 px-3 py-1 text-xs"><Sparkles className="h-3.5 w-3.5" /> {t.hero.eyebrow}</Badge>
             <h1 className="font-display text-[2.6rem] font-semibold leading-[1.08] tracking-tight sm:text-6xl">
               {locale === "ar" ? <>موظفك الذكي <span className="text-gradient">الذي لا يتوقف</span> عن العمل.</> : <>Meet Your New <span className="text-gradient">AI Employee.</span></>}
@@ -59,7 +60,7 @@ export function Landing() {
               </a>
             </div>
             <p className="mt-5 text-xs text-muted">{t.hero.note}</p>
-          </motion.div>
+          </div>
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, delay: 0.2 }} className="relative mx-auto">
             <SoScene state="speaking" size={300} className="max-sm:hidden" /><SoMascot state="speaking" size={240} className="sm:hidden" />
             <div className="glass absolute -bottom-2 start-0 flex items-center gap-3 px-4 py-3 sm:-start-8">

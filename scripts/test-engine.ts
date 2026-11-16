@@ -6,7 +6,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { decide, resolveEffect } from "../src/lib/so/permissions";
 import { classifyIntentRules, needsHumanHandoff, routeAgent, type RoutableAgent } from "../src/lib/so/router";
-import { isTransient, PermanentError, withRetry } from "../src/lib/so/retry";
+import { isQuotaExhausted, isTransient, PermanentError, withRetry } from "../src/lib/so/retry";
+import { isClientNoise } from "../src/lib/client-noise";
 import { scoreLead, suggestFollowUp } from "../src/lib/so/scoring";
 import { effectiveStatus, isWithinHours } from "../src/lib/so/status";
 import { runWorkflowTree, validateWorkflow, type WfNode } from "../src/lib/so/workflow-core";
@@ -71,6 +72,22 @@ test("retry: transient errors retried with backoff, permanent ones not", async (
   assert.equal(m, 1);
   assert.equal(isTransient(new Error("fetch failed")), true);
   assert.equal(isTransient(new Error("violates check constraint")), false);
+});
+
+test("retry: an exhausted AI quota is permanent, a plain rate limit is not", () => {
+  const quota = Object.assign(new Error("429 You have no credits remaining. Add credits to continue using the API"), { status: 429 });
+  assert.equal(isTransient(quota), false);
+  assert.equal(isTransient(Object.assign(new Error("429 Rate limit reached for requests"), { status: 429 })), true);
+  assert.equal(isQuotaExhausted(429, "You exceeded your current quota, please check your plan"), true);
+  assert.equal(isQuotaExhausted(429, "insufficient_quota"), true);
+  assert.equal(isQuotaExhausted(429, "Rate limit reached"), false);
+  assert.equal(isQuotaExhausted(500, "no credits"), false);
+});
+
+test("client errors: in-app browser bridge noise is ignored, real errors are kept", () => {
+  assert.equal(isClientNoise("Error", "Error invoking postMessage: Java object is gone", "at sendDataToNative (iabjs://navigation_performance_logger_android:1:1)"), true);
+  assert.equal(isClientNoise("TypeError", "Failed to fetch"), true);
+  assert.equal(isClientNoise("TypeError", "Cannot read properties of undefined (reading 'tag')", "at renderHome (/js/app.js:10:5)"), false);
 });
 
 test("lead scoring is bounded and explained", () => {

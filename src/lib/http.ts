@@ -4,6 +4,7 @@ import { ZodError, type z, type ZodTypeAny } from "zod";
 import { maskSecrets, ProviderNotConfiguredError, ProviderRequestError } from "@/lib/env";
 import { checkRateLimit, clientKey } from "@/lib/rate-limit";
 import { reportError } from "@/lib/monitoring";
+import { isQuotaExhausted } from "@/lib/so/retry";
 import { APIError as OpenAIAPIError } from "openai";
 
 export const ok = (data: unknown, status = 200) => NextResponse.json(data, { status });
@@ -35,6 +36,11 @@ export function route(
         return fail(503, "provider_not_configured", e.message, { variable: e.variable });
       if (e instanceof AuthError) return fail(e.status, e.code, e.message);
       const provider = providerFailure(e);
+      if (provider && isQuotaExhausted(provider.status, provider.message)) {
+        // The account is out of credits: the operator must top up. Report it, but never show visitors the billing text.
+        await reportError(e, { scope, provider: provider.provider, status: provider.status, code: "quota_exhausted" });
+        return fail(503, "ai_unavailable", "The AI service is temporarily unavailable. Please try again later.", { provider: provider.provider });
+      }
       if (provider) {
         await reportError(e, { scope, provider: provider.provider, status: provider.status });
         return fail(502, "provider_error", `${provider.provider}: ${provider.message}`, { provider: provider.provider, status: provider.status });

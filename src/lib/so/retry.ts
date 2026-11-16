@@ -1,10 +1,16 @@
 /** Retry policy: exponential backoff for transient errors only (network, 429, 5xx). Pure + testable. */
 export class PermanentError extends Error {}
 
+/** "No credits / quota exceeded" — sent as a 429 but permanent until billing is fixed, unlike a rate limit. */
+export function isQuotaExhausted(status: number | undefined, message: string): boolean {
+  return (status === undefined || status === 429) && /insufficient_quota|no credits|exceeded your current quota/i.test(message);
+}
+
 export function isTransient(e: unknown) {
   if (e instanceof PermanentError) return false;
   const msg = e instanceof Error ? e.message : String(e);
   const status = (e as { status?: number })?.status;
+  if (isQuotaExhausted(status, msg)) return false;
   if (status && (status === 429 || status >= 500)) return true;
   return /(ECONNRESET|ETIMEDOUT|ENOTFOUND|fetch failed|socket hang up|timeout|rate limit)/i.test(msg);
 }
