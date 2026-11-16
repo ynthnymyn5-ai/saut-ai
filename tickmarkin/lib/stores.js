@@ -1,21 +1,63 @@
-// Storage backends for registrations and contact messages.
+// Storage backends.
 // - Supabase (production): used when SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.
 // - JSON file (local development): used otherwise.
-// Both expose the same async interface and return camelCase records.
+// Both expose the same generic async interface over named collections and return camelCase records:
+//   list(name) · add(name, rec) · update(name, id, patch) · remove(name, id)
 'use strict';
 
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 
+// collection name → Supabase table and camelCase → snake_case columns
+const COLLECTIONS = {
+  registrations: { table: 'tm_registrations', cols: { id: 'id', createdAt: 'created_at', updatedAt: 'updated_at', status: 'status', name: 'name', phone: 'phone', email: 'email', courseId: 'course_id', courseTitle: 'course_title', mode: 'mode', studentType: 'student_type', notes: 'notes' } },
+  messages: { table: 'tm_messages', cols: { id: 'id', createdAt: 'created_at', read: 'read', name: 'name', contact: 'contact', subject: 'subject', message: 'message' } },
+  teachers: { table: 'tm_teachers', cols: { id: 'id', createdAt: 'created_at', updatedAt: 'updated_at', name: 'name', phone: 'phone', email: 'email', subject: 'subject', passwordHash: 'password_hash', active: 'active', notes: 'notes' } },
+  classes: { table: 'tm_classes', cols: { id: 'id', createdAt: 'created_at', updatedAt: 'updated_at', name: 'name', teacherId: 'teacher_id', subject: 'subject', grade: 'grade', schedule: 'schedule', room: 'room', fee: 'fee', capacity: 'capacity', notes: 'notes' } },
+  students: { table: 'tm_students', cols: { id: 'id', createdAt: 'created_at', updatedAt: 'updated_at', name: 'name', phone: 'phone', guardianName: 'guardian_name', guardianPhone: 'guardian_phone', grade: 'grade', classIds: 'class_ids', status: 'status', notes: 'notes' } },
+  fees: { table: 'tm_fees', cols: { id: 'id', createdAt: 'created_at', updatedAt: 'updated_at', studentId: 'student_id', classId: 'class_id', description: 'description', amount: 'amount', dueDate: 'due_date' } },
+  payments: { table: 'tm_payments', cols: { id: 'id', createdAt: 'created_at', updatedAt: 'updated_at', studentId: 'student_id', amount: 'amount', method: 'method', paidAt: 'paid_at', note: 'note' } },
+};
+const DEFAULTS = { read: false, active: true, classIds: [], fee: null, capacity: null, amount: 0 };
+
+const toRow = (cols, rec) => {
+  const row = {};
+  for (const [k, c] of Object.entries(cols)) if (rec[k] !== undefined) row[c] = rec[k] === '' ? null : rec[k];
+  return row;
+};
+const fromRow = (cols, row) => {
+  const rec = {};
+  for (const [k, c] of Object.entries(cols)) {
+    let v = row[c];
+    if (v === null || v === undefined) v = k in DEFAULTS ? DEFAULTS[k] : '';
+    else if ((k === 'amount' || k === 'fee') && typeof v === 'string') v = Number(v);
+    rec[k] = v;
+  }
+  return rec;
+};
+
+const withLegacy = (s) => ({
+  ...s,
+  listRegistrations: () => s.list('registrations'),
+  addRegistration: (r) => s.add('registrations', r),
+  updateRegistration: (id, p) => s.update('registrations', id, p),
+  deleteRegistration: (id) => s.remove('registrations', id),
+  listMessages: () => s.list('messages'),
+  addMessage: (m) => s.add('messages', m),
+  updateMessage: (id, p) => s.update('messages', id, p),
+  deleteMessage: (id) => s.remove('messages', id),
+});
+
 // ---------- JSON file ----------
 function createFileStore(file) {
-  let data = { registrations: [], messages: [] };
+  let data = {};
   try {
-    data = { ...data, ...JSON.parse(fs.readFileSync(file, 'utf8')) };
+    data = JSON.parse(fs.readFileSync(file, 'utf8'));
   } catch (e) {
     if (e.code !== 'ENOENT') console.error('[store] could not read', file, e.message);
   }
+  for (const k of Object.keys(COLLECTIONS)) data[k] ||= [];
   let queue = Promise.resolve();
   const persist = () => {
     queue = queue.then(async () => {
@@ -26,50 +68,34 @@ function createFileStore(file) {
     });
     return queue;
   };
-  const list = (k) => data[k];
-  const add = async (k, rec) => { data[k].unshift(rec); await persist(); return rec; };
-  const update = async (k, id, patch) => {
-    const rec = data[k].find((r) => r.id === id);
-    if (!rec) return null;
-    Object.assign(rec, patch);
-    await persist();
-    return rec;
-  };
-  const remove = async (k, id) => {
-    const i = data[k].findIndex((r) => r.id === id);
-    if (i === -1) return false;
-    data[k].splice(i, 1);
-    await persist();
-    return true;
-  };
-  return {
+  const copy = (r) => JSON.parse(JSON.stringify(r));
+  return withLegacy({
     kind: 'file',
-    listRegistrations: async () => list('registrations'),
-    addRegistration: (r) => add('registrations', r),
-    updateRegistration: (id, p) => update('registrations', id, p),
-    deleteRegistration: (id) => remove('registrations', id),
-    listMessages: async () => list('messages'),
-    addMessage: (m) => add('messages', m),
-    updateMessage: (id, p) => update('messages', id, p),
-    deleteMessage: (id) => remove('messages', id),
-  };
+    list: async (k) => copy(data[k]),
+    add: async (k, rec) => {
+      const full = { createdAt: new Date().toISOString(), ...rec };
+      data[k].unshift(full);
+      await persist();
+      return copy(full);
+    },
+    update: async (k, id, patch) => {
+      const rec = data[k].find((r) => r.id === id);
+      if (!rec) return null;
+      Object.assign(rec, patch);
+      await persist();
+      return copy(rec);
+    },
+    remove: async (k, id) => {
+      const i = data[k].findIndex((r) => r.id === id);
+      if (i === -1) return false;
+      data[k].splice(i, 1);
+      await persist();
+      return true;
+    },
+  });
 }
 
 // ---------- Supabase (PostgREST over HTTPS, no SDK) ----------
-const REG_COLS = { id: 'id', createdAt: 'created_at', updatedAt: 'updated_at', status: 'status', name: 'name', phone: 'phone', email: 'email', courseId: 'course_id', courseTitle: 'course_title', mode: 'mode', studentType: 'student_type', notes: 'notes' };
-const MSG_COLS = { id: 'id', createdAt: 'created_at', read: 'read', name: 'name', contact: 'contact', subject: 'subject', message: 'message' };
-
-const toRow = (cols, rec) => {
-  const row = {};
-  for (const [k, c] of Object.entries(cols)) if (rec[k] !== undefined) row[c] = rec[k] === '' ? null : rec[k];
-  return row;
-};
-const fromRow = (cols, row) => {
-  const rec = {};
-  for (const [k, c] of Object.entries(cols)) rec[k] = row[c] ?? (k === 'read' ? false : '');
-  return rec;
-};
-
 function createSupabaseStore(url, key, fetchImpl = fetch) {
   const base = url.replace(/\/+$/, '') + '/rest/v1/';
   const headers = { apikey: key, 'Content-Type': 'application/json', Prefer: 'return=representation' };
@@ -82,35 +108,38 @@ function createSupabaseStore(url, key, fetchImpl = fetch) {
     if (!r.ok) {
       const err = new Error(`supabase ${method} ${pathQuery.split('?')[0]} → ${r.status}: ${text.slice(0, 300)}`);
       err.upstream = r.status;
+      if (r.status === 409 || /duplicate key|23505/.test(text)) err.conflict = true;
       throw err;
     }
     return text ? JSON.parse(text) : null;
   }
+  const meta = (k) => {
+    const m = COLLECTIONS[k];
+    if (!m) throw new Error('unknown collection ' + k);
+    return m;
+  };
   const idEq = (id) => 'id=eq.' + encodeURIComponent(id);
 
-  const table = (name, cols) => ({
-    list: async () => (await call('GET', `${name}?select=*&order=created_at.desc&limit=5000`)).map((r) => fromRow(cols, r)),
-    add: async (rec) => fromRow(cols, (await call('POST', name, toRow(cols, rec)))[0]),
-    update: async (id, patch) => {
-      const rows = await call('PATCH', `${name}?${idEq(id)}`, toRow(cols, patch));
+  return withLegacy({
+    kind: 'supabase',
+    list: async (k) => {
+      const { table, cols } = meta(k);
+      return (await call('GET', `${table}?select=*&order=created_at.desc&limit=10000`)).map((r) => fromRow(cols, r));
+    },
+    add: async (k, rec) => {
+      const { table, cols } = meta(k);
+      return fromRow(cols, (await call('POST', table, toRow(cols, rec)))[0]);
+    },
+    update: async (k, id, patch) => {
+      const { table, cols } = meta(k);
+      const rows = await call('PATCH', `${table}?${idEq(id)}`, toRow(cols, patch));
       return rows.length ? fromRow(cols, rows[0]) : null;
     },
-    remove: async (id) => (await call('DELETE', `${name}?${idEq(id)}`)).length > 0,
+    remove: async (k, id) => {
+      const { table } = meta(k);
+      return (await call('DELETE', `${table}?${idEq(id)}`)).length > 0;
+    },
   });
-  const regs = table('tm_registrations', REG_COLS);
-  const msgs = table('tm_messages', MSG_COLS);
-
-  return {
-    kind: 'supabase',
-    listRegistrations: regs.list,
-    addRegistration: regs.add,
-    updateRegistration: regs.update,
-    deleteRegistration: regs.remove,
-    listMessages: msgs.list,
-    addMessage: msgs.add,
-    updateMessage: msgs.update,
-    deleteMessage: msgs.remove,
-  };
 }
 
 function createStore(options = {}) {
@@ -122,13 +151,9 @@ function createStore(options = {}) {
     // Vercel's file system is not persistent: refuse to store anything rather than silently lose data.
     console.error('[store] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set on Vercel.');
     const fail = async () => { throw Object.assign(new Error('storage_not_configured'), { status: 503 }); };
-    return {
-      kind: 'unconfigured',
-      listRegistrations: fail, addRegistration: fail, updateRegistration: fail, deleteRegistration: fail,
-      listMessages: fail, addMessage: fail, updateMessage: fail, deleteMessage: fail,
-    };
+    return withLegacy({ kind: 'unconfigured', list: fail, add: fail, update: fail, remove: fail });
   }
   return createFileStore(options.dataFile || process.env.DATA_FILE || path.join(__dirname, '..', 'data', 'db.json'));
 }
 
-module.exports = { createStore, createFileStore, createSupabaseStore };
+module.exports = { createStore, createFileStore, createSupabaseStore, COLLECTIONS };

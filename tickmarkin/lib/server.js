@@ -9,6 +9,7 @@ const fsp = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { createStore } = require('./stores');
+const { createOffice } = require('./office');
 
 const ROOT = path.join(__dirname, '..');
 const PUBLIC_DIR = path.join(ROOT, 'site');
@@ -121,8 +122,9 @@ function createHandler(options = {}) {
   // Stateless signed session cookie (works on serverless where memory is not shared).
   // Changing ADMIN_PASSWORD or SESSION_SECRET invalidates every session.
   const sessionKey = crypto.createHmac('sha256', String(options.sessionSecret ?? process.env.SESSION_SECRET ?? '')).update(adminPassword).digest();
-  const signSession = (exp) => {
-    const payload = String(exp) + '.' + crypto.randomBytes(12).toString('base64url');
+  // token = <expiry>.<role>.<uid>.<nonce>.<hmac>
+  const signSession = (role = 'admin', uid = 'admin') => {
+    const payload = [Date.now() + SESSION_TTL_MS, role, uid, crypto.randomBytes(12).toString('base64url')].join('.');
     return payload + '.' + crypto.createHmac('sha256', sessionKey).update(payload).digest('base64url');
   };
   const hits = new Map(); // ip:bucket -> {count, reset}
@@ -145,16 +147,21 @@ function createHandler(options = {}) {
     return e.count > limit;
   }
 
-  function isAdmin(req) {
+  function getSession(req) {
     const t = parseCookies(req).tm_admin || '';
     const i = t.lastIndexOf('.');
-    if (i < 0) return false;
+    if (i < 0) return null;
     const payload = t.slice(0, i);
     const sig = Buffer.from(t.slice(i + 1));
     const good = Buffer.from(crypto.createHmac('sha256', sessionKey).update(payload).digest('base64url'));
-    if (sig.length !== good.length || !crypto.timingSafeEqual(sig, good)) return false;
-    return Number(payload.split('.')[0]) > Date.now();
+    if (sig.length !== good.length || !crypto.timingSafeEqual(sig, good)) return null;
+    const [exp, role, uid] = payload.split('.');
+    if (!(Number(exp) > Date.now()) || !['admin', 'teacher'].includes(role)) return null;
+    return { role, uid };
   }
+  const isAdmin = (req) => getSession(req)?.role === 'admin';
+  const sessionCookie = (token) => `tm_admin=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_TTL_MS / 1000}${secureCookie ? '; Secure' : ''}`;
+  const office = createOffice({ store, send, readBody, getSession, signSession, sessionCookie, rateLimited });
 
   function sameOrigin(req) {
     // Reject cross-site state-changing requests (CSRF defence in addition to SameSite cookies).
@@ -172,6 +179,8 @@ function createHandler(options = {}) {
     const m = req.method;
 
     if (m !== 'GET' && !sameOrigin(req)) return send(res, 403, { error: 'forbidden' });
+
+    if (await office.handle(req, res, url)) return;
 
     if (p === '/api/catalog' && m === 'GET') {
       return send(res, 200, catalog, { 'Cache-Control': 'public, max-age=300' });
@@ -239,8 +248,7 @@ function createHandler(options = {}) {
       if (!crypto.timingSafeEqual(sha256(String(b.password ?? '')), adminHash)) {
         return send(res, 401, { error: 'wrong_password' });
       }
-      const token = signSession(Date.now() + SESSION_TTL_MS);
-      const cookie = `tm_admin=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_TTL_MS / 1000}${secureCookie ? '; Secure' : ''}`;
+      const cookie = sessionCookie(signSession('admin', 'admin'));
       return send(res, 200, { ok: true }, { 'Set-Cookie': cookie });
     }
 
@@ -345,7 +353,7 @@ function createHandler(options = {}) {
       const url = new URL(req.url, 'http://localhost');
       if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url);
       if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method not allowed');
-      if (url.pathname === '/admin') res.setHeader('X-Robots-Tag', 'noindex');
+      if (url.pathname === '/admin' || url.pathname === '/teacher') res.setHeader('X-Robots-Tag', 'noindex');
       return await serveStatic(req, res, url);
     } catch (err) {
       if (err.status) return send(res, err.status, { error: err.message });

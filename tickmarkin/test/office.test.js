@@ -1,0 +1,126 @@
+'use strict';
+const { test, before, after } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { createApp } = require('../lib/server');
+
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tm-office-'));
+let server, base, admin;
+
+before(async () => {
+  server = createApp({ dataFile: path.join(tmp, 'db.json'), adminPassword: 'admin-pw' });
+  await new Promise((r) => server.listen(0, r));
+  base = `http://127.0.0.1:${server.address().port}`;
+  const r = await fetch(base + '/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'admin-pw' }) });
+  admin = r.headers.get('set-cookie').split(';')[0];
+});
+after(() => { server.close(); fs.rmSync(tmp, { recursive: true, force: true }); });
+
+const call = async (method, p, body, cookie = admin) => {
+  const r = await fetch(base + p, { method, headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const text = await r.text();
+  let json; try { json = JSON.parse(text); } catch { json = text; }
+  return { status: r.status, body: json, headers: r.headers };
+};
+
+const ids = {};
+
+test('office API is closed to anonymous users', async () => {
+  for (const p of ['/api/office/all', '/api/office/teacher', '/api/office/me', '/api/office/finance.csv']) {
+    assert.equal((await call('GET', p, null, null)).status, 401, p);
+  }
+  assert.equal((await call('POST', '/api/office/students', { name: 'x' }, null)).status, 401);
+});
+
+test('admin creates teachers, classes and students with validation', async () => {
+  const bad = await call('POST', '/api/office/teachers', { name: 'ا', phone: '12', password: '1' });
+  assert.equal(bad.status, 422);
+  assert.deepEqual(Object.keys(bad.body.fields).sort(), ['name', 'password', 'phone']);
+
+  const t1 = await call('POST', '/api/office/teachers', { name: 'أ. محمد', phone: '0551000001', subject: 'رياضيات', password: 'teach-123' });
+  assert.equal(t1.status, 201);
+  assert.equal(t1.body.record.passwordHash, undefined, 'password hash never returned');
+  ids.t1 = t1.body.record.id;
+  const dup = await call('POST', '/api/office/teachers', { name: 'آخر', phone: '0551000001', password: 'abcdef' });
+  assert.equal(dup.status, 422);
+  assert.ok(dup.body.fields.phone);
+  ids.t2 = (await call('POST', '/api/office/teachers', { name: 'أ. سارة', phone: '0551000002', subject: 'إنجليزي', password: 'teach-456' })).body.record.id;
+
+  const c1 = await call('POST', '/api/office/classes', { name: 'رياضيات ثالث ثانوي', teacherId: ids.t1, fee: '٥٠٠', schedule: 'الأحد والثلاثاء 5م', capacity: 12 });
+  assert.equal(c1.status, 201);
+  assert.equal(c1.body.record.fee, 500, 'Arabic digits accepted');
+  ids.c1 = c1.body.record.id;
+  ids.c2 = (await call('POST', '/api/office/classes', { name: 'إنجليزي مستوى 2', teacherId: ids.t2, fee: 400 })).body.record.id;
+  assert.equal((await call('POST', '/api/office/classes', { name: 'صف', teacherId: 'nope' })).status, 422);
+
+  const s1 = await call('POST', '/api/office/students', { name: 'عبدالله', guardianName: 'أبو عبدالله', guardianPhone: '0559000001', grade: 'ثالث ثانوي', classIds: [ids.c1] });
+  assert.equal(s1.status, 201);
+  ids.s1 = s1.body.record.id;
+  ids.s2 = (await call('POST', '/api/office/students', { name: 'ريم', guardianPhone: '0559000002', classIds: [ids.c1, ids.c2] })).body.record.id;
+  ids.s3 = (await call('POST', '/api/office/students', { name: 'خالد', classIds: [ids.c2] })).body.record.id;
+  assert.equal((await call('POST', '/api/office/students', { name: 'x', classIds: ['nope'] })).status, 422);
+});
+
+test('fees, payments and balances', async () => {
+  const charged = await call('POST', `/api/office/classes/${ids.c1}/charge`, { description: 'رسوم شهر ديسمبر', dueDate: '2026-12-01' });
+  assert.equal(charged.status, 201);
+  assert.equal(charged.body.count, 2, 'charged both students in class 1 at class fee');
+
+  assert.equal((await call('POST', '/api/office/fees', { studentId: ids.s3, description: 'رسوم', amount: 0 })).status, 422);
+  assert.equal((await call('POST', '/api/office/fees', { studentId: ids.s3, description: 'رسوم إنجليزي', amount: 400 })).status, 201);
+
+  assert.equal((await call('POST', '/api/office/payments', { studentId: ids.s1, amount: 300, method: 'نقداً', paidAt: '2026-11-20' })).status, 201);
+  assert.equal((await call('POST', '/api/office/payments', { studentId: ids.s1, amount: 10, method: 'شيك' })).status, 422);
+
+  const all = (await call('GET', '/api/office/all')).body;
+  assert.deepEqual(all.balances[ids.s1], { charged: 500, paid: 300 });
+  assert.deepEqual(all.balances[ids.s2], { charged: 500, paid: 0 });
+  assert.deepEqual(all.balances[ids.s3], { charged: 400, paid: 0 });
+  assert.ok(all.teachers.every((t) => t.passwordHash === undefined));
+
+  const csv = (await call('GET', '/api/office/finance.csv')).body;
+  assert.match(csv, /عبدالله.*"500\.00","300\.00","200\.00"/);
+});
+
+test('teacher logs in and sees only own classes and students, no finances', async () => {
+  assert.equal((await call('POST', '/api/office/teacher-login', { phone: '0551000001', password: 'wrong' }, null)).status, 401);
+  const login = await call('POST', '/api/office/teacher-login', { phone: '٠٥٥١٠٠٠٠٠١', password: 'teach-123' }, null);
+  assert.equal(login.status, 200);
+  const tc = login.headers.get('set-cookie').split(';')[0];
+
+  assert.equal((await call('GET', '/api/office/me', null, tc)).body.role, 'teacher');
+  const view = (await call('GET', '/api/office/teacher', null, tc)).body;
+  assert.deepEqual(view.classes.map((c) => c.id), [ids.c1]);
+  assert.deepEqual(view.students.map((s) => s.name).sort(), ['ريم', 'عبدالله'].sort());
+  assert.deepEqual(view.students.find((s) => s.name === 'ريم').classIds, [ids.c1], 'other teachers\' classes hidden');
+  assert.ok(!JSON.stringify(view).includes('fee'), 'no finance fields');
+
+  // teacher cannot use admin endpoints
+  for (const p of ['/api/office/all', '/api/office/finance.csv', '/api/admin/data']) assert.equal((await call('GET', p, null, tc)).status, 401, p);
+  assert.equal((await call('POST', '/api/office/students', { name: 'hack' }, tc)).status, 401);
+
+  // deactivated teacher is locked out immediately
+  await call('PATCH', `/api/office/teachers/${ids.t1}`, { active: false });
+  assert.equal((await call('GET', '/api/office/teacher', null, tc)).status, 401);
+  assert.equal((await call('POST', '/api/office/teacher-login', { phone: '0551000001', password: 'teach-123' }, null)).status, 401);
+  await call('PATCH', `/api/office/teachers/${ids.t1}`, { active: true, password: 'new-pass-1' });
+  assert.equal((await call('POST', '/api/office/teacher-login', { phone: '0551000001', password: 'teach-123' }, null)).status, 401, 'old password rejected');
+  assert.equal((await call('POST', '/api/office/teacher-login', { phone: '0551000001', password: 'new-pass-1' }, null)).status, 200);
+});
+
+test('deletes cascade consistently', async () => {
+  await call('DELETE', `/api/office/classes/${ids.c2}`);
+  let all = (await call('GET', '/api/office/all')).body;
+  assert.ok(!all.students.find((s) => s.id === ids.s2).classIds.includes(ids.c2), 'class removed from students');
+
+  await call('DELETE', `/api/office/teachers/${ids.t1}`);
+  all = (await call('GET', '/api/office/all')).body;
+  assert.equal(all.classes.find((c) => c.id === ids.c1).teacherId, '', 'class unassigned');
+
+  await call('DELETE', `/api/office/students/${ids.s1}`);
+  all = (await call('GET', '/api/office/all')).body;
+  assert.ok(!all.fees.some((f) => f.studentId === ids.s1) && !all.payments.some((p) => p.studentId === ids.s1), 'student finances removed');
+  assert.equal((await call('DELETE', `/api/office/students/${ids.s1}`)).status, 404);
+});

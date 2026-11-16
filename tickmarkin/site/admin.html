@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>لوحة الإدارة | معهد تيك ماركن</title>
+  <title>نظام إدارة المعهد | تيك ماركن</title>
   <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,8 +16,8 @@
   <header class="admin-top">
     <div class="container nav-wrap">
       <a href="/" class="brand brand-light">
-        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="currentColor"/><path d="M11 21l6 6 12-14" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="brand-text"><strong>Tickmarkin</strong><small>لوحة الإدارة</small></span>
+        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="tmg-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b5bfd"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#tmg-a)"/><path d="M11 21l6 6 12-14" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="brand-text"><strong>Tickmarkin</strong><small>نظام إدارة المعهد</small></span>
       </a>
       <button class="btn btn-ghost btn-sm hidden" id="logout">تسجيل الخروج</button>
     </div>
@@ -27,46 +27,37 @@
     <section id="login-view" class="container hidden">
       <form class="form-card login-box" id="login-form">
         <h1 style="font-size:1.5rem">دخول الإدارة</h1>
-        <p class="muted">أدخل كلمة مرور لوحة الإدارة.</p>
+        <p class="muted">أدخل كلمة مرور الإدارة.</p>
         <div class="form-alert hidden" role="alert"></div>
         <div class="field"><label for="password">كلمة المرور</label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
         <button class="btn btn-primary" type="submit" style="width:100%;margin-top:16px">دخول</button>
+        <p class="center muted" style="margin:16px 0 0;font-size:.92rem">معلم؟ <a href="/teacher">دخول المعلمين</a></p>
       </form>
     </section>
 
-    <section id="dash-view" class="container admin-wrap hidden">
-      <div class="kpis" id="kpis"></div>
-      <div class="tabs" role="tablist">
-        <button class="pill" role="tab" data-tab="regs" aria-pressed="true">طلبات التسجيل</button>
-        <button class="pill" role="tab" data-tab="msgs" aria-pressed="false">الرسائل <span id="unread-badge"></span></button>
-      </div>
-
-      <div id="tab-regs">
-        <div class="toolbar">
-          <input type="search" id="f-q" placeholder="بحث بالاسم أو الجوال أو رقم الطلب" aria-label="بحث">
-          <select id="f-status" aria-label="الحالة"><option value="">كل الحالات</option></select>
-          <select id="f-course" aria-label="الدورة"><option value="">كل الدورات</option></select>
-          <a class="btn btn-outline btn-sm" href="/api/admin/export.csv">تصدير Excel (CSV)</a>
-          <button class="btn btn-outline btn-sm" id="refresh">تحديث</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>الطلب</th><th>المتدرب</th><th>الدورة</th><th>الحضور</th><th>ملاحظات</th><th>الحالة</th><th></th></tr></thead>
-            <tbody id="regs-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div id="tab-msgs" class="hidden">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>التاريخ</th><th>المرسل</th><th>الموضوع</th><th>الرسالة</th><th></th></tr></thead>
-            <tbody id="msgs-body"></tbody>
-          </table>
-        </div>
+    <section id="app-view" class="office hidden">
+      <nav class="office-nav" aria-label="أقسام النظام">
+        <button data-view="overview" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z"/></svg>الرئيسية</button>
+        <button data-view="students"><svg viewBox="0 0 24 24"><path d="M12 3 1 9l11 6 9-4.9V17h2V9zM5 13.2v4L12 21l7-3.8v-4L12 17z"/></svg>الطلاب</button>
+        <button data-view="teachers"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>المعلمون</button>
+        <button data-view="classes"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H4zm-2 14h20v2H2z"/></svg>الصفوف</button>
+        <button data-view="finance"><svg viewBox="0 0 24 24"><path d="M3 6h18v12H3zm9 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM5 8v2a2 2 0 0 0 2-2zm12 0a2 2 0 0 0 2 2V8zM5 16h2a2 2 0 0 0-2-2zm14 0v-2a2 2 0 0 0-2 2z"/></svg>المستحقات المالية</button>
+        <button data-view="registrations"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm-1 7V3.5L18.5 9z"/></svg>طلبات التسجيل <span class="count" id="badge-regs"></span></button>
+        <button data-view="messages"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg>الرسائل <span class="count" id="badge-msgs"></span></button>
+      </nav>
+      <div class="office-main">
+        <div class="storage-note hidden" id="storage-note"></div>
+        <div id="view"></div>
       </div>
     </section>
   </main>
+
+  <dialog id="dlg" class="dlg">
+    <div class="dlg-head"><h2 id="dlg-title"></h2><button class="dlg-x" type="button" aria-label="إغلاق">×</button></div>
+    <div id="dlg-body"></div>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <script src="/js/admin.js" defer></script>
 </body>
 </html>
