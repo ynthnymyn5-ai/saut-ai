@@ -78,7 +78,12 @@ test('valid registration is stored and visible to admin only', async () => {
 
   const logout = await fetch(base + '/api/admin/logout', { method: 'POST', headers: { cookie } });
   assert.equal(logout.status, 200);
-  assert.equal((await fetch(base + '/api/admin/data', { headers: { cookie } })).status, 401);
+  assert.match(logout.headers.get('set-cookie'), /Max-Age=0/);
+
+  // tampered or forged session cookies are rejected
+  const forged = cookie.replace(/^tm_admin=(\d+)/, (_, exp) => 'tm_admin=' + (Number(exp) + 1));
+  assert.equal((await fetch(base + '/api/admin/data', { headers: { cookie: forged } })).status, 401);
+  assert.equal((await fetch(base + '/api/admin/data', { headers: { cookie: 'tm_admin=9999999999999.x.y' } })).status, 401);
 });
 
 test('honeypot submissions are silently dropped', async () => {

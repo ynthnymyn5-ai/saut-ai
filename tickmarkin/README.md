@@ -9,7 +9,7 @@
 ```bash
 cd tickmarkin
 ADMIN_PASSWORD='كلمة-مرور-قوية' npm start     # http://localhost:3000
-npm test                                      # 9 اختبارات
+npm test                                      # 14 اختباراً
 ```
 
 إذا لم تضع `ADMIN_PASSWORD` تُولَّد كلمة مرور مؤقتة وتُطبع في سجل الخادم عند كل تشغيل.
@@ -35,19 +35,33 @@ npm test                                      # 9 اختبارات
 - **الألوان:** المتغيرات في أعلى `public/css/style.css`.
 - آراء المتدربين في الرئيسية نماذج توضيحية؛ استبدلها بآراء حقيقية.
 
-## البيانات
+## قاعدة البيانات (Supabase)
 
-الطلبات والرسائل تُحفظ في `data/db.json` (غير مرفوع إلى git). غيّر المسار بـ `DATA_FILE`.
+الجداول `tm_registrations` و `tm_messages` منشأة في مشروع Supabase (`dbcxopmhwpjjbqyrfqps`)، والمخطط في `supabase/schema.sql`.
+الجداول مقفلة: لا يقرأ منها أو يكتب فيها إلا الخادم بمفتاح service role. المفتاح العام (anon) لا يصل إليها.
 
-## النشر
+يعمل الخادم مع Supabase تلقائياً عند وضع:
 
-يحتاج خادماً بقرص دائم لأن البيانات تُحفظ في ملف: VPS، أو Render / Railway / Fly.io مع Volume.
+```
+SUPABASE_URL=https://dbcxopmhwpjjbqyrfqps.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...   # Supabase → Project Settings → API Keys → secret / service_role
+```
 
-متغيرات البيئة: `ADMIN_PASSWORD` (إلزامي في الإنتاج)، `PORT`، `DATA_FILE`، `NODE_ENV=production` (يفعّل Secure cookie)، `TRUST_PROXY=1` خلف بروكسي.
+بدونهما يحفظ في `data/db.json` محلياً (للتجربة فقط). لوحة الإدارة تعرض نوع التخزين المستخدم.
+
+## النشر على Vercel
+
+1. New Project ← اختر المستودع ← **Root Directory: `tickmarkin`**.
+2. أضف متغيرات البيئة: `ADMIN_PASSWORD` و `SUPABASE_URL` و `SUPABASE_SERVICE_ROLE_KEY`.
+3. Deploy. الصفحات تُبنى ثابتة (`npm run build` ← `dist/`) و `/api/*` دالة واحدة (`api/index.js`).
+
+على Vercel يرفض الخادم العمل بدون Supabase، لأن ملفات Vercel لا تبقى محفوظة.
+
+يمكن أيضاً النشر على أي خادم Node: `npm start` مع نفس المتغيرات.
 
 ## الحماية
 
-- كوكي جلسة HttpOnly + SameSite=Strict، ومقارنة كلمة المرور بزمن ثابت، وحدّ لمحاولات الدخول.
+- كوكي جلسة موقّعة HMAC (HttpOnly + SameSite=Strict) تعمل على Vercel، ومقارنة كلمة المرور بزمن ثابت، وحدّ لمحاولات الدخول.
 - رفض الطلبات القادمة من نطاقات أخرى (CSRF)، وحدّ لعدد الإرسالات لكل IP، وحقل مخفي لاصطياد البوتات.
 - التحقق من كل المدخلات على الخادم، وعرضها في لوحة الإدارة كنص فقط (بدون XSS).
 - حماية ملف CSV من حقن الصيغ، وترويسات أمان (CSP و X-Frame-Options و nosniff)، ومنع الوصول للملفات خارج `public/`.

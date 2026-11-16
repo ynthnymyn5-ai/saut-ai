@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { createStore } = require('./lib/stores');
 
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -94,31 +95,20 @@ const csvCell = (v) => {
   return '"' + s.replace(/"/g, '""') + '"';
 };
 
-// ---------- storage (JSON file, serialized atomic writes) ----------
-function createStore(file) {
-  let data = { registrations: [], messages: [] };
-  try {
-    data = { ...data, ...JSON.parse(fs.readFileSync(file, 'utf8')) };
-  } catch (e) {
-    if (e.code !== 'ENOENT') console.error('[store] could not read', file, e.message);
-  }
-  let queue = Promise.resolve();
-  const persist = () => {
-    queue = queue.then(async () => {
-      await fsp.mkdir(path.dirname(file), { recursive: true });
-      const tmp = file + '.' + process.pid + '.tmp';
-      await fsp.writeFile(tmp, JSON.stringify(data, null, 2));
-      await fsp.rename(tmp, file);
-    });
-    return queue;
-  };
-  return { data, persist };
+// ---------- html includes (shared with scripts/build.js) ----------
+function loadPartials() {
+  const out = {};
+  for (const name of ['header', 'footer']) out[name] = fs.readFileSync(path.join(PARTIALS_DIR, name + '.html'), 'utf8');
+  return out;
 }
+const renderHtml = (html, partials) => html
+  .replace('<!--#header-->', partials.header)
+  .replace('<!--#footer-->', partials.footer)
+  .replace(/\{\{year\}\}/g, String(new Date().getFullYear()));
 
 // ---------- server ----------
-function createApp(options = {}) {
-  const dataFile = options.dataFile || process.env.DATA_FILE || path.join(ROOT, 'data', 'db.json');
-  const store = createStore(dataFile);
+function createHandler(options = {}) {
+  const store = createStore(options);
   const catalog = JSON.parse(fs.readFileSync(CATALOG_FILE, 'utf8'));
   const courseById = new Map(catalog.courses.map((c) => [c.id, c]));
 
@@ -128,20 +118,22 @@ function createApp(options = {}) {
     console.log(`[admin] ADMIN_PASSWORD is not set. Temporary password for this run: ${adminPassword}`);
   }
   const adminHash = sha256(adminPassword);
-
-  const sessions = new Map(); // token -> expiry
+  // Stateless signed session cookie (works on serverless where memory is not shared).
+  // Changing ADMIN_PASSWORD or SESSION_SECRET invalidates every session.
+  const sessionKey = crypto.createHmac('sha256', String(options.sessionSecret ?? process.env.SESSION_SECRET ?? '')).update(adminPassword).digest();
+  const signSession = (exp) => {
+    const payload = String(exp) + '.' + crypto.randomBytes(12).toString('base64url');
+    return payload + '.' + crypto.createHmac('sha256', sessionKey).update(payload).digest('base64url');
+  };
   const hits = new Map(); // ip:bucket -> {count, reset}
   const secureCookie = options.secureCookie ?? process.env.NODE_ENV === 'production';
 
-  const partials = {};
-  for (const name of ['header', 'footer']) {
-    partials[name] = fs.readFileSync(path.join(PARTIALS_DIR, name + '.html'), 'utf8');
-  }
+  const partials = loadPartials();
 
   function rateLimited(req, bucket, limit, windowMs) {
-    const ip = (options.trustProxy || process.env.TRUST_PROXY)
+    const ip = (options.trustProxy || process.env.TRUST_PROXY || process.env.VERCEL)
       ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress
-      : req.socket.remoteAddress;
+      : req.socket?.remoteAddress;
     const key = ip + ':' + bucket;
     const now = Date.now();
     const e = hits.get(key);
@@ -154,14 +146,14 @@ function createApp(options = {}) {
   }
 
   function isAdmin(req) {
-    const t = parseCookies(req).tm_admin;
-    if (!t) return false;
-    const exp = sessions.get(t);
-    if (!exp || exp < Date.now()) {
-      sessions.delete(t);
-      return false;
-    }
-    return true;
+    const t = parseCookies(req).tm_admin || '';
+    const i = t.lastIndexOf('.');
+    if (i < 0) return false;
+    const payload = t.slice(0, i);
+    const sig = Buffer.from(t.slice(i + 1));
+    const good = Buffer.from(crypto.createHmac('sha256', sessionKey).update(payload).digest('base64url'));
+    if (sig.length !== good.length || !crypto.timingSafeEqual(sig, good)) return false;
+    return Number(payload.split('.')[0]) > Date.now();
   }
 
   function sameOrigin(req) {
@@ -214,8 +206,7 @@ function createApp(options = {}) {
         courseTitle: course.title,
         mode, studentType, notes,
       };
-      store.data.registrations.unshift(reg);
-      await store.persist();
+      await store.addRegistration(reg);
       return send(res, 201, { ok: true, id: reg.id, course: course.title });
     }
 
@@ -232,13 +223,12 @@ function createApp(options = {}) {
       if (!(isEmail(contact) || normalizePhone(contact))) errors.contact = 'اكتب بريداً إلكترونياً أو رقم جوال صحيح';
       if (message.length < 5) errors.message = 'الرسالة قصيرة جداً';
       if (Object.keys(errors).length) return send(res, 422, { error: 'validation', fields: errors });
-      store.data.messages.unshift({
+      await store.addMessage({
         id: 'MSG-' + crypto.randomBytes(4).toString('hex').toUpperCase(),
         createdAt: new Date().toISOString(),
         read: false,
         name, contact, subject, message,
       });
-      await store.persist();
       return send(res, 201, { ok: true });
     }
 
@@ -249,14 +239,12 @@ function createApp(options = {}) {
       if (!crypto.timingSafeEqual(sha256(String(b.password ?? '')), adminHash)) {
         return send(res, 401, { error: 'wrong_password' });
       }
-      const token = crypto.randomBytes(32).toString('hex');
-      sessions.set(token, Date.now() + SESSION_TTL_MS);
+      const token = signSession(Date.now() + SESSION_TTL_MS);
       const cookie = `tm_admin=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_TTL_MS / 1000}${secureCookie ? '; Secure' : ''}`;
       return send(res, 200, { ok: true }, { 'Set-Cookie': cookie });
     }
 
     if (p === '/api/admin/logout' && m === 'POST') {
-      sessions.delete(parseCookies(req).tm_admin);
       return send(res, 200, { ok: true }, { 'Set-Cookie': 'tm_admin=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' });
     }
 
@@ -264,7 +252,7 @@ function createApp(options = {}) {
       if (!isAdmin(req)) return send(res, 401, { error: 'unauthorized' });
 
       if (p === '/api/admin/data' && m === 'GET') {
-        const regs = store.data.registrations;
+        const [regs, messages] = await Promise.all([store.listRegistrations(), store.listMessages()]);
         const byStatus = Object.fromEntries(STATUSES.map((s) => [s, regs.filter((r) => r.status === s).length]));
         const byDept = {};
         for (const r of regs) {
@@ -273,51 +261,36 @@ function createApp(options = {}) {
         }
         return send(res, 200, {
           registrations: regs,
-          messages: store.data.messages,
-          stats: { total: regs.length, byStatus, byDept, unreadMessages: store.data.messages.filter((x) => !x.read).length },
+          messages,
+          stats: { total: regs.length, byStatus, byDept, unreadMessages: messages.filter((x) => !x.read).length },
+          storage: store.kind,
         });
       }
 
       const regMatch = p.match(/^\/api\/admin\/registrations\/([\w-]+)$/);
-      if (regMatch) {
-        const idx = store.data.registrations.findIndex((r) => r.id === regMatch[1]);
-        if (idx === -1) return send(res, 404, { error: 'not_found' });
-        if (m === 'PATCH') {
-          const b = await readBody(req);
-          if (!STATUSES.includes(b.status)) return send(res, 422, { error: 'bad_status' });
-          store.data.registrations[idx].status = b.status;
-          store.data.registrations[idx].updatedAt = new Date().toISOString();
-          await store.persist();
-          return send(res, 200, { ok: true, registration: store.data.registrations[idx] });
-        }
-        if (m === 'DELETE') {
-          store.data.registrations.splice(idx, 1);
-          await store.persist();
-          return send(res, 200, { ok: true });
-        }
+      if (regMatch && m === 'PATCH') {
+        const b = await readBody(req);
+        if (!STATUSES.includes(b.status)) return send(res, 422, { error: 'bad_status' });
+        const rec = await store.updateRegistration(regMatch[1], { status: b.status, updatedAt: new Date().toISOString() });
+        return rec ? send(res, 200, { ok: true, registration: rec }) : send(res, 404, { error: 'not_found' });
+      }
+      if (regMatch && m === 'DELETE') {
+        return (await store.deleteRegistration(regMatch[1])) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'not_found' });
       }
 
       const msgMatch = p.match(/^\/api\/admin\/messages\/([\w-]+)$/);
-      if (msgMatch) {
-        const idx = store.data.messages.findIndex((x) => x.id === msgMatch[1]);
-        if (idx === -1) return send(res, 404, { error: 'not_found' });
-        if (m === 'PATCH') {
-          store.data.messages[idx].read = true;
-          await store.persist();
-          return send(res, 200, { ok: true });
-        }
-        if (m === 'DELETE') {
-          store.data.messages.splice(idx, 1);
-          await store.persist();
-          return send(res, 200, { ok: true });
-        }
+      if (msgMatch && m === 'PATCH') {
+        return (await store.updateMessage(msgMatch[1], { read: true })) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'not_found' });
+      }
+      if (msgMatch && m === 'DELETE') {
+        return (await store.deleteMessage(msgMatch[1])) ? send(res, 200, { ok: true }) : send(res, 404, { error: 'not_found' });
       }
 
       if (p === '/api/admin/export.csv' && m === 'GET') {
         const cols = ['id', 'createdAt', 'status', 'name', 'phone', 'email', 'courseTitle', 'mode', 'studentType', 'notes'];
         const head = ['رقم الطلب', 'التاريخ', 'الحالة', 'الاسم', 'الجوال', 'البريد', 'الدورة', 'طريقة الحضور', 'الفئة', 'ملاحظات'];
         const lines = [head.map(csvCell).join(',')];
-        for (const r of store.data.registrations) lines.push(cols.map((c) => csvCell(r[c])).join(','));
+        for (const r of await store.listRegistrations()) lines.push(cols.map((c) => csvCell(r[c])).join(','));
         return send(res, 200, '﻿' + lines.join('\r\n'), {
           'Content-Type': 'text/csv; charset=utf-8',
           'Content-Disposition': 'attachment; filename="tickmarkin-registrations.csv"',
@@ -351,13 +324,7 @@ function createApp(options = {}) {
       content = await fsp.readFile(target);
     }
     const ext = path.extname(target);
-    if (ext === '.html') {
-      content = content
-        .toString('utf8')
-        .replace('<!--#header-->', partials.header)
-        .replace('<!--#footer-->', partials.footer)
-        .replace(/\{\{year\}\}/g, String(new Date().getFullYear()));
-    }
+    if (ext === '.html') content = renderHtml(content.toString('utf8'), partials);
     res.writeHead(status, {
       'Content-Type': MIME[ext] || 'application/octet-stream',
       'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600',
@@ -366,7 +333,7 @@ function createApp(options = {}) {
     res.end(content);
   }
 
-  return http.createServer(async (req, res) => {
+  return async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -383,14 +350,16 @@ function createApp(options = {}) {
     } catch (err) {
       if (err.status) return send(res, err.status, { error: err.message });
       console.error(err);
-      if (!res.headersSent) send(res, 500, { error: 'server_error' });
+      if (!res.headersSent) send(res, err.upstream ? 502 : 500, { error: err.upstream ? 'storage_unavailable' : 'server_error' });
     }
-  });
+  };
 }
 
-module.exports = { createApp };
+const createApp = (options) => http.createServer(createHandler(options));
+
+module.exports = { createApp, createHandler, loadPartials, renderHtml, PUBLIC_DIR };
 
 if (require.main === module) {
   const port = Number(process.env.PORT) || 3000;
-  createApp().listen(port, () => console.log(`Tickmarkin running on http://localhost:${port}`));
+  createApp().listen(port, () => console.log(`Tickmarkin running on http://localhost:${port} (storage: ${process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY ? 'supabase' : 'file'})`));
 }

@@ -338,6 +338,7 @@
   }
 
   // ---------- boot ----------
+  document.querySelectorAll('[data-year]').forEach((el) => { el.textContent = new Date().getFullYear(); });
   initHeader();
   const pages = { home: pageHome, courses: pageCourses, course: pageCourse, departments: pageDepartments, about: pageAbout, register: pageRegister, contact: pageContact };
   pages[document.body.dataset.page]?.();
