@@ -19,7 +19,7 @@
   }
 
   const REG_STATUS = { new: 'جديد', contacted: 'تم التواصل', confirmed: 'مؤكد', cancelled: 'ملغي' };
-  const money = (n) => (Number(n) || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ر.س';
+  const money = (n) => (Number(n) || 0).toLocaleString('en-US', { maximumFractionDigits: 3 }) + ' د.ك';
   const fmtDate = (iso) => iso ? new Date(iso.length === 10 ? iso + 'T00:00:00' : iso).toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
   const today = () => new Date().toISOString().slice(0, 10);
   const waLink = (phone) => 'https://wa.me/' + String(phone).replace(/^\+/, '').replace(/^0/, '966');
@@ -226,7 +226,7 @@
         { name: 'grade', label: 'المرحلة' },
         { name: 'schedule', label: 'المواعيد', placeholder: 'مثال: الأحد والثلاثاء 5–7م' },
         { name: 'room', label: 'القاعة' },
-        { name: 'fee', label: 'الرسوم الافتراضية (ر.س)', inputmode: 'decimal', dir: 'ltr' },
+        { name: 'fee', label: 'الرسوم الافتراضية (د.ك)', inputmode: 'decimal', dir: 'ltr' },
         { name: 'capacity', label: 'السعة (عدد الطلاب)', inputmode: 'numeric', dir: 'ltr' },
         { name: 'notes', label: 'ملاحظات', type: 'textarea', full: true },
       ],
@@ -240,7 +240,7 @@
       fields: [
         { name: 'studentId', label: 'الطالب', type: 'select', options: studentOptions(), required: true, full: true },
         { name: 'description', label: 'الوصف', required: true, placeholder: 'مثال: رسوم شهر ديسمبر' },
-        { name: 'amount', label: 'المبلغ (ر.س)', required: true, inputmode: 'decimal', dir: 'ltr' },
+        { name: 'amount', label: 'المبلغ (د.ك)', required: true, inputmode: 'decimal', dir: 'ltr' },
         { name: 'classId', label: 'مرتبط بصف (اختياري)', type: 'select', options: [['', '—'], ...S.classes.map((c) => [c.id, c.name])] },
         { name: 'dueDate', label: 'تاريخ الاستحقاق', type: 'date' },
       ],
@@ -254,7 +254,7 @@
       submitLabel: 'تسجيل الدفعة',
       fields: [
         { name: 'studentId', label: 'الطالب', type: 'select', options: studentOptions(), required: true, full: true },
-        { name: 'amount', label: 'المبلغ المدفوع (ر.س)', required: true, inputmode: 'decimal', dir: 'ltr' },
+        { name: 'amount', label: 'المبلغ المدفوع (د.ك)', required: true, inputmode: 'decimal', dir: 'ltr' },
         { name: 'method', label: 'طريقة الدفع', type: 'select', options: S.paymentMethods.map((m) => [m, m]) },
         { name: 'paidAt', label: 'تاريخ الدفع', type: 'date' },
         { name: 'note', label: 'ملاحظة / رقم الإيصال' },
@@ -270,7 +270,7 @@
       submitLabel: `إصدار لـ ${n} طالب`,
       fields: [
         { name: 'description', label: 'الوصف', required: true, full: true },
-        { name: 'amount', label: 'المبلغ لكل طالب (ر.س)', required: true, inputmode: 'decimal', dir: 'ltr' },
+        { name: 'amount', label: 'المبلغ لكل طالب (د.ك)', required: true, inputmode: 'decimal', dir: 'ltr' },
         { name: 'dueDate', label: 'تاريخ الاستحقاق', type: 'date' },
       ],
       onSubmit: async (d) => {

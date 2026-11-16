@@ -73,6 +73,9 @@ test('fees, payments and balances', async () => {
 
   assert.equal((await call('POST', '/api/office/payments', { studentId: ids.s1, amount: 300, method: 'نقداً', paidAt: '2026-11-20' })).status, 201);
   assert.equal((await call('POST', '/api/office/payments', { studentId: ids.s1, amount: 10, method: 'شيك' })).status, 422);
+  const fils = await call('POST', '/api/office/fees', { studentId: ids.s3, description: 'كتب', amount: '12.375' });
+  assert.equal(fils.body.record.amount, 12.375, 'Kuwaiti fils (3 decimals) kept');
+  await call('DELETE', '/api/office/fees/' + fils.body.record.id);
 
   const all = (await call('GET', '/api/office/all')).body;
   assert.deepEqual(all.balances[ids.s1], { charged: 500, paid: 300 });
@@ -81,7 +84,7 @@ test('fees, payments and balances', async () => {
   assert.ok(all.teachers.every((t) => t.passwordHash === undefined));
 
   const csv = (await call('GET', '/api/office/finance.csv')).body;
-  assert.match(csv, /عبدالله.*"500\.00","300\.00","200\.00"/);
+  assert.match(csv, /عبدالله.*"500\.000","300\.000","200\.000"/);
 });
 
 test('teacher logs in and sees only own classes and students, no finances', async () => {

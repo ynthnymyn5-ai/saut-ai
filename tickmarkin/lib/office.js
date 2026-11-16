@@ -15,7 +15,7 @@ const toNumber = (v) => {
   const s = String(v ?? '').trim().replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/,/g, '');
   if (s === '') return null;
   const n = Number(s);
-  return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+  return Number.isFinite(n) ? Math.round(n * 1000) / 1000 : NaN; // Kuwaiti dinar: 3 decimals (fils)
 };
 const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v + 'T00:00:00Z'));
 const newId = (prefix) => prefix + '-' + Date.now().toString(36).toUpperCase() + crypto.randomBytes(3).toString('hex').toUpperCase();
@@ -194,10 +194,10 @@ function createOffice({ store, send, readBody, getSession, signSession, sessionC
       const all = await loadAll();
       const bal = balances(all);
       const cell = (v) => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
-      const rows = [['الطالب', 'ولي الأمر', 'جوال ولي الأمر', 'المرحلة', 'إجمالي المستحقات', 'المدفوع', 'المتبقي']];
+      const rows = [['الطالب', 'ولي الأمر', 'جوال ولي الأمر', 'المرحلة', 'إجمالي المستحقات (د.ك)', 'المدفوع (د.ك)', 'المتبقي (د.ك)']];
       for (const s of all.students) {
         const b = bal.get(s.id);
-        rows.push([s.name, s.guardianName, s.guardianPhone, s.grade, b.charged.toFixed(2), b.paid.toFixed(2), (b.charged - b.paid).toFixed(2)]);
+        rows.push([s.name, s.guardianName, s.guardianPhone, s.grade, b.charged.toFixed(3), b.paid.toFixed(3), (b.charged - b.paid).toFixed(3)]);
       }
       return send(res, 200, '﻿' + rows.map((r) => r.map(cell).join(',')).join('\r\n'), {
         'Content-Type': 'text/csv; charset=utf-8',

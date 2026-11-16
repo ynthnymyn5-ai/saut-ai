@@ -119,9 +119,11 @@ body[data-page="home"] .site-header:not(.scrolled) .nav-toggle span { background
 body[data-page="home"] .site-header:not(.scrolled) .theme-toggle { color: #fff; border-color: rgba(255,255,255,.25); }
 .nav-wrap { display: flex; align-items: center; justify-content: space-between; min-height: 76px; gap: 16px; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--brand); text-decoration: none !important; }
-.brand-mark { width: 42px; height: 42px; flex: none; filter: drop-shadow(0 6px 14px rgba(59, 91, 253, .45)); transition: transform .5s var(--ease); }
+.brand-mark { width: 44px; height: 44px; flex: none; filter: drop-shadow(0 8px 16px rgba(90, 61, 240, .38)); transition: transform .5s var(--ease); }
 .brand:hover .brand-mark { transform: rotate(-8deg) scale(1.06); }
 .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+.wm-accent { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand-light .wm-accent, body[data-page="home"] .site-header:not(.scrolled) .wm-accent, :root[data-theme="dark"] .wm-accent { background: none; color: var(--accent); -webkit-text-fill-color: currentColor; }
 .brand-text strong { font-family: "Alexandria", sans-serif; font-size: 1.22rem; color: var(--ink); letter-spacing: .3px; transition: color .3s; }
 .brand-text small { font-size: .76rem; color: var(--muted); transition: color .3s; }
 .brand-light .brand-text strong { color: #fff; }

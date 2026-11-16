@@ -6,7 +6,7 @@
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const fmtPrice = (n) => Number(n).toLocaleString('ar-SA');
+  const fmtPrice = (n) => Number(n).toLocaleString('en-US', { maximumFractionDigits: 3 });
   const fmtDate = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('ar-SA-u-ca-gregory', { day: 'numeric', month: 'long', year: 'numeric' });
   const params = new URLSearchParams(location.search);
 
@@ -47,7 +47,7 @@
           <span>${ICONS.pin}${esc(c.mode)}</span>
         </div>
         <div class="course-foot">
-          <span class="price">${fmtPrice(c.price)} <small>ر.س</small></span>
+          <span class="price">${fmtPrice(c.price)} <small>د.ك</small></span>
           <a class="btn btn-primary btn-sm" href="/register?course=${encodeURIComponent(c.id)}">سجّل</a>
         </div>
       </div>
@@ -294,7 +294,7 @@
         </div>
         <aside class="card side-card">
           <span class="chip">${esc(deptName(cat, c.dept))}</span>
-          <p class="price" style="font-size:2rem;margin:12px 0">${fmtPrice(c.price)} <small>ر.س</small></p>
+          <p class="price" style="font-size:2rem;margin:12px 0">${fmtPrice(c.price)} <small>د.ك</small></p>
           <ul class="info-list">
             <li><span>تاريخ البدء</span><span>${esc(fmtDate(c.start))}</span></li>
             <li><span>المدة</span><span>${esc(c.weeks)} أسابيع</span></li>
@@ -402,7 +402,7 @@
             <li><span>المدة</span><span>${esc(c.weeks)} أسابيع · ${esc(c.hours)} ساعة</span></li>
             <li><span>المستوى</span><span>${esc(c.level)}</span></li>
             <li><span>طريقة الحضور</span><span>${esc(c.mode)}</span></li>
-            <li><span>الرسوم</span><span>${fmtPrice(c.price)} ر.س</span></li>
+            <li><span>الرسوم</span><span>${fmtPrice(c.price)} د.ك</span></li>
           </ul>`;
         const remoteOk = c.mode.includes('عن بُعد');
         const inPersonOk = c.mode.includes('حضوري');
