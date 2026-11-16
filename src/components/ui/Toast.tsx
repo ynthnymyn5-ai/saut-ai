@@ -2,6 +2,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Info, XCircle } from "lucide-react";
 import { createContext, useCallback, useContext, useState } from "react";
+import { haptic } from "@/lib/native";
 
 type Kind = "success" | "error" | "info";
 type Toast = { id: number; kind: Kind; title: string; body?: string };
@@ -14,6 +15,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const push = useCallback((t: Omit<Toast, "id">) => {
     const id = Date.now() + Math.random();
     setItems((s) => [...s, { ...t, id }]);
+    if (t.kind !== "info") haptic(t.kind); // phone app: short vibration on success / error
     setTimeout(() => setItems((s) => s.filter((x) => x.id !== id)), 4500);
   }, []);
   const Icon = { success: CheckCircle2, error: XCircle, info: Info };

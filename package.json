@@ -10,7 +10,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:push": "supabase db push",
-    "test": "tsx --test scripts/test-engine.ts scripts/test-phase2.ts",
+    "test": "tsx --test scripts/test-engine.ts scripts/test-phase2.ts scripts/test-native.ts",
     "test:bridge": "npm --prefix services/voice-bridge install && node --test scripts/test-bridge.mjs",
     "test:db": "scripts/test-db.sh"
   },
