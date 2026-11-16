@@ -28,6 +28,7 @@
     "server-only": "^0.0.1",
     "simli-client": "^3.0.2",
     "stripe": "^17.5.0",
+    "three": "^0.169.0",
     "twilio": "^5.4.0",
     "zod": "^3.24.1",
     "nodemailer": "^6.9.16"
@@ -36,6 +37,7 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.169.0",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",

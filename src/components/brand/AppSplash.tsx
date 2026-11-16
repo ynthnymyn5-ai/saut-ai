@@ -1,12 +1,30 @@
 "use client";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { AppWelcome, WELCOME_SEEN_KEY } from "@/components/brand/AppWelcome";
 import { SoScene } from "@/components/brand/SoScene";
 import { useI18n } from "@/lib/i18n/client";
 
-/** App launch: SO greets the user while the dashboard loads (kept short: ~1.2 s, never blocks longer than loading). */
+/**
+ * App launch. First launch: the 3D welcome (voice orb + four screens, ends at sign-up / log-in).
+ * Every launch after that: SO greets the user while the dashboard loads (~1.2 s).
+ */
 export function AppSplash() {
+  const [mode, setMode] = useState<"pending" | "welcome" | "splash">("pending");
+  useEffect(() => {
+    let seen = true;
+    try {
+      seen = localStorage.getItem(WELCOME_SEEN_KEY) === "1";
+    } catch {}
+    setMode(seen ? "splash" : "welcome");
+  }, []);
+  if (mode === "pending") return <main className="min-h-[100dvh] bg-ink" />;
+  if (mode === "welcome") return <AppWelcome />;
+  return <Splash />;
+}
+
+function Splash() {
   const router = useRouter();
   const { locale } = useI18n();
   useEffect(() => {

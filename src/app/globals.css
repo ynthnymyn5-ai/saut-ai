@@ -62,3 +62,6 @@ html[lang="ar"] .font-display { font-family: var(--font-arabic), var(--font-disp
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* 3D voice orb fallback for devices without WebGL */
+.orb-fallback { background: radial-gradient(40% 34% at 50% 50%, rgba(139, 92, 246, .45), rgba(56, 189, 248, .18) 55%, transparent 75%); }
