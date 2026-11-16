@@ -23,6 +23,29 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
 
 h1, h2, h3 { text-wrap: balance; }
 
+/* ---------- Arabic (lang="ar", dir="rtl") ----------
+   Kufi display for headings, Plex Sans Arabic for reading text; no letter-spacing
+   (it breaks the joins between Arabic letters), no faux italics, and more line height
+   so dots and descenders are never clipped by the reveal masks. */
+html[lang="ar"] body { font-family: var(--font-arabic-body), "Geeza Pro", Tahoma, sans-serif; }
+html[lang="ar"] .font-display { font-family: var(--font-arabic), "Geeza Pro", Tahoma, sans-serif; }
+html[lang="ar"] .font-serif,
+html[lang="ar"] .font-sans,
+html[lang="ar"] .font-mono { font-family: var(--font-arabic-body), "Geeza Pro", Tahoma, sans-serif; }
+html[lang="ar"] [lang="en"].font-mono { font-family: var(--font-mono), ui-monospace, monospace; }
+html[lang="ar"] [lang="en"].font-display { font-family: var(--font-display), "Helvetica Neue", Arial, sans-serif; }
+html[lang="ar"] [lang="en"].font-serif { font-family: var(--font-serif), Georgia, serif; }
+html[lang="ar"] *:not([lang="en"]) { letter-spacing: 0 !important; }
+html[lang="ar"] em, html[lang="ar"] .italic:not([lang="en"]) { font-style: normal; }
+html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] h3 { line-height: 1.25 !important; }
+html[lang="ar"] .reveal-line { padding-bottom: 0.22em; margin-bottom: -0.1em; }
+html[lang="ar"] .reveal-line, html[lang="ar"] .reveal-line * { font-style: normal !important; }
+/* Prices: the Kufi display face draws the Arabic decimal mark like the letter rāʾ, so use the reading face. */
+html[lang="ar"] .price { font-family: var(--font-arabic-body), "Geeza Pro", Tahoma, sans-serif; font-weight: 600; }
+html[lang="ar"] .text-\[10px\]:not([lang="en"]),
+html[lang="ar"] .text-\[10\.5px\]:not([lang="en"]),
+html[lang="ar"] .text-\[11px\]:not([lang="en"]) { font-size: 13px; }
+
 .gutter {
   padding-left: max(20px, env(safe-area-inset-left, 0px));
   padding-right: max(20px, env(safe-area-inset-right, 0px));
@@ -58,6 +81,8 @@ h1, h2, h3 { text-wrap: balance; }
 .journey-tick.is-on span { background: #d6b37a; }
 
 .marquee { animation: marquee 38s linear infinite; }
+[dir="rtl"] .marquee { animation-name: marquee-rtl; }
+@keyframes marquee-rtl { to { transform: translateX(50%); } }
 @keyframes marquee { to { transform: translateX(-50%); } }
 
 /* Macro "lenses" in the Experience section */

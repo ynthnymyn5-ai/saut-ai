@@ -9,7 +9,7 @@ export function RevealLines({ lines, as: Tag = "h2", className = "", delay = 0, 
   return (
     <Tag className={className}>
       {lines.map((l, i) => (
-        <span key={i} className="block overflow-hidden pb-[0.08em]">
+        <span key={i} className="reveal-line block overflow-hidden pb-[0.08em]">
           <motion.span
             className="block will-change-transform"
             initial={reduce ? false : { y: "110%", rotate: 3 }}

@@ -1,7 +1,8 @@
 "use client";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRef, useState } from "react";
-import { CURRENCY, formatPrice, menu, type Drink } from "@/lib/data";
+import { menu, type Drink } from "@/lib/data";
+import { useLang } from "@/lib/i18n";
 import { media } from "@/lib/media";
 import { DrinkArt } from "../ui/DrinkArt";
 import { RevealLines } from "../ui/Reveal";
@@ -9,6 +10,10 @@ import { RevealLines } from "../ui/Reveal";
 const ease = [0.16, 1, 0.3, 1] as const;
 
 export function Menu() {
+  const { t, lang, price } = useLang();
+  const ar = lang === "ar";
+  // Primary text in the reading language, the other language underneath.
+  const other = ar ? "en" : "ar";
   const [cat, setCat] = useState(menu[0].id);
   const [hover, setHover] = useState<{ d: Drink; key: string } | null>(null);
   const preview = useRef<HTMLDivElement>(null);
@@ -26,21 +31,15 @@ export function Menu() {
       <div className="gutter">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="flex items-baseline gap-4 font-mono text-[11px] uppercase tracking-[0.34em] text-gold-deep">
-              The Menu
-              <span lang="ar" dir="rtl" className="font-arabic text-base normal-case tracking-normal">قائمة الأسعار</span>
-            </p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.34em] text-gold-deep">{t.menu.eyebrow}</p>
             <div id="menu-title">
-              <RevealLines lines={["Poured to order."]} className="mt-4 font-display text-[clamp(44px,8vw,128px)] font-extrabold leading-[0.9] tracking-[-0.03em]" />
+              <RevealLines key={lang} lines={t.menu.title} className="mt-4 font-display text-[clamp(44px,8vw,128px)] font-extrabold leading-[0.9] tracking-[-0.03em]" />
             </div>
           </div>
-          <div className="max-w-xs text-espresso/70">
-            <p className="font-serif text-lg">Prices in Kuwaiti dinar (KWD).</p>
-            <p lang="ar" dir="rtl" className="mt-1 font-arabic text-base">الأسعار بالدينار الكويتي</p>
-          </div>
+          <p className="max-w-xs font-serif text-lg text-espresso/70">{t.menu.note}</p>
         </div>
 
-        <div className="mt-14 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none]" role="tablist" aria-label="Menu categories">
+        <div className="mt-14 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none]" role="tablist" aria-label={t.menu.categories}>
           {menu.map((m) => (
             <button
               key={m.id}
@@ -53,8 +52,8 @@ export function Menu() {
             >
               {cat === m.id && <motion.span layoutId="menu-pill" className="absolute inset-0 rounded-full bg-void" transition={{ type: "spring", stiffness: 380, damping: 34 }} />}
               <span className="relative flex items-baseline gap-2">
-                {m.label}
-                <span lang="ar" dir="rtl" className="font-arabic text-[13px] normal-case tracking-normal">{m.labelAr}</span>
+                {ar ? m.labelAr : m.label}
+                <span lang={other} className={`text-[10px] opacity-70 ${ar ? "font-mono tracking-[0.18em]" : "font-arabic text-[13px] normal-case tracking-normal"}`}>{ar ? m.label : m.labelAr}</span>
               </span>
             </button>
           ))}
@@ -64,8 +63,8 @@ export function Menu() {
           <AnimatePresence mode="wait">
             <motion.div key={cat} id={`panel-${cat}`} role="tabpanel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
               <div className="mb-6 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-1 text-espresso/70">
-                <p className="font-serif text-xl italic">{current.intro}</p>
-                <p lang="ar" dir="rtl" className="font-arabic text-lg">{current.introAr}</p>
+                <p className="font-serif text-xl italic">{ar ? current.introAr : current.intro}</p>
+                <p lang={other} dir={ar ? "ltr" : "rtl"} className={ar ? "font-serif text-lg italic" : "font-arabic text-lg"}>{ar ? current.intro : current.introAr}</p>
               </div>
               <ul className="border-t border-espresso/15">
                 {current.items.map((d, i) => (
@@ -75,26 +74,24 @@ export function Menu() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, ease, delay: i * 0.07 }}
                     onPointerEnter={() => setHover({ d, key: `${cat}-${i}` })}
-                    data-cursor="Taste"
+                    data-cursor={t.menu.taste}
                     className="menu-row group relative grid grid-cols-[64px_1fr_auto] items-center gap-5 border-b border-espresso/15 py-6 md:grid-cols-[88px_1fr_1.2fr_auto] md:gap-8"
                   >
                     <div className="h-16 w-16 transition-transform duration-700 ease-lux group-hover:rotate-[24deg] group-hover:scale-110 md:h-20 md:w-20">
                       <DrinkVisual d={d} id={`${cat}-${i}`} />
                     </div>
-                    <div className="min-w-0 transition-transform duration-700 ease-lux group-hover:translate-x-2">
-                      <h3 className="font-display text-2xl font-bold uppercase leading-none md:text-4xl">{d.name}</h3>
-                      <p lang="ar" dir="rtl" className="mt-2 text-left font-arabic text-xl font-bold leading-none text-gold-deep md:text-2xl">{d.ar}</p>
-                      <p className="mt-2 text-sm text-espresso/70 md:hidden">
-                        {d.description} <span lang="ar" dir="rtl" className="font-arabic">· {d.descriptionAr}</span>
-                      </p>
+                    <div className="min-w-0 transition-transform duration-700 ease-lux group-hover:translate-x-2 rtl:group-hover:-translate-x-2">
+                      <h3 className="font-display text-2xl font-bold uppercase leading-none md:text-4xl">{ar ? d.ar : d.name}</h3>
+                      <p lang={other} dir={ar ? "ltr" : "rtl"} className={`mt-2 leading-none text-gold-deep ${ar ? "text-right" : "text-left"} ${ar ? "font-display text-base font-bold uppercase md:text-lg" : "font-arabic text-xl font-bold md:text-2xl"}`}>{ar ? d.name : d.ar}</p>
+                      <p className="mt-2 text-sm text-espresso/70 md:hidden">{ar ? d.descriptionAr : d.description}</p>
                     </div>
                     <div className="hidden text-espresso/70 md:block">
-                      <p>{d.description}</p>
-                      <p lang="ar" dir="rtl" className="mt-1 text-left font-arabic">{d.descriptionAr}</p>
+                      <p>{ar ? d.descriptionAr : d.description}</p>
+                      <p lang={other} dir={ar ? "ltr" : "rtl"} className={`mt-1 text-sm opacity-80 ${ar ? "text-right" : "font-arabic text-left"}`}>{ar ? d.description : d.descriptionAr}</p>
                     </div>
-                    <p className="font-display text-2xl font-bold tabular-nums md:text-3xl">
-                      {formatPrice(d.price)}
-                      <span className="ml-1.5 align-top font-mono text-[10px] tracking-[0.2em] text-gold-deep">{CURRENCY}</span>
+                    <p className="price font-display text-2xl font-bold tabular-nums md:text-3xl">
+                      {price(d.price)}
+                      <span className="ms-1.5 align-top font-mono text-[10px] tracking-[0.2em] text-gold-deep">{t.currency}</span>
                     </p>
                   </motion.li>
                 ))}

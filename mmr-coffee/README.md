@@ -35,6 +35,12 @@ Interaction layer: custom cursor with labels, magnetic buttons, masked line reve
 - `prefers-reduced-motion`: no preloader animation, no parallax, instant jumps, slowed scenes.
 - Drink illustrations are generated SVG (≈1 KB each) rather than photos.
 
+## English and Arabic
+- A language switch (عربي / EN) sits in the header. The choice is remembered; first-time visitors whose browser is in Arabic start in Arabic.
+- Arabic switches the page to right-to-left: navigation, the scroll story (text and 3D framing mirror), product panel, menu and footer.
+- Arabic uses Reem Kufi for headings and IBM Plex Sans Arabic for reading text, Arabic-Indic numerals, and prices in د.ك. Letter-spacing and italics are switched off for Arabic so letters stay joined.
+- All copy lives in `src/lib/strings.ts` (`en` and `ar`); Arabic product text is `productsAr` in the same file; menu items carry both languages in `src/lib/data.ts`.
+
 ## Real photos and video
 1. Put the brand's files in `media-src/` using the names in [`media-src/README.md`](media-src/README.md) (story photo, experience film, product photos, one photo per menu drink).
 2. Run `npm run media` (needs ffmpeg). Images become WebP (menu 900 px, products 1400 px, story 2000 px); the film becomes MP4 + WebM (1600 px, max 20 s, no audio) with a poster frame.

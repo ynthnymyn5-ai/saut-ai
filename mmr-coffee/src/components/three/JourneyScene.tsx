@@ -27,7 +27,7 @@ const camKeys = [
 const camStops = [0, 0.24, 0.46, 0.68, 0.9];
 
 /** Five chapters driven by scroll progress: raw beans → roasting vortex → machine → pour → signature. */
-export function JourneyScene({ progress, lite }: { progress: { current: number }; lite: boolean }) {
+export function JourneyScene({ progress, lite, rtl = false }: { progress: { current: number }; lite: boolean; rtl?: boolean }) {
   const { camera, size } = useThree();
   const p = useRef(0);
   const flow = useRef(0);
@@ -94,10 +94,10 @@ export function JourneyScene({ progress, lite }: { progress: { current: number }
     camPos.y += motionState.pointer.y * 0.2;
     camera.position.copy(camPos);
     camera.lookAt(look);
-    // On wide screens shift the frame so the subject sits right of the chapter text.
+    // On wide screens shift the frame so the subject sits beside the chapter text (mirrored in Arabic).
     const persp = camera as THREE.PerspectiveCamera;
     const w = size.width, h = size.height;
-    if (!narrow) persp.setViewOffset(w, h, -w * 0.17, 0, w, h);
+    if (!narrow) persp.setViewOffset(w, h, (rtl ? 1 : -1) * w * 0.17, 0, w, h);
     else if (persp.view) persp.clearViewOffset();
 
     if (machine.current) {

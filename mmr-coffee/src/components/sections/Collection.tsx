@@ -2,7 +2,9 @@
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useRef, useState } from "react";
-import { CURRENCY, formatPrice, products } from "@/lib/data";
+import { products } from "@/lib/data";
+import { useLang } from "@/lib/i18n";
+import { productsAr } from "@/lib/strings";
 import { media } from "@/lib/media";
 import { useCapability } from "@/lib/capability";
 import { LazyCanvas } from "../ui/LazyCanvas";
@@ -15,11 +17,14 @@ const ease = [0.16, 1, 0.3, 1] as const;
 
 export function Collection({ go }: { go: (id: string) => void }) {
   const cap = useCapability();
+  const { t, lang, rtl, price } = useLang();
   const [active, setActive] = useState(0);
   const [detail, setDetail] = useState(false);
   const drag = useRef(0);
   const start = useRef<{ x: number; d: number } | null>(null);
-  const p = products[active];
+  const base = products[active];
+  const p = lang === "ar" ? { ...base, ...productsAr[base.id] } : base;
+  const short = (id: string, en: string) => (lang === "ar" ? productsAr[id].short : en);
 
   const step = useCallback((d: number) => setActive((a) => (a + d + products.length) % products.length), []);
 
@@ -27,17 +32,17 @@ export function Collection({ go }: { go: (id: string) => void }) {
     <section id="collection" className="relative overflow-hidden bg-void py-28 md:py-36" aria-labelledby="collection-title">
       <div className="gutter relative z-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.34em] text-gold">The Signature Collection</p>
-          <RevealLines lines={["Four expressions.", "One obsession."]} className="mt-4 font-display text-[clamp(36px,6vw,84px)] font-bold leading-[0.95] tracking-[-0.02em] text-cream" />
+          <p className="font-mono text-[11px] uppercase tracking-[0.34em] text-gold">{t.collection.eyebrow}</p>
+          <RevealLines key={lang} lines={t.collection.title} className="mt-4 font-display text-[clamp(36px,6vw,84px)] font-bold leading-[0.95] tracking-[-0.02em] text-cream" />
         </div>
         <p className="max-w-xs font-serif text-lg text-cream/60" id="collection-title">
-          Presented like the objects they are. Drag the piece to turn it in the light.
+          {t.collection.intro}
         </p>
       </div>
 
       <div className="relative mt-10 grid min-h-[78svh] grid-cols-1 lg:grid-cols-12">
         {/* giant index numeral, centred behind the product */}
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 grid h-[56svh] place-items-center overflow-hidden lg:inset-y-0 lg:right-auto lg:h-auto lg:w-7/12">
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 grid h-[56svh] place-items-center overflow-hidden lg:inset-y-0 lg:end-auto lg:h-auto lg:w-7/12">
           <AnimatePresence mode="popLayout">
             <motion.span
               key={p.index}
@@ -54,10 +59,10 @@ export function Collection({ go }: { go: (id: string) => void }) {
 
         <div
           className="relative h-[56svh] touch-pan-y lg:col-span-7 lg:h-auto"
-          data-cursor="Drag"
+          data-cursor={t.collection.drag}
           onPointerDown={(e) => (start.current = { x: e.clientX, d: drag.current })}
           onPointerMove={(e) => {
-            if (start.current) drag.current = start.current.d + (e.clientX - start.current.x) * 0.01;
+            if (start.current) drag.current = start.current.d + (e.clientX - start.current.x) * 0.01 * (rtl ? -1 : 1);
           }}
           onPointerUp={() => (start.current = null)}
           onPointerLeave={() => (start.current = null)}
@@ -67,9 +72,9 @@ export function Collection({ go }: { go: (id: string) => void }) {
           </LazyCanvas>
         </div>
 
-        <div className="gutter relative z-10 flex flex-col justify-center gap-8 lg:col-span-5 lg:pl-0">
+        <div className="gutter relative z-10 flex flex-col justify-center gap-8 lg:col-span-5 lg:ps-0">
           <AnimatePresence mode="wait">
-            <motion.div key={p.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.8, ease }} className="flex flex-col gap-6">
+            <motion.div key={p.id + lang} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.8, ease }} className="flex flex-col gap-6">
               <p className="font-mono text-[11px] uppercase tracking-[0.34em] text-smoke">
                 {p.index} / 0{products.length} — {p.size}
               </p>
@@ -86,18 +91,18 @@ export function Collection({ go }: { go: (id: string) => void }) {
               </ul>
               <div className="flex items-end gap-6 border-t border-hair pt-6">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-smoke">From</p>
-                  <p className="font-display text-5xl font-bold tabular-nums text-cream">
-                    {formatPrice(p.price)}
-                    <span className="ml-2 align-top font-mono text-xs tracking-[0.2em] text-gold">{CURRENCY}</span>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-smoke">{t.collection.from}</p>
+                  <p className="price font-display text-5xl font-bold tabular-nums text-cream">
+                    {price(p.price)}
+                    <span className="ms-2 align-top font-mono text-xs tracking-[0.2em] text-gold">{t.currency}</span>
                   </p>
                 </div>
-                <LuxButton onClick={() => setDetail(true)}>Discover product</LuxButton>
+                <LuxButton onClick={() => setDetail(true)}>{t.collection.discover}</LuxButton>
               </div>
             </motion.div>
           </AnimatePresence>
 
-          <div className="flex items-center gap-2" role="tablist" aria-label="Choose a product">
+          <div className="flex items-center gap-2" role="tablist" aria-label={t.collection.choose}>
             {products.map((x, i) => (
               <button
                 key={x.id}
@@ -105,15 +110,15 @@ export function Collection({ go }: { go: (id: string) => void }) {
                 role="tab"
                 aria-selected={i === active}
                 onClick={() => setActive(i)}
-                className={`group flex-1 border-t pt-3 text-left transition-colors duration-500 ${i === active ? "border-gold" : "border-hair hover:border-cream/40"}`}
+                className={`group flex-1 border-t pt-3 text-start transition-colors duration-500 ${i === active ? "border-gold" : "border-hair hover:border-cream/40"}`}
               >
                 <span className={`block font-mono text-[10px] tracking-[0.2em] ${i === active ? "text-gold" : "text-smoke"}`}>{x.index}</span>
-                <span className={`hidden font-mono text-[10px] uppercase tracking-[0.2em] sm:block ${i === active ? "text-cream" : "text-smoke group-hover:text-cream/80"}`}>{x.short}</span>
+                <span className={`hidden font-mono text-[10px] uppercase tracking-[0.2em] sm:block ${i === active ? "text-cream" : "text-smoke group-hover:text-cream/80"}`}>{short(x.id, x.short)}</span>
               </button>
             ))}
-            <div className="ml-3 flex gap-2">
-              <button type="button" aria-label="Previous product" onClick={() => step(-1)} className="grid h-10 w-10 place-items-center rounded-full border border-hair text-cream hover:border-gold">←</button>
-              <button type="button" aria-label="Next product" onClick={() => step(1)} className="grid h-10 w-10 place-items-center rounded-full border border-hair text-cream hover:border-gold">→</button>
+            <div className="ms-3 flex gap-2">
+              <button type="button" aria-label={t.collection.prev} onClick={() => step(-1)} className="grid h-10 w-10 place-items-center rounded-full border border-hair text-cream hover:border-gold">{rtl ? "→" : "←"}</button>
+              <button type="button" aria-label={t.collection.next} onClick={() => step(1)} className="grid h-10 w-10 place-items-center rounded-full border border-hair text-cream hover:border-gold">{rtl ? "←" : "→"}</button>
             </div>
           </div>
         </div>
@@ -127,17 +132,17 @@ export function Collection({ go }: { go: (id: string) => void }) {
               aria-modal="true"
               aria-label={p.name}
               onClick={(e) => e.stopPropagation()}
-              className="flex h-full w-full max-w-lg flex-col gap-8 overflow-y-auto border-l border-hair bg-roast px-8 py-10"
+              className="flex h-full w-full max-w-lg flex-col gap-8 overflow-y-auto border-s border-hair bg-roast px-8 py-10"
               style={{ paddingBottom: "max(40px, env(safe-area-inset-bottom))" }}
-              initial={{ x: "100%" }}
+              initial={{ x: rtl ? "-100%" : "100%" }}
               animate={{ x: 0 }}
-              exit={{ x: "100%" }}
+              exit={{ x: rtl ? "-100%" : "100%" }}
               transition={{ duration: 0.8, ease }}
             >
               <div className="flex items-center justify-between">
-                <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-gold">{p.index} — Product sheet</p>
+                <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-gold">{p.index} — {t.collection.sheet}</p>
                 <button type="button" onClick={() => setDetail(false)} className="rounded-full border border-hair px-4 py-2 font-mono text-[10px] uppercase tracking-[0.3em] text-cream hover:border-gold">
-                  Close
+                  {t.collection.close}
                 </button>
               </div>
               {media.product(p.id) && (
@@ -163,13 +168,13 @@ export function Collection({ go }: { go: (id: string) => void }) {
                 ))}
               </dl>
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-smoke">Tasting notes</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-smoke">{t.collection.tasting}</p>
                 <p className="mt-2 font-serif text-2xl text-cream">{p.notes.join(" · ")}</p>
               </div>
               <div className="mt-auto flex items-end justify-between gap-4">
-                <p className="font-display text-5xl font-bold tabular-nums text-cream">
-                  {formatPrice(p.price)}
-                  <span className="ml-2 align-top font-mono text-xs tracking-[0.2em] text-gold">{CURRENCY}</span>
+                <p className="price font-display text-5xl font-bold tabular-nums text-cream">
+                  {price(p.price)}
+                  <span className="ms-2 align-top font-mono text-xs tracking-[0.2em] text-gold">{t.currency}</span>
                 </p>
                 <LuxButton
                   onClick={() => {
@@ -177,7 +182,7 @@ export function Collection({ go }: { go: (id: string) => void }) {
                     go("menu");
                   }}
                 >
-                  See it on the menu
+                  {t.collection.seeMenu}
                 </LuxButton>
               </div>
             </motion.aside>

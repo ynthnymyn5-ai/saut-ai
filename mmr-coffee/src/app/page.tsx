@@ -13,6 +13,7 @@ import { Grain } from "@/components/ui/Grain";
 import { Preloader } from "@/components/ui/Preloader";
 import { SmoothScroll } from "@/components/ui/SmoothScroll";
 import { scrollToId } from "@/lib/scroll";
+import { LangProvider } from "@/lib/i18n";
 
 export default function Home() {
   const [started, setStarted] = useState(false);
@@ -21,7 +22,7 @@ export default function Home() {
   const go = useCallback((id: string) => scrollToId(id), []);
 
   return (
-    <>
+    <LangProvider>
       <SmoothScroll />
       <Preloader onDone={onDone} />
       <Cursor />
@@ -36,6 +37,6 @@ export default function Home() {
         <Menu />
       </main>
       <Footer />
-    </>
+    </LangProvider>
   );
 }

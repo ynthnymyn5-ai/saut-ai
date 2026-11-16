@@ -21,7 +21,7 @@ export const products: Product[] = [
   {
     id: "signature",
     index: "01",
-    name: "MMR SIGNATURE",
+    name: "MMAR SIGNATURE",
     short: "Signature",
     tagline: "The original. Uncompromising.",
     description: "Rich espresso with chocolate and caramel notes.",
@@ -38,7 +38,7 @@ export const products: Product[] = [
   {
     id: "velvet",
     index: "02",
-    name: "MMR VELVET",
+    name: "MMAR VELVET",
     short: "Velvet",
     tagline: "Silk, poured slowly.",
     description: "Smooth specialty latte with silky milk texture.",
@@ -55,7 +55,7 @@ export const products: Product[] = [
   {
     id: "gold",
     index: "03",
-    name: "MMR GOLD",
+    name: "MMAR GOLD",
     short: "Gold",
     tagline: "Reserved for the few.",
     description: "Exclusive premium coffee with a luxurious flavor profile.",
@@ -72,7 +72,7 @@ export const products: Product[] = [
   {
     id: "coldbrew",
     index: "04",
-    name: "MMR COLD BREW",
+    name: "MMAR COLD BREW",
     short: "Cold Brew",
     tagline: "Patience, bottled.",
     description: "Slow-brewed coffee with a refreshing finish.",

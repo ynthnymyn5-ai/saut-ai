@@ -32,7 +32,7 @@ export function LuxButton({ children, onClick, variant = "solid", cursor }: { ch
       >
         <span className="relative z-10 flex items-center gap-3">
           {children}
-          <svg width="14" height="10" viewBox="0 0 14 10" fill="none" aria-hidden className="transition-transform duration-500 ease-lux group-hover:translate-x-1">
+          <svg width="14" height="10" viewBox="0 0 14 10" fill="none" aria-hidden className="transition-transform duration-500 ease-lux group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1">
             <path d="M0 5h12M8 1l4 4-4 4" stroke="currentColor" strokeWidth="1.2" />
           </svg>
         </span>

@@ -5,36 +5,32 @@ import { LazyCanvas } from "../ui/LazyCanvas";
 import { FadeUp, RevealLines } from "../ui/Reveal";
 import { StageFallback } from "../ui/Fallbacks";
 import { media } from "@/lib/media";
+import { useLang } from "@/lib/i18n";
 
 const Sculpture = dynamic(() => import("../three/Sculpture").then((m) => m.Sculpture), { ssr: false });
-
-const recipe = [
-  { k: "Dose", v: "18 g" },
-  { k: "Yield", v: "36 g" },
-  { k: "Time", v: "28 s" },
-  { k: "Water", v: "93 °C" },
-];
 
 export function Story() {
   const drag = useRef(0);
   const start = useRef<{ x: number; d: number } | null>(null);
   const photo = media.story();
+  const { t, lang, rtl } = useLang();
+  const recipe = t.story.recipe;
   return (
     <section id="story" className="relative bg-void" aria-labelledby="story-title">
       <div className="grid min-h-[100svh] grid-cols-1 lg:grid-cols-2">
-        <div className="gutter flex flex-col justify-center gap-10 py-28 lg:pr-16">
-          <p className="font-mono text-[11px] uppercase tracking-[0.34em] text-gold">Our Story</p>
+        <div className="gutter flex flex-col justify-center gap-10 py-28 lg:pe-16">
+          <p className="font-mono text-[11px] uppercase tracking-[0.34em] text-gold">{t.story.eyebrow}</p>
           <div id="story-title">
-            <RevealLines lines={["IT STARTS", "WITH A PASSION."]} className="font-display text-[clamp(40px,5vw,84px)] font-extrabold leading-[0.9] tracking-[-0.03em] text-cream" />
+            <RevealLines key={lang} lines={t.story.title} className="font-display text-[clamp(40px,5vw,84px)] font-extrabold leading-[0.9] tracking-[-0.03em] text-cream" />
           </div>
           <FadeUp>
             <p className="max-w-lg font-serif text-2xl leading-snug text-cream/80 md:text-[28px]">
-              At MMR, coffee is more than a daily ritual. It&apos;s an art of craftsmanship, a journey of flavor, and a moment worth remembering.
+              {t.story.p1}
             </p>
           </FadeUp>
           <FadeUp delay={0.1}>
             <p className="max-w-md text-cream/60">
-              We buy in small lots, roast in small batches and taste every one before it reaches a cup. The house espresso is dialled in each morning to the same four numbers.
+              {t.story.p2}
             </p>
           </FadeUp>
           <FadeUp delay={0.2}>
@@ -50,7 +46,7 @@ export function Story() {
         </div>
         <div
           className="relative h-[70svh] touch-pan-y lg:h-auto"
-          data-cursor={photo ? undefined : "Drag"}
+          data-cursor={photo ? undefined : t.story.drag}
           onPointerDown={(e) => (start.current = { x: e.clientX, d: drag.current })}
           onPointerMove={(e) => {
             if (start.current) drag.current = start.current.d + (e.clientX - start.current.x) * 0.012;
@@ -61,8 +57,8 @@ export function Story() {
           {photo ? (
             <div className="absolute inset-0 overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo.src} width={photo.width} height={photo.height} alt="An Mmar paper cup on the counter" loading="lazy" decoding="async" className="story-kenburns h-full w-full object-cover" />
-              <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-void via-transparent to-transparent" />
+              <img src={photo.src} width={photo.width} height={photo.height} alt={t.story.alt} loading="lazy" decoding="async" className="story-kenburns h-full w-full object-cover" />
+              <div aria-hidden className={`absolute inset-0 via-transparent to-transparent ${rtl ? "bg-gradient-to-l" : "bg-gradient-to-r"} from-void`} />
             </div>
           ) : (
             <LazyCanvas className="absolute inset-0" camera={{ position: [0, 0, 9.5], fov: 35 }} fallback={<StageFallback />}>
@@ -70,8 +66,8 @@ export function Story() {
             </LazyCanvas>
           )}
           <div className="pointer-events-none absolute bottom-8 left-8 right-8 flex justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-smoke">
-            <span>{photo ? "Fig. 01 — Mmar, to go" : "Fig. 01 — Arabica, roasted & raw gold"}</span>
-            {!photo && <span>Drag to turn</span>}
+            <span>{photo ? t.story.captionPhoto : t.story.captionSculpture}</span>
+            {!photo && <span>{t.story.dragToTurn}</span>}
           </div>
         </div>
       </div>

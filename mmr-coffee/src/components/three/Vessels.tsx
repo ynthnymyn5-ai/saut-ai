@@ -119,7 +119,7 @@ export function ColdBrewBottle(props: JSX.IntrinsicElements["group"]) {
         <cylinderGeometry args={[0.7, 0.7, 0.03, 72, 1, true]} />
       </mesh>
       <Text font={DISPLAY} position={[0, 1.25, 0.71]} fontSize={0.26} letterSpacing={0.3} color="#d6b37a" anchorX="center" anchorY="middle">
-        MMR
+        MMAR
       </Text>
       <Text font={MONO} position={[0, 0.95, 0.71]} fontSize={0.07} letterSpacing={0.4} color="#efe6d8" anchorX="center" anchorY="middle">
         COLD BREW · 18H
@@ -145,7 +145,7 @@ export function ReserveTin(props: JSX.IntrinsicElements["group"]) {
         <cylinderGeometry args={[0.88, 0.88, 0.18, 96]} />
       </mesh>
       <Text font={DISPLAY} position={[0, 1.12, 0.875]} fontSize={0.3} letterSpacing={0.3} color="#d6b37a" anchorX="center" anchorY="middle">
-        MMR
+        MMAR
       </Text>
       <Text font={MONO} position={[0, 0.82, 0.875]} fontSize={0.07} letterSpacing={0.5} color="#efe6d8" anchorX="center" anchorY="middle">
         GOLD RESERVE · LOT 07
