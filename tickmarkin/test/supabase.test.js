@@ -49,11 +49,11 @@ after(() => { app.close(); mock.close(); });
 const post = (p, b, h = {}) => fetch(base + p, { method: 'POST', headers: { 'Content-Type': 'application/json', ...h }, body: JSON.stringify(b) });
 
 test('registration and message are written to Supabase with snake_case columns', async () => {
-  const r = await post('/api/register', { name: 'ليان سعد', phone: '0501234567', email: '', courseId: 'web-dev', mode: 'عن بُعد', studentType: 'طالب جامعي', agree: true });
+  const r = await post('/api/register', { name: 'ليان سعد', phone: '0501234567', email: '', courseId: 'qudrat', mode: 'عن بُعد', studentType: 'طالب جامعي', agree: true });
   assert.equal(r.status, 201);
   const row = tables.tm_registrations[0];
-  assert.equal(row.course_id, 'web-dev');
-  assert.equal(row.course_title, 'تطوير الويب الشامل Full-Stack');
+  assert.equal(row.course_id, 'qudrat');
+  assert.equal(row.course_title, 'التحضير لاختبار القدرات العامة');
   assert.equal(row.student_type, 'طالب جامعي');
   assert.equal(row.email, null, 'empty strings stored as null');
   assert.equal(row.status, 'new');
@@ -73,7 +73,7 @@ test('admin reads, updates, exports and deletes through Supabase', async () => {
   assert.equal(data.stats.total, 1);
   assert.equal(data.stats.unreadMessages, 1);
   const reg = data.registrations[0];
-  assert.equal(reg.courseTitle, 'تطوير الويب الشامل Full-Stack');
+  assert.equal(reg.courseTitle, 'التحضير لاختبار القدرات العامة');
   assert.equal(reg.email, '');
 
   const patched = await fetch(base + '/api/admin/registrations/' + reg.id, { method: 'PATCH', headers: h, body: JSON.stringify({ status: 'confirmed' }) });
@@ -125,7 +125,7 @@ test('Vercel entry restores the rewritten /api path', async () => {
   const port = srv.address().port;
   const viaRewrite = await fetch(`http://127.0.0.1:${port}/api/index?__p=catalog`);
   assert.equal(viaRewrite.status, 200);
-  assert.equal((await viaRewrite.json()).departments.length, 4);
+  assert.equal((await viaRewrite.json()).departments.length, 3);
   const direct = await fetch(`http://127.0.0.1:${port}/api/catalog`);
   assert.equal(direct.status, 200);
   srv.close();

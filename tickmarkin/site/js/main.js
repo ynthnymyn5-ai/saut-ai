@@ -213,7 +213,7 @@
       const featuredIds = ['qudrat', 'math-hs', 'ielts', 'hr-pro', 'eng-general', 'pm'];
       $('#home-courses').innerHTML = featuredIds.map((id) => cat.courses.find((c) => c.id === id)).filter(Boolean).map((c) => courseCard(cat, c)).join('');
       $('#home-people').innerHTML = cat.instructors.slice(0, 4).map((p) => personCard(cat, p)).join('');
-      const upcoming = cat.courses.filter((c) => c.dept !== 'tech').sort((a, b) => a.start.localeCompare(b.start)).slice(0, 4);
+      const upcoming = [...cat.courses].sort((a, b) => a.start.localeCompare(b.start)).slice(0, 4);
       $('#hero-upcoming').innerHTML = upcoming.map((c) => `
         <li><a href="/course?id=${encodeURIComponent(c.id)}"><span><b>${esc(c.title)}</b><small>${esc(deptName(cat, c.dept))} · يبدأ ${esc(fmtDate(c.start))}</small></span><span aria-hidden="true">←</span></a></li>`).join('');
       FX.setCount($('#stat-courses'), cat.courses.length);

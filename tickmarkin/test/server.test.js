@@ -42,8 +42,9 @@ test('unknown page returns 404 page; path traversal blocked', async () => {
 
 test('catalog lists 4 departments and courses', async () => {
   const c = await (await fetch(base + '/api/catalog')).json();
-  assert.equal(c.departments.length, 4);
-  assert.ok(c.courses.length >= 12);
+  assert.equal(c.departments.length, 3);
+  assert.ok(!c.departments.some((d) => d.id === 'tech'), 'no programming department');
+  assert.ok(c.courses.length >= 10);
   for (const course of c.courses) assert.ok(c.departments.some((d) => d.id === course.dept), course.id);
 });
 
