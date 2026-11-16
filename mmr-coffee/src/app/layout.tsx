@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, JetBrains_Mono, Manrope, Syne } from "next/font/google";
+import { Instrument_Serif, JetBrains_Mono, Manrope, Reem_Kufi, Syne } from "next/font/google";
 import "./globals.css";
 
 const display = Syne({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--font-display", display: "swap" });
 const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-serif", display: "swap" });
 const sans = Manrope({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-sans", display: "swap" });
+const arabic = Reem_Kufi({ subsets: ["arabic"], weight: ["500", "700"], variable: "--font-arabic", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
@@ -17,7 +18,7 @@ export const viewport: Viewport = { themeColor: "#070605", width: "device-width"
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${serif.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${display.variable} ${serif.variable} ${sans.variable} ${mono.variable} ${arabic.variable}`}>
       <body>{children}</body>
     </html>
   );

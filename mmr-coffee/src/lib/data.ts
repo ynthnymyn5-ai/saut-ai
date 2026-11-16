@@ -90,55 +90,61 @@ export const products: Product[] = [
 
 export type Drink = {
   name: string;
+  ar: string;
   description: string;
+  descriptionAr: string;
   price: number;
-  /** Visual recipe for the generated illustration */
-  look: { vessel: "cup" | "glass" | "tall" | "espresso"; liquid: string; top: string; art?: "heart" | "tulip" | "rosetta" | "none"; ice?: boolean; garnish?: string };
+  /** Visual recipe for the generated illustration (used until a real photo is added) */
+  look: {
+    vessel: "cup" | "glass" | "tall" | "espresso" | "sandwich";
+    liquid: string;
+    top: string;
+    art?: "heart" | "tulip" | "rosetta" | "none";
+    ice?: boolean;
+    garnish?: string;
+  };
 };
 
-export const menu: { id: string; label: string; intro: string; items: Drink[] }[] = [
+/** The shop's price list, as printed on the banner in store. Prices in KWD. */
+export const menu: { id: string; label: string; labelAr: string; intro: string; introAr: string; items: Drink[] }[] = [
   {
-    id: "hot",
-    label: "Hot Coffee",
-    intro: "Pulled at 93 °C on a dual-boiler machine, served within ninety seconds.",
+    id: "coffee",
+    label: "Coffee",
+    labelAr: "قهوة",
+    intro: "Espresso-based drinks, made to order.",
+    introAr: "مشروبات الإسبريسو، تُحضّر عند الطلب.",
     items: [
-      { name: "Espresso", description: "Single origin, 18 g in, 36 g out. Thick hazelnut crema.", price: 1.25, look: { vessel: "espresso", liquid: "#2a1409", top: "#b57a45", art: "none" } },
-      { name: "Cortado", description: "Equal parts espresso and warm milk. Short and balanced.", price: 1.5, look: { vessel: "glass", liquid: "#6b3f22", top: "#e6d3b8", art: "heart" } },
-      { name: "Flat White", description: "Double ristretto under a thin veil of microfoam.", price: 1.75, look: { vessel: "cup", liquid: "#5a3319", top: "#efe2cc", art: "tulip" } },
-      { name: "Velvet Latte", description: "Our house latte with honeyed, silky milk.", price: 1.95, look: { vessel: "cup", liquid: "#7a4a2b", top: "#f2e7d6", art: "rosetta" } },
+      { name: "Espresso", ar: "اسبريسو", description: "A short, concentrated shot.", descriptionAr: "جرعة مركّزة قصيرة.", price: 1.5, look: { vessel: "espresso", liquid: "#2a1409", top: "#b57a45", art: "none" } },
+      { name: "Flat White", ar: "فلات وايت", description: "Espresso with a thin layer of steamed milk.", descriptionAr: "إسبريسو مع طبقة رقيقة من الحليب المبخّر.", price: 1.75, look: { vessel: "cup", liquid: "#5a3319", top: "#efe2cc", art: "tulip" } },
+      { name: "Spanish Latte", ar: "سبانيش لاتيه", description: "Espresso, milk and sweetened condensed milk.", descriptionAr: "إسبريسو وحليب مع حليب مكثّف محلّى.", price: 1.8, look: { vessel: "glass", liquid: "#8a5a35", top: "#f2e7d6", art: "rosetta" } },
+      { name: "Americano", ar: "امريكانو", description: "Espresso lengthened with hot water.", descriptionAr: "إسبريسو مع ماء ساخن.", price: 1.75, look: { vessel: "cup", liquid: "#2e1609", top: "#7a4422", art: "none" } },
     ],
   },
   {
-    id: "iced",
-    label: "Iced Coffee",
-    intro: "Chilled without dilution. Clear ice, cut by hand every morning.",
+    id: "filter",
+    label: "Filter Coffee",
+    labelAr: "قهوة مقطرة",
+    intro: "Single-origin beans, brewed by hand.",
+    introAr: "محاصيل مختصة، تُقطَّر يدوياً.",
     items: [
-      { name: "Iced Americano", description: "Double espresso over clear ice and cold filtered water.", price: 1.5, look: { vessel: "tall", liquid: "#3a1f10", top: "#3a1f10", ice: true } },
-      { name: "Iced Velvet", description: "Espresso layered over cold, sweetened milk.", price: 2, look: { vessel: "tall", liquid: "#c9a27c", top: "#4a2814", ice: true } },
-      { name: "Cold Brew Tonic", description: "18-hour cold brew over tonic and an orange twist.", price: 2.25, look: { vessel: "tall", liquid: "#8a4b22", top: "#a35f2c", ice: true, garnish: "#e08a2e" } },
-      { name: "Shakerato", description: "Espresso shaken hard with ice until it foams.", price: 1.75, look: { vessel: "glass", liquid: "#3d2212", top: "#c9925a", art: "none" } },
+      { name: "Ethiopian", ar: "أثيوبي", description: "Ethiopian beans, brewed as filter coffee.", descriptionAr: "حبوب إثيوبية، تُحضّر قهوة مقطرة.", price: 2, look: { vessel: "glass", liquid: "#9a5523", top: "#b8692c", art: "none" } },
+      { name: "Colombian", ar: "كولومبي", description: "Colombian beans, brewed as filter coffee.", descriptionAr: "حبوب كولومبية، تُحضّر قهوة مقطرة.", price: 2, look: { vessel: "glass", liquid: "#7e4019", top: "#9a5523", art: "none" } },
+      { name: "Al Raiba", ar: "الرايبه", description: "Our Al Raiba filter coffee.", descriptionAr: "قهوة الرايبه المقطرة.", price: 2.5, look: { vessel: "glass", liquid: "#6e3818", top: "#8c4a20", art: "none" } },
     ],
   },
   {
-    id: "signature",
-    label: "Signature Drinks",
-    intro: "Recipes developed in-house. Available only at MMR.",
+    id: "sandwiches",
+    label: "Sandwiches",
+    labelAr: "سندويشات",
+    intro: "Freshly made sandwiches.",
+    introAr: "سندويشات طازجة.",
     items: [
-      { name: "MMR Signature", description: "Double ristretto with chocolate and caramel notes.", price: 2.5, look: { vessel: "espresso", liquid: "#1f0f07", top: "#c08a5b", art: "none" } },
-      { name: "Gold Leaf Mocha", description: "Single-origin cacao, espresso and a sheet of edible gold.", price: 3.5, look: { vessel: "cup", liquid: "#3b1d0e", top: "#5a2f16", garnish: "#d6b37a" } },
-      { name: "Smoked Maple Latte", description: "Oak-smoked maple, espresso and steamed milk.", price: 2.75, look: { vessel: "cup", liquid: "#7d4a28", top: "#ead9bf", art: "heart" } },
-      { name: "Midnight Tonic", description: "Cold brew, black tonic and a rosemary mist.", price: 2.5, look: { vessel: "tall", liquid: "#1a0e08", top: "#2a160b", ice: true, garnish: "#6c8a5a" } },
-    ],
-  },
-  {
-    id: "specialty",
-    label: "Specialty Collection",
-    intro: "Rare micro-lots brewed by hand. Changes with the harvest.",
-    items: [
-      { name: "Geisha Pour-Over", description: "Panama, washed. Jasmine, bergamot, white peach.", price: 4.5, look: { vessel: "glass", liquid: "#9a5523", top: "#b8692c", art: "none" } },
-      { name: "Yirgacheffe V60", description: "Ethiopia, natural. Blueberry and lemon tea.", price: 2.75, look: { vessel: "glass", liquid: "#8a4a1f", top: "#a65e28", art: "none" } },
-      { name: "Anaerobic Siphon", description: "Colombia. Brewed in glass at the counter. Tropical and syrupy.", price: 3.5, look: { vessel: "cup", liquid: "#6e3818", top: "#8c4a20", art: "none" } },
-      { name: "MMR Gold Reserve", description: "Our numbered reserve lot, served as a tasting flight of three.", price: 7.5, look: { vessel: "espresso", liquid: "#2a1409", top: "#d6b37a", art: "none", garnish: "#d6b37a" } },
+      { name: "Egg & Cheese", ar: "بيض جبن", description: "Egg and cheese.", descriptionAr: "بيض مع جبن.", price: 1.35, look: { vessel: "sandwich", liquid: "#e8c15a", top: "#f4dc8a" } },
+      { name: "Egg Mayo", ar: "بيض مايونيز", description: "Egg and mayonnaise.", descriptionAr: "بيض مع مايونيز.", price: 1.35, look: { vessel: "sandwich", liquid: "#f1d77a", top: "#fbf1cf" } },
+      { name: "Halloumi & Beetroot", ar: "حلوم شمندر", description: "Halloumi with beetroot.", descriptionAr: "حلوم مع شمندر.", price: 1.3, look: { vessel: "sandwich", liquid: "#8e1f3d", top: "#efe6d0" } },
+      { name: "Four Cheese", ar: "أربع أجبان", description: "A blend of four cheeses.", descriptionAr: "مزيج من أربعة أجبان.", price: 1.35, look: { vessel: "sandwich", liquid: "#f0c040", top: "#f7e2a0" } },
+      { name: "Full Halloumi", ar: "حلوم كامل", description: "Halloumi, served full.", descriptionAr: "حلوم كامل.", price: 1.35, look: { vessel: "sandwich", liquid: "#e9dcc0", top: "#c99a5a" } },
+      { name: "Turkey", ar: "تيركي", description: "Turkey sandwich.", descriptionAr: "سندويش تيركي.", price: 1.3, look: { vessel: "sandwich", liquid: "#d9a58a", top: "#efd7c5" } },
     ],
   },
 ];

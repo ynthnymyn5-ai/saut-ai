@@ -2,6 +2,7 @@ import type { Drink } from "@/lib/data";
 
 /** Generated drink illustration (vector, ~1 KB each): a top-down view of the vessel and its surface. */
 export function DrinkArt({ look, id }: { look: Drink["look"]; id: string }) {
+  if (look.vessel === "sandwich") return <SandwichArt filling={look.liquid} accent={look.top} />;
   const r = look.vessel === "espresso" ? 30 : look.vessel === "tall" ? 34 : 40;
   const art = look.art ?? "none";
   return (
@@ -47,6 +48,25 @@ export function DrinkArt({ look, id }: { look: Drink["look"]; id: string }) {
       )}
       {look.garnish && <circle cx="74" cy="46" r="5" fill={look.garnish} opacity=".9" />}
       <ellipse cx="48" cy="46" rx="12" ry="5" fill="#fff" opacity=".08" transform="rotate(-30 48 46)" />
+    </svg>
+  );
+}
+
+/** Top-down sandwich on a plate: two toasted halves cut on the diagonal, filling showing at the cut. */
+function SandwichArt({ filling, accent }: { filling: string; accent: string }) {
+  return (
+    <svg viewBox="0 0 120 120" className="h-full w-full" aria-hidden>
+      <circle cx="60" cy="60" r="56" fill="#0e0c0b" stroke="#d6b37a" strokeOpacity=".35" strokeWidth=".6" />
+      <circle cx="60" cy="60" r="44" fill="none" stroke="#efe6d8" strokeOpacity=".08" />
+      <g transform="rotate(-12 60 60)">
+        <path d="M24 34h60q6 0 6 6L32 92q-8 4-8-4Z" fill="#c8894a" />
+        <path d="M30 40h50L36 84Z" fill="#e7b877" />
+        <path d="M84 40 32 92" stroke={filling} strokeWidth="7" strokeLinecap="round" />
+        <path d="M80 46 38 88" stroke={accent} strokeWidth="3" strokeLinecap="round" />
+        <path d="M96 86H36q-6 0-6-6l58-52q8-4 8 4Z" fill="#c8894a" transform="translate(6 4)" />
+        <path d="M90 80H42l46-42Z" fill="#e7b877" transform="translate(6 4)" />
+        <path d="M36 86 94 34" stroke={filling} strokeWidth="7" strokeLinecap="round" transform="translate(6 4)" />
+      </g>
     </svg>
   );
 }

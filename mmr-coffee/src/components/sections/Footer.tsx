@@ -1,7 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import { LazyCanvas } from "../ui/LazyCanvas";
-import { Mark } from "../ui/Logo";
+import { ArabicName, MmarLogo } from "../ui/Logo";
 import { links } from "@/lib/data";
 
 const FooterBean = dynamic(() => import("../three/Sculpture").then((m) => m.FooterBean), { ssr: false });
@@ -12,7 +12,7 @@ export function Footer() {
       <div className="gutter">
         <div className="flex flex-col gap-12 md:flex-row md:items-start md:justify-between">
           <div className="flex items-center gap-6">
-            <LazyCanvas className="h-28 w-28 shrink-0" camera={{ position: [0, 0, 3.2], fov: 35 }} gl={{ alpha: true }} fallback={<Mark size={72} className="m-4 text-gold" />}>
+            <LazyCanvas className="h-28 w-28 shrink-0" camera={{ position: [0, 0, 3.2], fov: 35 }} gl={{ alpha: true }} fallback={<MmarLogo className="m-4 h-10 w-auto text-gold" />}>
               <FooterBean />
             </LazyCanvas>
             <p className="font-serif text-3xl italic text-gold-soft md:text-4xl">Crafted for the moment.</p>
@@ -27,13 +27,23 @@ export function Footer() {
         </div>
         <div className="mt-16 grid gap-6 border-t border-hair pt-8 font-mono text-[10px] uppercase tracking-[0.3em] text-smoke sm:grid-cols-3">
           <span>Open daily · 07:00 — 23:00</span>
-          <span className="sm:text-center">Specialty coffee house &amp; roastery</span>
-          <span className="sm:text-right">© {new Date().getFullYear()} MMR</span>
+          <span className="sm:text-center">Neighbourhood specialty coffee · <span lang="ar" dir="rtl" className="font-arabic normal-case tracking-normal">قهوة حي مختصة</span></span>
+          <span className="sm:text-right">© {new Date().getFullYear()} Mmar · <span lang="ar" className="font-arabic">مرمر</span></span>
         </div>
       </div>
-      <p aria-hidden className="footer-word mt-10 select-none text-center font-display font-extrabold leading-[0.78] tracking-[-0.04em]">
-        MMR
-      </p>
+      <div aria-hidden className="gutter mt-16 flex select-none flex-col items-center gap-[2vw] pb-6">
+        <MmarLogo className="w-full max-w-[1200px]" fill="url(#footer-gold)">
+          <defs>
+            <linearGradient id="footer-gold" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="102">
+              <stop offset="0" stopColor="#e9d2a6" />
+              <stop offset="0.45" stopColor="#d6b37a" />
+              <stop offset="1" stopColor="#5a3c22" />
+            </linearGradient>
+          </defs>
+        </MmarLogo>
+        <ArabicName className="text-[clamp(40px,9vw,140px)] text-gold/80" />
+        <p lang="ar" dir="rtl" className="font-arabic text-lg text-smoke md:text-2xl">قهوة حي مختصة…</p>
+      </div>
     </footer>
   );
 }

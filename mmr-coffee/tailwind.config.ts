@@ -19,6 +19,7 @@ export default {
         serif: ["var(--font-serif)", "Georgia", "serif"],
         sans: ["var(--font-sans)", "Helvetica Neue", "Arial", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "Menlo", "monospace"],
+        arabic: ["var(--font-arabic)", "Geeza Pro", "Tahoma", "sans-serif"],
       },
       letterSpacing: { mega: "0.42em" },
       transitionTimingFunction: { lux: "cubic-bezier(.16,1,.3,1)" },

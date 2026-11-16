@@ -10,4 +10,4 @@ Then run `npm run media` (needs ffmpeg). Files are resized, converted to WebP / 
 | `products/velvet.jpg` | Product sheet for MMR Velvet | |
 | `products/gold.jpg` | Product sheet for MMR Gold | |
 | `products/coldbrew.jpg` | Product sheet for MMR Cold Brew | |
-| `menu/<drink>.jpg` | Menu row thumbnail + hover preview | Name = drink name in lowercase with dashes: `espresso.jpg`, `flat-white.jpg`, `iced-americano.jpg`, `gold-leaf-mocha.jpg`, `geisha-pour-over.jpg`… Shot from above, cup centred (shown in a circle). |
+| `menu/<item>.jpg` | Menu row thumbnail + hover preview | English name in lowercase with dashes: `espresso`, `flat-white`, `spanish-latte`, `americano`, `ethiopian`, `colombian`, `al-raiba`, `egg-cheese`, `egg-mayo`, `halloumi-beetroot`, `four-cheese`, `full-halloumi`, `turkey`. Shot from above, centred (shown in a circle). |
