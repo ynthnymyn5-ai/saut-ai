@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ok, parseJson, route } from "@/lib/http";
+import { isClientNoise } from "@/lib/client-noise";
 import { reportError, scrubPath } from "@/lib/monitoring";
 
 /**
@@ -18,6 +19,7 @@ const body = z.object({
 
 export const POST = route("client-error", async (req) => {
   const b = await parseJson(req, body);
+  if (isClientNoise(b.name, b.message, b.stack)) return ok({ received: true, forwarded: false, ignored: true });
   const e = new Error(b.message);
   e.name = b.name || "ClientError";
   e.stack = b.stack ? `${e.name}: ${b.message}\n${b.stack.split("\n").filter((l) => /^\s*at /.test(l)).join("\n")}` : undefined;
