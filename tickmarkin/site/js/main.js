@@ -32,8 +32,9 @@
 
   function courseCard(cat, c) {
     return `
-    <article class="card course-card" data-dept="${esc(c.dept)}">
+    <article class="card course-card glow reveal" data-dept="${esc(c.dept)}">
       <div class="course-top">
+        <span class="wm" aria-hidden="true">${ICONS[cat.departments.find((d) => d.id === c.dept)?.icon] || ''}</span>
         <span class="chip">${esc(deptName(cat, c.dept))}</span>
         <h3><a href="/course?id=${encodeURIComponent(c.id)}">${esc(c.title)}</a></h3>
       </div>
@@ -55,18 +56,18 @@
 
   function deptCard(d, count) {
     return `
-    <a class="card dept-card" data-dept="${esc(d.id)}" href="/courses?dept=${encodeURIComponent(d.id)}">
+    <a class="card dept-card glow reveal" data-dept="${esc(d.id)}" href="/courses?dept=${encodeURIComponent(d.id)}">
       <span class="dept-icon">${ICONS[d.icon] || ''}</span>
       <h3>${esc(d.name)}</h3>
       <p>${esc(d.desc)}</p>
-      <span class="more">${count} دورات ←</span>
+      <span class="more">${count} دورات <span aria-hidden="true">←</span></span>
     </a>`;
   }
 
   function personCard(cat, p) {
     const initial = p.name.replace(/^(أ\.|م\.|Mr\.|د\.)\s*/, '').trim().charAt(0);
     return `
-    <div class="card person" data-dept="${esc(p.dept)}">
+    <div class="card person glow reveal" data-dept="${esc(p.dept)}">
       <div class="avatar" aria-hidden="true">${esc(initial)}</div>
       <h3>${esc(p.name)}</h3>
       <p>${esc(p.title)}</p>
@@ -75,6 +76,120 @@
   }
 
   const showError = (el) => { if (el) el.innerHTML = '<div class="empty">تعذّر تحميل البيانات. حدّث الصفحة وحاول مرة أخرى.</div>'; };
+
+
+  // ---------- visual effects ----------
+  const FX = (() => {
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const finePointer = matchMedia('(pointer: fine)').matches;
+    const root = document.documentElement;
+
+    // theme toggle
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.theme-toggle')) return;
+      const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      try { localStorage.setItem('tm-theme', next); } catch {}
+    });
+
+    // header state, progress bar, back-to-top
+    const header = $('.site-header');
+    const bar = $('.progress span');
+    const toTop = $('.to-top');
+    toTop?.addEventListener('click', () => window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }));
+    let ticking = false;
+    const onScroll = () => {
+      ticking = false;
+      const y = window.scrollY;
+      header?.classList.toggle('scrolled', y > 24);
+      toTop?.classList.toggle('show', y > 700);
+      const max = document.documentElement.scrollHeight - innerHeight;
+      bar?.style.setProperty('--p', max > 0 ? Math.min(1, y / max).toFixed(4) : 0);
+    };
+    addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+    onScroll();
+
+    // counters
+    const fmt = (el, v) => (el.dataset.prefix || '') + Math.round(v).toLocaleString('en-US') + (el.dataset.suffix || '');
+    function runCount(el) {
+      const to = Number(el.dataset.count);
+      if (reduce || !to) { el.textContent = fmt(el, to); return; }
+      const start = performance.now();
+      const dur = 1600;
+      const step = (t) => {
+        const k = Math.min(1, (t - start) / dur);
+        el.textContent = fmt(el, to * (1 - Math.pow(1 - k, 3)));
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+    function setCount(el, n) {
+      if (!el) return;
+      el.dataset.count = n;
+      if (el.dataset.counted) el.textContent = fmt(el, n);
+    }
+
+    // reveal on scroll (also for content rendered later)
+    const io = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => {
+      for (const en of entries) {
+        if (!en.isIntersecting) continue;
+        en.target.classList.add('in');
+        en.target.querySelectorAll('[data-count]').forEach((c) => { if (!c.dataset.counted) { c.dataset.counted = '1'; runCount(c); } });
+        io.unobserve(en.target);
+      }
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }) : null;
+    function scan(rootEl = document) {
+      rootEl.querySelectorAll('.reveal:not(.in)').forEach((el) => {
+        if (!io) { el.classList.add('in'); return; }
+        // stagger siblings rendered together
+        if (!el.style.getPropertyValue('--d') && el.parentElement?.classList.contains('grid')) {
+          const i = [...el.parentElement.children].indexOf(el);
+          el.style.setProperty('--d', Math.min(i, 6) * 0.07 + 's');
+        }
+        io.observe(el);
+      });
+    }
+    new MutationObserver((muts) => { for (const m of muts) if (m.addedNodes.length) { scan(m.target); } })
+      .observe(document.body, { childList: true, subtree: true });
+
+    // rotating word in hero
+    const rot = $('.rotator');
+    if (rot && !reduce) {
+      const words = rot.dataset.words.split('|');
+      let i = 0;
+      setInterval(() => {
+        rot.classList.add('out');
+        setTimeout(() => { i = (i + 1) % words.length; rot.textContent = words[i]; rot.classList.remove('out'); }, 350);
+      }, 2600);
+    }
+
+    // pointer effects (desktop only)
+    if (finePointer && !reduce) {
+      document.addEventListener('pointermove', (e) => {
+        const card = e.target.closest?.('.glow');
+        if (card) {
+          const r = card.getBoundingClientRect();
+          card.style.setProperty('--mx', e.clientX - r.left + 'px');
+          card.style.setProperty('--my', e.clientY - r.top + 'px');
+        }
+      }, { passive: true });
+      const hero = $('.hero');
+      const stage = $('.hero-stage');
+      const spot = $('.spotlight');
+      hero?.addEventListener('pointermove', (e) => {
+        const r = hero.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width;
+        const y = (e.clientY - r.top) / r.height;
+        spot?.style.setProperty('--sx', x * 100 + '%');
+        spot?.style.setProperty('--sy', y * 100 + '%');
+        stage?.style.setProperty('--ry', (x - 0.5) * 10 + 'deg');
+        stage?.style.setProperty('--rx', (0.5 - y) * 8 + 'deg');
+      });
+      hero?.addEventListener('pointerleave', () => { stage?.style.setProperty('--ry', '0deg'); stage?.style.setProperty('--rx', '0deg'); });
+    }
+
+    return { scan, setCount };
+  })();
 
   // ---------- header ----------
   function initHeader() {
@@ -101,8 +216,8 @@
       const upcoming = [...cat.courses].sort((a, b) => a.start.localeCompare(b.start)).slice(0, 4);
       $('#hero-upcoming').innerHTML = upcoming.map((c) => `
         <li><a href="/course?id=${encodeURIComponent(c.id)}"><span><b>${esc(c.title)}</b><small>${esc(deptName(cat, c.dept))} · يبدأ ${esc(fmtDate(c.start))}</small></span><span aria-hidden="true">←</span></a></li>`).join('');
-      $('#stat-courses').textContent = cat.courses.length + '+';
-      $('#stat-trainers').textContent = cat.instructors.length + '+';
+      FX.setCount($('#stat-courses'), cat.courses.length);
+      FX.setCount($('#stat-trainers'), cat.instructors.length);
     } catch { showError($('#home-courses')); }
   }
 
@@ -340,6 +455,7 @@
   // ---------- boot ----------
   document.querySelectorAll('[data-year]').forEach((el) => { el.textContent = new Date().getFullYear(); });
   initHeader();
+  FX.scan();
   const pages = { home: pageHome, courses: pageCourses, course: pageCourse, departments: pageDepartments, about: pageAbout, register: pageRegister, contact: pageContact };
   pages[document.body.dataset.page]?.();
 })();
