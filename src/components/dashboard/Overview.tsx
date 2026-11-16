@@ -54,7 +54,7 @@ export function Overview(p: {
         ))}
       </div>
 
-      <div className="mt-6 grid gap-4 xl:grid-cols-2">
+      <div className="mt-6 grid gap-4 xl:grid-cols-2 [&>*]:min-w-0">
         <Card><h2 className="mb-4 font-semibold">{t.dash.daily}</h2><DailyChart data={p.daily} /></Card>
         <Card>
           <h2 className="mb-4 font-semibold">{t.dash.monthly}</h2>
@@ -62,7 +62,7 @@ export function Overview(p: {
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
+      <div className="mt-6 grid gap-4 xl:grid-cols-[1.6fr_1fr] [&>*]:min-w-0">
         <Card className="p-0">
           <div className="flex items-center justify-between p-5 pb-3"><h2 className="font-semibold">{t.dash.recent}</h2><Link href="/dashboard/conversations" className="text-xs text-violet-soft hover:text-white">{t.dash.viewAll}</Link></div>
           {p.recent.length === 0 ? <div className="p-5 pt-0"><EmptyState icon={<MessagesSquare className="h-6 w-6" />} title={t.dash.empty} /></div> : (
