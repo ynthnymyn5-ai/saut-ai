@@ -1,8 +1,8 @@
-// Builds dist/ for static hosting (Vercel): copies public/ and injects the shared header/footer.
+// Builds dist/ for static hosting (Vercel): copies site/ and injects the shared header/footer.
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
-const { loadPartials, renderHtml, PUBLIC_DIR } = require('../server');
+const { loadPartials, renderHtml, PUBLIC_DIR } = require('../lib/server');
 
 const OUT = path.join(__dirname, '..', 'dist');
 const partials = loadPartials();

@@ -8,10 +8,10 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { createStore } = require('./lib/stores');
+const { createStore } = require('./stores');
 
-const ROOT = __dirname;
-const PUBLIC_DIR = path.join(ROOT, 'public');
+const ROOT = path.join(__dirname, '..');
+const PUBLIC_DIR = path.join(ROOT, 'site');
 const PARTIALS_DIR = path.join(ROOT, 'partials');
 const CATALOG_FILE = path.join(ROOT, 'data', 'courses.json');
 

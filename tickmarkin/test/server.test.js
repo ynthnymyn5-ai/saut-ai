@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createApp } = require('../server');
+const { createApp } = require('../lib/server');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tickmarkin-'));
 const dataFile = path.join(tmp, 'db.json');
@@ -35,7 +35,7 @@ test('unknown page returns 404 page; path traversal blocked', async () => {
   const r = await fetch(base + '/nope');
   assert.equal(r.status, 404);
   assert.match(await r.text(), /الصفحة غير موجودة/);
-  const t = await fetch(base + '/%2e%2e/server.js');
+  const t = await fetch(base + '/%2e%2e/lib/server.js');
   assert.ok([403, 404].includes(t.status));
   assert.doesNotMatch(await t.text(), /createApp/);
 });

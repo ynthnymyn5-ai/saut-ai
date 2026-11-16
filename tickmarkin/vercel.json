@@ -1,9 +1,10 @@
 {
+  "framework": null,
   "buildCommand": "node scripts/build.js",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "functions": {
-    "api/index.js": { "includeFiles": "{data/courses.json,partials/**,lib/**,public/404.html}" }
+    "api/index.js": { "includeFiles": "{data/courses.json,partials/**,lib/**,site/404.html}" }
   },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index?__p=:path*" }

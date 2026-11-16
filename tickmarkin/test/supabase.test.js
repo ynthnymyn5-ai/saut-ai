@@ -4,7 +4,7 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
-const { createApp } = require('../server');
+const { createApp } = require('../lib/server');
 
 const KEY = 'sb_secret_test_key';
 const tables = { tm_registrations: [], tm_messages: [] };
@@ -129,4 +129,18 @@ test('Vercel entry restores the rewritten /api path', async () => {
   const direct = await fetch(`http://127.0.0.1:${port}/api/catalog`);
   assert.equal(direct.status, 200);
   srv.close();
+});
+
+test('on Vercel without Supabase keys: catalog works, saving returns 503', async () => {
+  const saved = { ...process.env };
+  delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; process.env.VERCEL = '1';
+  const a = createApp({ adminPassword: 'pw' });
+  await new Promise((r) => a.listen(0, r));
+  const b = `http://127.0.0.1:${a.address().port}`;
+  assert.equal((await fetch(b + '/api/catalog')).status, 200);
+  const r = await fetch(b + '/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'اختبار', phone: '0501234567', courseId: 'ielts', mode: 'حضوري', agree: true }) });
+  assert.equal(r.status, 503);
+  assert.equal((await r.json()).error, 'storage_not_configured');
+  a.close();
+  process.env = saved;
 });

@@ -119,7 +119,14 @@ function createStore(options = {}) {
   const key = options.supabaseKey ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (url && key) return createSupabaseStore(url, key, options.fetch);
   if (process.env.VERCEL) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set on Vercel (its file system is not persistent).');
+    // Vercel's file system is not persistent: refuse to store anything rather than silently lose data.
+    console.error('[store] SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set on Vercel.');
+    const fail = async () => { throw Object.assign(new Error('storage_not_configured'), { status: 503 }); };
+    return {
+      kind: 'unconfigured',
+      listRegistrations: fail, addRegistration: fail, updateRegistration: fail, deleteRegistration: fail,
+      listMessages: fail, addMessage: fail, updateMessage: fail, deleteMessage: fail,
+    };
   }
   return createFileStore(options.dataFile || process.env.DATA_FILE || path.join(__dirname, '..', 'data', 'db.json'));
 }

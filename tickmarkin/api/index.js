@@ -1,6 +1,6 @@
 // Vercel serverless entry: handles every /api/* request with the same code as server.js.
 'use strict';
-const { createHandler } = require('../server');
+const { createHandler } = require('../lib/server');
 
 let handler;
 module.exports = (req, res) => {
