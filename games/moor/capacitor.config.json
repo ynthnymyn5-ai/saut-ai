@@ -1,0 +1,34 @@
+{
+	"appId": "com.moorgame.cards",
+	"appName": "مور",
+	"webDir": "www",
+	"backgroundColor": "#0b0805",
+	"android": {
+		"backgroundColor": "#0b0805",
+		"allowMixedContent": false
+	},
+	"ios": {
+		"backgroundColor": "#0b0805",
+		"contentInset": "never"
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 1500,
+			"launchAutoHide": false,
+			"backgroundColor": "#0b0805",
+			"showSpinner": false
+		},
+		"LocalNotifications": {
+			"iconColor": "#e3b75b"
+		},
+		"SocialLogin": {
+			"providers": {
+				"google": true,
+				"facebook": false,
+				"apple": false,
+				"twitter": false
+			},
+			"logLevel": 1
+		}
+	}
+}

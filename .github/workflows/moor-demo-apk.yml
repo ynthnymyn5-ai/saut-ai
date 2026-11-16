@@ -1,0 +1,79 @@
+name: moor-demo-apk
+# Builds a separate, time-limited buyer demo APK of «مور» (app id com.moorgame.cards.demo):
+# demo watermark, expiry date, online + purchases locked, obfuscated game code. Output is UNSIGNED
+# (signed afterwards with a separate demo key — never the real upload key).
+on:
+  workflow_dispatch:
+    inputs:
+      until:
+        description: "Last day the demo works (YYYY-MM-DD)"
+        required: false
+  push:
+    paths: ["games/moor/demo/**", ".github/workflows/moor-demo-apk.yml"]
+permissions:
+  contents: write
+concurrency:
+  group: moor-demo-apk-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DEMO_UNTIL: ${{ github.event.inputs.until || '2026-11-21' }}
+    defaults:
+      run:
+        working-directory: games/moor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Use the runner's preinstalled Android SDK
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+      - run: npm ci --no-audit --no-fund
+      - name: Build the demo game (watermark, expiry, locks, obfuscation)
+        working-directory: games/moor/demo
+        run: |
+          npm install --no-save --no-audit --no-fund javascript-obfuscator@4.1.1
+          OUT=../www/index.html node build.js
+      - name: Make it a separate app (id, name)
+        run: |
+          python3 - <<'EOF'
+          import json,re
+          c=json.load(open('capacitor.config.json',encoding='utf-8'))
+          c['appId']='com.moorgame.cards.demo'; c['appName']='مور تجريبي'
+          json.dump(c,open('capacitor.config.json','w',encoding='utf-8'),ensure_ascii=False,indent=1)
+          p='android/app/build.gradle'; s=open(p).read()
+          s=s.replace('applicationId "com.moorgame.cards"','applicationId "com.moorgame.cards.demo"')
+          s=re.sub(r'versionName "[^"]+"', 'versionName "demo"', s)
+          open(p,'w').write(s)
+          p='android/app/src/main/res/values/strings.xml'; s=open(p,encoding='utf-8').read()
+          s=re.sub(r'(<string name="app_name">)[^<]*(</string>)', r'\g<1>مور تجريبي\g<2>', s)
+          s=re.sub(r'(<string name="title_activity_main">)[^<]*(</string>)', r'\g<1>مور تجريبي\g<2>', s)
+          open(p,'w',encoding='utf-8').write(s)
+          EOF
+          grep -n applicationId android/app/build.gradle
+      - run: npx cap sync android
+      - name: Build demo APK
+        working-directory: games/moor/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon 2>&1 | tail -30
+          ls -la app/build/outputs/apk/release
+      - name: Publish unsigned demo APK to the moor-demo-build branch
+        working-directory: .
+        run: |
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          mkdir -p /tmp/out && cp games/moor/android/app/build/outputs/apk/release/*.apk /tmp/out/ && cp $BT/lib/apksigner.jar /tmp/out/
+          echo "${GITHUB_SHA}" > /tmp/out/commit.txt; echo "${DEMO_UNTIL}" > /tmp/out/until.txt
+          echo '{"git":{"deploymentEnabled":false}}' > /tmp/out/vercel.json
+          cd /tmp/out && git init -q -b moor-demo-build && git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm "moor demo apk ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" moor-demo-build
