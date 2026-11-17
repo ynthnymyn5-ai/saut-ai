@@ -8,7 +8,8 @@ import path from "node:path";
 import fs from "node:fs";
 import { ZodError } from "zod";
 import { env } from "./env";
-import { pool } from "./db";
+import { db, pool, schema } from "./db";
+import { eq } from "drizzle-orm";
 import { setupAuth, requireAuth } from "./auth/replitAuth";
 import { dataRouter } from "./routes/data";
 import { assistantRouter } from "./routes/assistant";
@@ -34,6 +35,16 @@ async function main() {
   const publicRouter = express.Router();
   integrations.forEach((i) => i.publicRoutes?.(publicRouter));
   app.use("/api/integrations", publicRouter);
+
+  // Public, signed invoice links (shared with clients)
+  app.get("/invoice/:id/:token", async (req, res) => {
+    const id = Number(req.params.id);
+    const { invoiceToken, renderInvoiceHtml } = await import("./tools/business");
+    if (!Number.isInteger(id) || req.params.token !== invoiceToken(id)) return res.status(404).send("Not found");
+    const [inv] = await db.select().from(schema.invoices).where(eq(schema.invoices.id, id));
+    if (!inv) return res.status(404).send("Not found");
+    res.set("Cache-Control", "no-store").type("html").send(renderInvoiceHtml(inv));
+  });
 
   app.use(express.json({ limit: "2mb" }));
   setupAuth(app);

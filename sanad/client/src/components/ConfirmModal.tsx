@@ -37,7 +37,7 @@ export function PendingActionsModal() {
             <ChevronDown className={`h-3.5 w-3.5 transition ${showArgs ? "rotate-180" : ""}`} /> {t.confirm.details}
           </button>
           {showArgs && <pre className="max-h-56 overflow-auto rounded-xl bg-black/40 p-3 text-[11px] text-zinc-300 scrollbar-thin" dir="ltr">{JSON.stringify(current.args, null, 2)}</pre>}
-          {pending.length > 1 && <p className="text-xs text-zinc-500">+{pending.length - 1} more waiting</p>}
+          {pending.length > 1 && <p className="text-xs text-zinc-500">{t.confirm.moreWaiting(pending.length - 1)}</p>}
           <div className="flex gap-2">
             <button className="btn-ghost flex-1" disabled={Boolean(busy)} onClick={() => act(false)}>
               {busy === "cancel" ? <Spinner /> : t.confirm.cancel}

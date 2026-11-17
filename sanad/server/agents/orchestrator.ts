@@ -71,7 +71,7 @@ async function agentLoop(agentId: AgentId, messages: ChatMessage[], ctx: ToolCon
       result.content = (res.content ?? "").trim();
       return result;
     }
-    messages.push({ role: "assistant", content: res.content, toolCalls: res.toolCalls });
+    messages.push({ role: "assistant", content: res.content, toolCalls: res.toolCalls, raw: res.raw });
 
     for (const call of res.toolCalls) {
       let output: Record<string, unknown>;
@@ -96,6 +96,7 @@ async function agentLoop(agentId: AgentId, messages: ChatMessage[], ctx: ToolCon
       } else {
         const r = await invokeTool(call.name, call.args, ctx);
         if (r.pending) result.pending.push(r.pending);
+        if (r.extraPending) result.pending.push(...r.extraPending);
         if (r.executed) result.actions.push(r.executed);
         output = r.output;
       }

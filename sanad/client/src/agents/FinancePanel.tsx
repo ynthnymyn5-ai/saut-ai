@@ -1,7 +1,8 @@
 /** Finance: monthly KPIs, income vs expenses chart, spending by category, log and invoices. */
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Plus, Trash2, TrendingUp, TrendingDown, Scale } from "lucide-react";
+import { Plus, Trash2, TrendingUp, TrendingDown, Scale, FileText, Send } from "lucide-react";
+import type { PendingActionDTO } from "@shared/types";
 import { api } from "../lib/api";
 import { useData, useSanad } from "../lib/store";
 import { useI18n } from "../i18n";
@@ -29,7 +30,8 @@ const INV_STYLE: Record<string, string> = {
 
 export function FinancePanel() {
   const { t, lang, fmtDate, fmtMoney } = useI18n();
-  const { bump } = useSanad();
+  const { bump, addPending, toast } = useSanad();
+  const [sending, setSending] = useState<{ id: number; number: string; to: string } | null>(null);
   const ask = useConfirm();
   const [summary, reloadSummary] = useData(() => api.get<Summary>("/api/finance/summary"));
   const [txs, reloadTx] = useData(() => api.get<Tx[]>("/api/finance/transactions"));
@@ -159,6 +161,21 @@ export function FinancePanel() {
                   <p className="text-[11px] text-zinc-500">{inv.number}{inv.dueAt ? ` · ${t.common.due} ${fmtDate(inv.dueAt, { day: "numeric", month: "short" })}` : ""}</p>
                 </div>
                 <span className="text-sm tabular-nums">{fmtMoney(Number(inv.amount), inv.currency)}</span>
+                <button
+                  className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/10 hover:text-white"
+                  title={t.finance.view}
+                  aria-label={t.finance.view}
+                  onClick={async () => {
+                    const { url } = await api.get<{ url: string }>(`/api/finance/invoices/${inv.id}/link`);
+                    if (url) window.open(url, "_blank", "noopener");
+                    else toast(lang === "ar" ? "عرض الفاتورة متاح في التطبيق الكامل." : "The printable invoice is available in the full app.");
+                  }}
+                >
+                  <FileText className="h-4 w-4" />
+                </button>
+                <button className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/10 hover:text-white" title={t.finance.send} aria-label={t.finance.send} onClick={() => setSending({ id: inv.id, number: inv.number, to: "" })}>
+                  <Send className="h-4 w-4 rtl:-scale-x-100" />
+                </button>
                 <select
                   value={inv.status}
                   onChange={async (e) => {
@@ -176,6 +193,32 @@ export function FinancePanel() {
           </div>
         </Card>
       </div>
+
+      <Modal open={Boolean(sending)} onClose={() => setSending(null)} title={`${t.finance.send} ${sending?.number ?? ""}`}>
+        {sending && (
+          <form
+            className="space-y-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const r = await api.post<{ pending: PendingActionDTO | null }>(`/api/finance/invoices/${sending.id}/send`, { to: sending.to, lang });
+                setSending(null);
+                if (r.pending) addPending([r.pending]); // the approval card appears
+              } catch (err) {
+                toast((err as Error).message, "error");
+              }
+            }}
+          >
+            <Field label={t.finance.sendTo}>
+              <input type="email" required autoFocus className="input" value={sending.to} onChange={(e) => setSending({ ...sending, to: e.target.value })} />
+            </Field>
+            <div className="flex gap-2">
+              <button type="button" className="btn-ghost flex-1" onClick={() => setSending(null)}>{t.common.cancel}</button>
+              <button type="submit" className="btn-primary flex-1">{t.finance.send}</button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
       <Modal open={Boolean(form)} onClose={() => setForm(null)} title={t.finance.newTx}>
         {form && (

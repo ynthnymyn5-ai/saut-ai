@@ -191,8 +191,8 @@ export async function seed() {
   await db.insert(schema.memories).values(memories.map((m, i) => ({ ...m, source: "seed", pinned: m.pinned ?? false, embedding: vecs[i] })));
   await db
     .insert(schema.settings)
-    .values({ key: "embedding_provider", value: llm().isReal ? "openai" : "local" })
-    .onConflictDoUpdate({ target: schema.settings.key, set: { value: llm().isReal ? "openai" : "local" } });
+    .values({ key: "embedding_provider", value: llm().embeddingId })
+    .onConflictDoUpdate({ target: schema.settings.key, set: { value: llm().embeddingId } });
 
   // ─── A sample conversation + activity ─────────────────────────────────────
   const [conv] = await db.insert(schema.conversations).values({ title: "Spending check", channel: "web" }).returning();

@@ -2,7 +2,7 @@
   "name": "sanad",
   "version": "1.0.0",
   "private": true,
-  "description": "Sanad \u2014 your AI Chief of Staff. Voice + text personal operating system.",
+  "description": "Sanad — your AI Chief of Staff. Voice + text personal operating system.",
   "type": "module",
   "scripts": {
     "dev": "NODE_ENV=development tsx watch --clear-screen=false server/index.ts",
@@ -16,6 +16,7 @@
     "build:demo": "node scripts/build-demo.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
     "clsx": "^2.1.1",
     "connect-pg-simple": "^10.0.0",
     "dotenv": "^18.0.10",

@@ -348,6 +348,36 @@ async function handle(method: string, path: string, query: URLSearchParams, body
   const id = Number(seg[1]);
   const find = <T extends { id: number }>(arr: T[]) => arr.find((x) => x.id === id);
 
+  // New business workflows (weekly report, invoice send/link, follow-ups)
+  if (seg[0] === "reports") {
+    const lang: Lang = query.get("lang") === "ar" ? "ar" : "en";
+    const cur = totals(new Date(day0().getTime() - 7 * 86400000), day0());
+    const prev = totals(new Date(day0().getTime() - 14 * 86400000), new Date(day0().getTime() - 7 * 86400000));
+    const won = db.leads.filter((l) => l.stage === "won").map((l) => ({ name: l.name }));
+    const done = db.tasks.filter((x) => x.status === "done").length;
+    const text = L(lang,
+      `📊 Weekly report\n💰 Income ${money(cur.income)}, expenses ${money(cur.expenses)}, net ${money(cur.net)}.\n✅ ${done} tasks done. 🤝 Won: ${won.map((w) => w.name).join(", ") || "none"}.\n🎯 Next week: lock in Gulf Bank's order, launch the Ramadan teaser, chase the overdue hotel invoice.`,
+      `📊 تقرير الأسبوع\n💰 الدخل ${money(cur.income)}، المصاريف ${money(cur.expenses)}، الصافي ${money(cur.net)}.\n✅ ${done} مهام منجزة. 🤝 صفقات مكسوبة: ${won.map((w) => w.name).join("، ") || "لا شيء"}.\n🎯 الأسبوع القادم: تأكيد طلب بنك الخليج، إطلاق إعلان رمضان، متابعة فاتورة الفندق المتأخرة.`);
+    return json({ text, generatedAt: iso(), data: { income: cur.income, prevIncome: prev.income, net: cur.net, tasksDone: done, dealsWon: won, currency: "KWD" } });
+  }
+  if (seg[0] === "finance" && seg[1] === "invoices" && seg[3] === "link") return json({ url: "" });
+  if (method === "POST" && seg[0] === "finance" && seg[1] === "invoices" && seg[3] === "send") {
+    const inv = db.invoices.find((x) => x.id === Number(seg[2]));
+    const lang: Lang = body.lang === "ar" ? "ar" : "en";
+    if (!inv) return json({ error: "not_found" }, 404);
+    const pending = queue("send_invoice", L(lang, `Send invoice ${inv.number} to ${body.to}`, `إرسال الفاتورة ${inv.number} إلى ${body.to}`), "finance", { invoiceId: inv.id, to: body.to }, () => {
+      if (inv.status === "draft") inv.status = "sent";
+      return L(lang, `Invoice ${inv.number} marked as sent (demo — no email left the browser).`, `تم وضع الفاتورة ${inv.number} كمُرسلة (عرض تجريبي).`);
+    });
+    return json({ pending });
+  }
+  if (method === "POST" && seg[0] === "sales" && seg[1] === "followups") {
+    const lang: Lang = body.lang === "ar" ? "ar" : "en";
+    const due = dueLeads().filter((l) => l.email);
+    const pending = due.map((l) => queue("gmail_send", L(lang, `Send follow-up to ${l.email}: “Following up — Noor Studio”`, `إرسال متابعة إلى ${l.email}`), "sales", { to: l.email }, () => L(lang, `Follow-up to ${l.name} marked as sent (demo).`, `تم وضع متابعة ${l.name} كمُرسلة (عرض تجريبي).`)));
+    return json({ queued: due.map((l) => l.name), pending });
+  }
+
   switch (`${method} ${seg[0]}`) {
     case "GET auth":
       return json({ user: { id: "demo", name: "Demo owner", email: null, image: null }, mode: "demo" });

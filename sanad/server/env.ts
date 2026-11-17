@@ -21,7 +21,12 @@ export const env = {
   /** Explicit opt-out for local development only. Ignored when REPL_ID is set. */
   AUTH_DISABLED: str("AUTH_DISABLED") === "true",
 
-  // AI
+  // AI — Claude (preferred when set) and/or OpenAI
+  LLM_PROVIDER: str("LLM_PROVIDER").toLowerCase(),
+  ANTHROPIC_API_KEY: str("ANTHROPIC_API_KEY"),
+  ANTHROPIC_MODEL: str("ANTHROPIC_MODEL", "claude-opus-5-5"),
+  /** low | medium | high | xhigh | max — Opus 5.5 defaults to medium */
+  ANTHROPIC_EFFORT: str("ANTHROPIC_EFFORT", "medium"),
   OPENAI_API_KEY: str("OPENAI_API_KEY"),
   OPENAI_MODEL: str("OPENAI_MODEL", "gpt-4o"),
   OPENAI_FAST_MODEL: str("OPENAI_FAST_MODEL", "gpt-4o-mini"),
@@ -29,6 +34,8 @@ export const env = {
   OPENAI_STT_MODEL: str("OPENAI_STT_MODEL", "whisper-1"),
   OPENAI_TTS_MODEL: str("OPENAI_TTS_MODEL", "gpt-4o-mini-tts"),
   OPENAI_TTS_VOICE: str("OPENAI_TTS_VOICE", "shimmer"),
+  OPENAI_REALTIME_MODEL: str("OPENAI_REALTIME_MODEL", "gpt-realtime"),
+  OPENAI_REALTIME_VOICE: str("OPENAI_REALTIME_VOICE", str("OPENAI_TTS_VOICE", "shimmer")),
   TAVILY_API_KEY: str("TAVILY_API_KEY"),
 
   // Integrations
@@ -49,6 +56,10 @@ export const env = {
   BRIEF_HOUR: Number(str("BRIEF_HOUR", "7")),
   TZ: str("TZ", "Asia/Kuwait"),
   CURRENCY: str("CURRENCY", "KWD"),
+  BUSINESS_NAME: str("BUSINESS_NAME", "Noor Studio"),
+  BUSINESS_DETAILS: str("BUSINESS_DETAILS", "Kuwait City, Kuwait"),
+  /** automatic follow-up drafts for leads whose follow-up date has passed */
+  AUTO_FOLLOWUPS: str("AUTO_FOLLOWUPS", "true") !== "false",
 };
 
 /** Public base URL used for OAuth callbacks and webhooks. */

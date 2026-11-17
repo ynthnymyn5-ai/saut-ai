@@ -78,3 +78,36 @@ test("a chat turn creates a task (offline router or real model)", async () => {
   await db.delete(schema.tasks).where(eq(schema.tasks.title, "TESTCALL Ahmed"));
   await db.delete(schema.conversations).where(eq(schema.conversations.id, res.conversationId));
 });
+
+test("sending an invoice is queued for approval and the public link is signed", async () => {
+  const { invoiceToken, renderInvoiceHtml } = await import("../tools/business");
+  const [inv] = await db.insert(schema.invoices).values({ number: "INV-TEST-1", client: "Test Client", amount: "100" }).returning();
+  assert.notEqual(invoiceToken(inv.id), invoiceToken(inv.id + 1));
+  assert.match(renderInvoiceHtml(inv), /INV-TEST-1/);
+  const r = await invokeTool("send_invoice", { invoiceId: inv.id, to: "client@example.com" }, { agentId: "finance", lang: "en", channel: "web" });
+  assert.ok(r.pending, "send_invoice must wait for approval");
+  await resolvePending(r.pending!.id, false);
+  const [after] = await db.select().from(schema.invoices).where(eq(schema.invoices.id, inv.id));
+  assert.equal(after.status, "draft", "cancelled send leaves the invoice untouched");
+  await db.delete(schema.invoices).where(eq(schema.invoices.id, inv.id));
+});
+
+test("automatic follow-ups only draft — every email waits for approval", async () => {
+  const { runAutoFollowUps } = await import("../tools/business");
+  const [lead] = await db.insert(schema.leads).values({ name: "FOLLOWTEST Lead", email: "lead@example.com", stage: "contacted", followUpAt: new Date(Date.now() - 3600_000) }).returning();
+  const q = await runAutoFollowUps(10);
+  const mine = q.find((x) => x.lead === "FOLLOWTEST Lead");
+  assert.ok(mine?.pending, "a pending gmail_send was queued");
+  assert.equal(mine!.pending!.tool, "gmail_send");
+  const again = await runAutoFollowUps(10);
+  assert.ok(!again.some((x) => x.lead === "FOLLOWTEST Lead"), "no duplicate draft for the same follow-up date");
+  for (const x of q) if (x.pendingId) await resolvePending(x.pendingId, false);
+  await db.delete(schema.leads).where(eq(schema.leads.id, lead.id));
+});
+
+test("weekly report compares this week with the last", async () => {
+  const { buildWeeklyData } = await import("../tools/business");
+  const w = await buildWeeklyData();
+  assert.ok(w.from < w.to);
+  assert.equal(typeof w.prevIncome, "number");
+});

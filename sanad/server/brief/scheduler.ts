@@ -13,6 +13,7 @@ import { notifyAll } from "../push/webpush";
 import { telegramSend } from "../integrations/messaging";
 import { generateBrief } from "./dailyBrief";
 import { logActivity } from "../lib/activity";
+import { generateWeeklyReport, runAutoFollowUps } from "../tools/business";
 
 async function getSetting<T>(key: string): Promise<T | undefined> {
   const [r] = await db.select().from(schema.settings).where(eq(schema.settings.key, key));
@@ -44,10 +45,40 @@ export async function runMorningBrief(force = false) {
   await logActivity({ action: "brief.sent", agentId: "chief", actor: "system", summary: `Morning brief delivered for ${today}` });
 }
 
+/** Sunday morning (start of the Gulf work week): weekly report to push + Telegram. */
+export async function runWeeklyReport(force = false) {
+  const p = zonedParts();
+  const today = dateKey();
+  if (!force && (p.weekday !== 0 || p.hour !== env.BRIEF_HOUR || (await getSetting<string>("weekly_sent_on")) === today)) return;
+  await setSetting("weekly_sent_on", today);
+  const lang = ((await getSetting<string>("preferred_lang")) as "en" | "ar" | undefined) ?? "en";
+  const r = await generateWeeklyReport(lang, true);
+  await notifyAll({ title: lang === "ar" ? "📊 تقرير الأسبوع" : "📊 Your weekly report", body: r.text.slice(0, 180), url: "/agents/chief", tag: "weekly" });
+  await telegramSend(r.text).catch(() => false);
+  await logActivity({ action: "weekly.sent", agentId: "chief", actor: "system", summary: `Weekly report delivered for week ending ${r.data.to}` });
+}
+
+/** Daily, after the brief: draft overdue follow-ups and ask for approval. */
+export async function runDailyFollowUps(force = false) {
+  if (!env.AUTO_FOLLOWUPS && !force) return;
+  const p = zonedParts();
+  const today = dateKey();
+  if (!force && (p.hour !== env.BRIEF_HOUR || (await getSetting<string>("followups_on")) === today)) return;
+  await setSetting("followups_on", today);
+  const lang = ((await getSetting<string>("preferred_lang")) as "en" | "ar" | undefined) ?? "en";
+  const queued = await runAutoFollowUps(5, lang);
+  if (!queued.length) return;
+  const names = queued.map((q) => q.lead).join(", ");
+  await notifyAll({ title: lang === "ar" ? "🤝 متابعات جاهزة" : "🤝 Follow-ups ready", body: lang === "ar" ? `${queued.length} رسائل متابعة بانتظار موافقتك: ${names}` : `${queued.length} follow-up email(s) waiting for your approval: ${names}`, url: "/", tag: "followups" });
+  await telegramSend(lang === "ar" ? `🤝 صغت ${queued.length} رسائل متابعة (${names}). وافق عليها من التطبيق.` : `🤝 I drafted ${queued.length} follow-up email(s) (${names}). Approve them in the app.`).catch(() => false);
+}
+
 export function startScheduler() {
   const tick = () => {
     runReminders().catch((e) => console.error("[scheduler] reminders", e));
     runMorningBrief().catch((e) => console.error("[scheduler] brief", e));
+    runWeeklyReport().catch((e) => console.error("[scheduler] weekly", e));
+    runDailyFollowUps().catch((e) => console.error("[scheduler] follow-ups", e));
   };
   setTimeout(tick, 5000);
   return setInterval(tick, 60_000);

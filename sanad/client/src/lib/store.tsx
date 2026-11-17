@@ -10,6 +10,7 @@ import { api } from "./api";
 import { useI18n } from "../i18n";
 import type { OrbState } from "../voice/audioBus";
 import { listen, speak, stopSpeaking, startWakeWord, type ListenSession } from "../voice/voiceEngine";
+import { LiveSession } from "../voice/realtime";
 
 export interface ThreadMsg {
   id: string;
@@ -28,6 +29,8 @@ export interface AppStatus {
   /** static demo build running on the in-browser mock server */
   demo?: boolean;
   serverVoice: boolean;
+  /** live voice conversation (OpenAI Realtime) available */
+  realtime?: boolean;
   webSearch: boolean;
   timezone: string;
   briefHour: number;
@@ -60,11 +63,17 @@ interface SanadCtx {
   prefs: Prefs;
   toasts: Toast[];
   busy: boolean;
+  /** a live voice conversation is open */
+  live: boolean;
+  startLive: () => void;
+  stopLive: () => void;
   send: (text: string, opts?: { agentId?: AgentId; voice?: boolean; keepThread?: boolean }) => Promise<ChatResponse | null>;
   startVoice: () => void;
   stopVoice: () => void;
   stopTalking: () => void;
   decide: (id: number, approve: boolean) => Promise<void>;
+  /** show approval cards for actions queued outside chat (invoice send, follow-ups) */
+  addPending: (items: PendingActionDTO[]) => void;
   newConversation: () => void;
   loadConversation: (id: number) => Promise<void>;
   bump: () => void;
@@ -97,6 +106,8 @@ export function SanadProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [busy, setBusy] = useState(false);
+  const [live, setLive] = useState(false);
+  const liveRef = useRef<LiveSession | null>(null);
   const listenRef = useRef<ListenSession | null>(null);
   const convRef = useRef<number | null>(null);
   convRef.current = conversationId;
@@ -210,7 +221,7 @@ export function SanadProvider({ children }: { children: ReactNode }) {
 
   // Wake word runs only while idle
   useEffect(() => {
-    if (!prefs.wakeWord || orbState !== "idle") return;
+    if (!prefs.wakeWord || orbState !== "idle" || live) return;
     const stop = startWakeWord(uiLang, (rest) => {
       if (rest.length > 3) void send(rest, { voice: true });
       else void startVoice();
@@ -220,7 +231,47 @@ export function SanadProvider({ children }: { children: ReactNode }) {
       setPref("wakeWord", false);
     }
     return () => stop?.();
-  }, [prefs.wakeWord, orbState, uiLang, send, startVoice, setPref, t.voice.unsupported, toast]);
+  }, [prefs.wakeWord, orbState, live, uiLang, send, startVoice, setPref, t.voice.unsupported, toast]);
+
+  // ─── Live voice conversation ───────────────────────────────────────────────
+  const stopLive = useCallback(() => {
+    liveRef.current?.stop();
+  }, []);
+
+  const startLive = useCallback(() => {
+    stopSpeaking();
+    listenRef.current?.cancel();
+    setCaptions({ user: "", sanad: "", sanadLang: uiLang });
+    const session = new LiveSession(
+      {
+        onState: (s) => setOrbState(s === "connecting" ? "thinking" : s),
+        onUserText: (text) => {
+          setThread((th) => [...th, { id: `lu${Date.now()}`, role: "user", content: text }]);
+          setCaptions((c) => ({ ...c, user: text, sanad: "" }));
+        },
+        onAssistantDelta: (text) => setCaptions((c) => ({ ...c, sanad: text, sanadLang: /[\u0600-\u06FF]/.test(text) ? "ar" : "en" })),
+        onAssistantDone: (text) => setThread((th) => [...th, { id: `la${Date.now()}`, role: "assistant", content: text }]),
+        onTurn: (res) => {
+          setConversationId(res.conversationId);
+          setLastDelegations(res.delegations);
+          if (res.pending.length) setPending((p) => [...res.pending, ...p.filter((x) => !res.pending.some((y) => y.id === x.id))]);
+          if (res.actions.length || res.pending.length) bump();
+        },
+        onError: (msg) => toast(msg === "denied" ? t.voice.micDenied : msg, "error"),
+        onEnd: () => {
+          liveRef.current = null;
+          setLive(false);
+          setOrbState("idle");
+        },
+      },
+      convRef.current,
+    );
+    liveRef.current = session;
+    setLive(true);
+    void session.start();
+  }, [bump, t.voice.micDenied, toast, uiLang]);
+
+  useEffect(() => () => liveRef.current?.stop(), []);
 
   const decide = useCallback(
     async (id: number, approve: boolean) => {
@@ -236,6 +287,10 @@ export function SanadProvider({ children }: { children: ReactNode }) {
     },
     [bump, toast, uiLang],
   );
+
+  const addPending = useCallback((items: PendingActionDTO[]) => {
+    if (items.length) setPending((p) => [...items, ...p.filter((x) => !items.some((y) => y.id === x.id))]);
+  }, []);
 
   const newConversation = useCallback(() => {
     stopSpeaking();
@@ -254,8 +309,8 @@ export function SanadProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<SanadCtx>(
-    () => ({ status, user, authMode, conversationId, thread, orbState, captions, pending, dataVersion, lastDelegations, prefs, toasts, busy, send, startVoice, stopVoice, stopTalking, decide, newConversation, loadConversation, bump, setPref, toast }),
-    [status, user, authMode, conversationId, thread, orbState, captions, pending, dataVersion, lastDelegations, prefs, toasts, busy, send, startVoice, stopVoice, stopTalking, decide, newConversation, loadConversation, bump, setPref, toast],
+    () => ({ status, user, authMode, conversationId, thread, orbState, captions, pending, dataVersion, lastDelegations, prefs, toasts, busy, live, startLive, stopLive, send, startVoice, stopVoice, stopTalking, decide, addPending, newConversation, loadConversation, bump, setPref, toast }),
+    [status, user, authMode, conversationId, thread, orbState, captions, pending, dataVersion, lastDelegations, prefs, toasts, busy, live, startLive, stopLive, send, startVoice, stopVoice, stopTalking, decide, addPending, newConversation, loadConversation, bump, setPref, toast],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

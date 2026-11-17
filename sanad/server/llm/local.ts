@@ -15,6 +15,8 @@ const INTENTS: { re: RegExp; tool: string; args: (text: string) => Record<string
   { re: /(add|create|new) (a )?task|remind me to|أضف مهمة|اضف مهمة|ذكرني|ذكّرني/i, tool: "add_task", args: (t) => ({ title: extractTaskTitle(t), dueAt: t, priority: /urgent|عاجل/i.test(t) ? "urgent" : "medium" }) },
   { re: /^remember|remember that|تذكر أن|تذكري أن|احفظ/i, tool: "save_memory", args: (t) => ({ content: t.replace(/^(please )?(remember( that)?|تذكر(ي)? أن|احفظ(ي)?)\s*/i, ""), kind: "fact" }) },
   { re: /what do you (know|remember)|ماذا تعرف|ماذا تعرفين|شو تعرف/i, tool: "search_memory", args: (t) => ({ query: t }) },
+  { re: /weekly|this week'?s report|تقرير الأسبوع|التقرير الأسبوعي/i, tool: "get_weekly_report", args: () => ({}) },
+  { re: /draft (the )?follow.?ups?|follow.?up emails|صياغة المتابعات|اكتب المتابعات|رسائل المتابعة/i, tool: "draft_follow_ups", args: () => ({}) },
   { re: /brief|morning|موجز|ملخص اليوم/i, tool: "get_daily_brief", args: () => ({}) },
   { re: /meeting|schedule|calendar|agenda|اجتماع|مواعيد|موعد|جدول/i, tool: "calendar_list_events", args: (t) => ({ range: /tomorrow|غد|بكرة/i.test(t) ? "tomorrow" : /week|أسبوع/i.test(t) ? "week" : "today" }) },
   { re: /e-?mail|inbox|\bmail\b|بريد|إيميل|ايميل|رسائل/i, tool: "gmail_list_messages", args: () => ({ unreadOnly: true, limit: 10 }) },
@@ -31,7 +33,7 @@ const TOOL_AGENT: Record<string, string> = {
   save_memory: "memory", search_memory: "memory",
   finance_summary: "finance", list_invoices: "finance",
   save_content_item: "marketing", list_leads: "sales",
-  gmail_list_messages: "chief", get_daily_brief: "chief",
+  gmail_list_messages: "chief", get_daily_brief: "chief", get_weekly_report: "chief", draft_follow_ups: "sales",
 };
 
 function extractTaskTitle(t: string): string {
@@ -61,6 +63,7 @@ export class LocalProvider implements LLMProvider {
   readonly name = "local (offline)";
   readonly isReal = false;
   readonly supportsVoice = false;
+  readonly embeddingId = "local-hash";
 
   async chat(req: ChatRequest): Promise<ChatResult> {
     const ui = lastUserIndex(req);

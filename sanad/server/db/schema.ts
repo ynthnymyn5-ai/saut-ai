@@ -117,6 +117,8 @@ export const leads = pgTable("leads", {
   nextStep: text("next_step"),
   followUpAt: timestamp("follow_up_at", { withTimezone: true }),
   notes: text("notes"),
+  /** when Sanad last drafted an automatic follow-up for this lead */
+  autoDraftedAt: timestamp("auto_drafted_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -252,7 +254,7 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 
 export const briefs = pgTable("briefs", {
   id: serial("id").primaryKey(),
-  date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD in owner timezone
+  date: varchar("date", { length: 16 }).notNull(), // YYYY-MM-DD (daily) or W-YYYY-MM-DD (weekly), owner timezone
   lang: varchar("lang", { length: 5 }).notNull().default("en"),
   text: text("text").notNull(),
   data: jsonb("data").notNull(),

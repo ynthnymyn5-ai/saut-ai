@@ -1,6 +1,6 @@
 /** Chief of Staff: the daily brief, today's agenda, inbox preview and key numbers. */
 import { useState } from "react";
-import { RefreshCw, Send, CalendarDays, Flame, Handshake, Inbox, Volume2 } from "lucide-react";
+import { RefreshCw, Send, CalendarDays, Flame, Handshake, Inbox, Volume2, BarChart3 } from "lucide-react";
 import type { BriefDTO } from "@shared/types";
 import { api } from "../lib/api";
 import { useData, useSanad } from "../lib/store";
@@ -17,6 +17,11 @@ export function ChiefPanel() {
   const [refresh, setRefresh] = useState(0);
   const [brief, , loading] = useData(() => api.get<BriefDTO>(`/api/brief?lang=${lang}${refresh ? "&refresh=1" : ""}`), [lang, refresh]);
   const [mail] = useData(() => api.get<Mail[]>("/api/inbox"));
+  const [weeklyRefresh, setWeeklyRefresh] = useState(0);
+  const [weekly, , weeklyLoading] = useData(
+    () => api.get<{ text: string; generatedAt: string; data: { income: number; prevIncome: number; net: number; tasksDone: number; dealsWon: { name: string }[]; currency: string } }>(`/api/reports/weekly?lang=${lang}${weeklyRefresh ? "&refresh=1" : ""}`),
+    [lang, weeklyRefresh],
+  );
   const [speaking, setSpeaking] = useState(false);
   const d = brief?.data;
   const time = (iso: string) => fmtDate(iso, { hour: "2-digit", minute: "2-digit" });
@@ -131,6 +136,40 @@ export function ChiefPanel() {
           ))}
           {d && !d.followUps.length && <Empty>✓</Empty>}
         </div>
+      </Card>
+
+      <Card className="p-5 lg:col-span-3">
+        <SectionTitle
+          icon={<BarChart3 className="h-4 w-4 text-violet-300" />}
+          action={
+            <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => setWeeklyRefresh((r) => r + 1)} aria-label={t.common.refresh}>
+              <RefreshCw className={cx("h-3.5 w-3.5", weeklyLoading && "animate-spin")} />
+            </button>
+          }
+        >
+          {t.chief.weekly}
+        </SectionTitle>
+        {weekly ? (
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2 md:col-span-1 md:grid-cols-1">
+              {[
+                [t.finance.income, fmtMoney(weekly.data.income, weekly.data.currency), weekly.data.prevIncome ? `${weekly.data.income >= weekly.data.prevIncome ? "▲" : "▼"} ${Math.abs(Math.round(((weekly.data.income - weekly.data.prevIncome) / weekly.data.prevIncome) * 100))}% ${t.chief.vsLastWeek}` : ""],
+                [t.finance.net, fmtMoney(weekly.data.net, weekly.data.currency), ""],
+                [t.chief.tasksDone, String(weekly.data.tasksDone), ""],
+                [t.chief.dealsWon, String(weekly.data.dealsWon.length), weekly.data.dealsWon.map((x) => x.name).join(", ")],
+              ].map(([k, v, sub]) => (
+                <div key={k} className="rounded-xl bg-black/25 p-3">
+                  <p className="text-[11px] text-zinc-500">{k}</p>
+                  <p className="text-base font-semibold tabular-nums">{v}</p>
+                  {sub && <p className="truncate text-[10px] text-zinc-500">{sub}</p>}
+                </div>
+              ))}
+            </div>
+            <p dir="auto" className="whitespace-pre-line text-sm leading-relaxed text-zinc-200 md:col-span-2">{weekly.text}</p>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-zinc-400"><Spinner /> {t.common.loading}</div>
+        )}
       </Card>
 
       <Card className="p-5 lg:col-span-3">

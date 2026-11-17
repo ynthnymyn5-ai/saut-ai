@@ -18,6 +18,9 @@ import { initPush, saveSubscription, removeSubscription, notifyAll } from "../pu
 import { env, baseUrl } from "../env";
 import { logActivity } from "../lib/activity";
 import type { IntegrationStatusDTO } from "@shared/types";
+import { createRealtimeSecret, realtimeAvailable } from "../llm/realtime";
+import { generateWeeklyReport, runAutoFollowUps, invoiceUrl } from "../tools/business";
+import { invokeTool } from "../tools/registry";
 
 export const assistantRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
@@ -29,6 +32,17 @@ assistantRouter.post("/chat", async (req, res) => {
     .parse(req.body);
   const agentId = (AGENT_IDS.includes(b.agentId as AgentId) ? b.agentId : "chief") as AgentId;
   res.json(await runTurn({ text: b.message, conversationId: b.conversationId ?? undefined, agentId, channel: "web" }));
+});
+
+// ─── Live voice (Realtime) ───────────────────────────────────────────────────
+assistantRouter.post("/realtime/session", async (_req, res) => {
+  if (!realtimeAvailable()) return res.status(503).json({ error: "realtime_not_configured", message: "Live voice needs OPENAI_API_KEY." });
+  res.json(await createRealtimeSecret());
+});
+/** The realtime model's `ask_sanad` tool: one full Sanad turn (agents, memory, approvals). */
+assistantRouter.post("/realtime/ask", async (req, res) => {
+  const b = z.object({ request: z.string().min(1).max(4000), conversationId: z.number().int().nullish() }).parse(req.body);
+  res.json(await runTurn({ text: b.request, conversationId: b.conversationId ?? undefined, agentId: "chief", channel: "web" }));
 });
 
 // ─── Pending actions (confirmation modal) ────────────────────────────────────
@@ -71,6 +85,27 @@ assistantRouter.get("/brief", async (req, res) => {
 assistantRouter.post("/brief/send", async (_req, res) => {
   await runMorningBrief(true);
   res.json({ ok: true });
+});
+
+// ─── Weekly report, invoices, follow-ups ─────────────────────────────────────
+assistantRouter.get("/reports/weekly", async (req, res) => {
+  res.json(await generateWeeklyReport(req.query.lang === "ar" ? "ar" : "en", req.query.refresh === "1"));
+});
+assistantRouter.get("/finance/invoices/:id/link", (req, res) => {
+  res.json({ url: invoiceUrl(Number(req.params.id)) });
+});
+/** Queues the email for approval — the confirmation modal does the rest. */
+assistantRouter.post("/finance/invoices/:id/send", async (req, res) => {
+  const b = z.object({ to: z.string().email(), lang: z.enum(["en", "ar"]).optional() }).parse(req.body);
+  const r = await invokeTool("send_invoice", { invoiceId: Number(req.params.id), to: b.to }, { agentId: "finance", lang: b.lang ?? "en", channel: "web" });
+  res.json({ pending: r.pending ?? null, say: r.output.say });
+});
+assistantRouter.post("/sales/followups", async (req, res) => {
+  const lang = req.body?.lang === "ar" ? "ar" : "en";
+  const queued = await runAutoFollowUps(5, lang);
+  const ids = queued.map((q) => q.pendingId).filter(Boolean) as number[];
+  const pending = ids.length ? (await db.select().from(schema.pendingActions)).filter((p) => ids.includes(p.id)).map(toDTO) : [];
+  res.json({ queued, pending });
 });
 
 // ─── Integrations ────────────────────────────────────────────────────────────
@@ -130,6 +165,7 @@ assistantRouter.get("/status", async (_req, res) => {
     provider: llm().name,
     aiConfigured: llm().isReal,
     serverVoice: llm().supportsVoice,
+    realtime: realtimeAvailable(),
     webSearch: Boolean(env.TAVILY_API_KEY),
     timezone: env.TZ,
     briefHour: env.BRIEF_HOUR,

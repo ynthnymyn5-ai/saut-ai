@@ -112,7 +112,7 @@ Write each fact as a standalone sentence in the language the owner used. Return 
  */
 export async function ensureEmbeddingsMatchProvider() {
   const key = "embedding_provider";
-  const current = llm().isReal ? "openai" : "local";
+  const current = llm().embeddingId;
   const [row] = await db.select().from(schema.settings).where(eq(schema.settings.key, key));
   const missing = await db.select({ id: schema.memories.id }).from(schema.memories).where(isNull(schema.memories.embedding)).limit(1);
   if (row?.value === current && !missing.length) return;

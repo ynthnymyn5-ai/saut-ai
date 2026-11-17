@@ -1,6 +1,7 @@
 /** Sales: CRM-style pipeline table (name, stage, value, next step, follow-up). */
 import { useMemo, useState } from "react";
-import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Trash2, AlertCircle, MailPlus } from "lucide-react";
+import type { PendingActionDTO } from "@shared/types";
 import { api } from "../lib/api";
 import { useData, useSanad } from "../lib/store";
 import { useI18n } from "../i18n";
@@ -24,8 +25,9 @@ interface Lead {
 const STAGES = ["new", "contacted", "qualified", "proposal", "won", "lost"] as const;
 
 export function SalesPanel() {
-  const { t, fmtDate, fmtMoney } = useI18n();
-  const { bump } = useSanad();
+  const { t, lang, fmtDate, fmtMoney } = useI18n();
+  const { bump, addPending, toast } = useSanad();
+  const [drafting, setDrafting] = useState(false);
   const ask = useConfirm();
   const [leads, reload] = useData(() => api.get<Lead[]>("/api/leads"));
   const [filter, setFilter] = useState<string>("open");
@@ -86,6 +88,23 @@ export function SalesPanel() {
             </button>
           ))}
         </div>
+        <button
+          className="btn-ghost ms-auto"
+          disabled={drafting}
+          onClick={async () => {
+            setDrafting(true);
+            try {
+              const r = await api.post<{ pending: PendingActionDTO[] }>("/api/sales/followups", { lang });
+              if (r.pending.length) addPending(r.pending);
+              else toast(t.sales.noneDue);
+              reload();
+            } finally {
+              setDrafting(false);
+            }
+          }}
+        >
+          <MailPlus className="h-4 w-4" /> {t.sales.draftFollowUps}
+        </button>
         <button className="btn-primary" onClick={() => setEditing({ stage: "new" })}>
           <Plus className="h-4 w-4" /> {t.sales.newLead}
         </button>

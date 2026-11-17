@@ -19,6 +19,8 @@ export interface ChatMessage {
   toolCalls?: ToolCall[];
   /** tool result messages reference the call they answer */
   toolCallId?: string;
+  /** provider-native content of an assistant turn (e.g. Claude thinking blocks), replayed unchanged */
+  raw?: unknown;
 }
 
 /** JSON-schema tool definition (the common denominator of OpenAI/Anthropic). */
@@ -42,6 +44,8 @@ export interface ChatRequest {
 export interface ChatResult {
   content: string | null;
   toolCalls: ToolCall[];
+  /** provider-native assistant content to send back on the next request */
+  raw?: unknown;
 }
 
 export interface LLMProvider {
@@ -50,6 +54,8 @@ export interface LLMProvider {
   /** true when backed by a real model (false for the offline fallback) */
   readonly isReal: boolean;
   readonly supportsVoice: boolean;
+  /** identifies the embedding space; memories are re-embedded when it changes */
+  readonly embeddingId: string;
   chat(req: ChatRequest): Promise<ChatResult>;
   embed(texts: string[]): Promise<number[][]>;
   transcribe(audio: Buffer, filename: string, language?: string): Promise<{ text: string; language?: string }>;

@@ -38,7 +38,12 @@ Without `REPL_ID`, development mode signs you in automatically as the local owne
 |---|---|---|
 | `DATABASE_URL` | **Yes** (Replit sets it) | PostgreSQL connection string |
 | `SESSION_SECRET` | **Yes** | Long random string used to sign login cookies |
-| `OPENAI_API_KEY` | Recommended | GPT-4o reasoning and tool calling, embeddings, Whisper speech-to-text, TTS voice. **Without it Sanad runs in offline mode**: a rule-based router understands the common commands, and the browser's built-in voice is used, so you can test every screen for free. |
+| `ANTHROPIC_API_KEY` | Recommended | **Claude** (`claude-opus-5-5`) for reasoning and tool calling. It is used automatically when this key is set. Set the depth with `ANTHROPIC_EFFORT` (`low` to `max`, default `medium`). Refusals use Anthropic's server-side fallback. |
+| `OPENAI_API_KEY` | Recommended | Used for embeddings, Whisper speech-to-text, TTS and **live voice conversation** (Realtime). It also handles reasoning when no Anthropic key is set. **Without either key Sanad runs in offline mode**: a rule-based router understands the common commands, and the browser's built-in voice is used. |
+| `LLM_PROVIDER` | Optional | Force `anthropic`, `openai` or `local` |
+| `OPENAI_REALTIME_MODEL` / `OPENAI_REALTIME_VOICE` | Optional | Live voice model (default `gpt-realtime`) and voice (defaults to `OPENAI_TTS_VOICE`) |
+| `BUSINESS_NAME`, `BUSINESS_DETAILS` | Optional | Shown on invoices |
+| `AUTO_FOLLOWUPS` | Optional | `false` turns off the daily follow-up drafts |
 | `OWNER_EMAIL` | Optional | Locks sign-in to this email. Otherwise the first account to sign in becomes the owner. |
 | `OPENAI_MODEL` / `OPENAI_FAST_MODEL` | Optional | Defaults are `gpt-4o` / `gpt-4o-mini` |
 | `OPENAI_TTS_VOICE` | Optional | Default `shimmer` |
@@ -118,13 +123,23 @@ sanad/
 
 **Actions that need confirmation:** `delete_task`, `delete_lead`, `delete_transaction`, `delete_note`, `delete_memory`, `gmail_send`, `send_whatsapp_message`, `calendar_create_event`, `calendar_update_event`, `calendar_delete_event`, `notion_create_page`, and `update_content_item` when it marks a post as published. Drafting an email is safe; sending one is not.
 
-### Swapping in Claude (or another model)
+### Claude and other models
 
-Create `server/llm/anthropic.ts` that implements `LLMProvider` from `server/llm/types.ts`. Messages and tools are already provider-neutral (JSON-schema tools, `toolCalls` / `toolCallId`). Then return it from `server/llm/index.ts`. Voice can stay on OpenAI, or you can wrap a different speech vendor in the same interface. Note that embeddings from different providers aren't compatible: Sanad detects a provider change on startup and re-embeds all memories automatically.
+Claude is built in: `server/llm/anthropic.ts` implements `LLMProvider` and is picked in `server/llm/index.ts` whenever `ANTHROPIC_API_KEY` is set. Claude has no embeddings or speech API, so those still come from OpenAI when its key is set, or from the offline fallback. To add another vendor, write one more file implementing `LLMProvider` and pick it in `index.ts`. Voice can stay on OpenAI, or you can wrap a different speech vendor in the same interface. Note that embeddings from different providers aren't compatible: Sanad detects a provider change on startup and re-embeds all memories automatically.
 
 ### Adding an integration
 
 Write an `IntegrationPlugin` (`server/integrations/types.ts`) with `status()`, optional `connectUrl` / `connect()` / `disconnect()`, `tools` and `routes` / `publicRoutes`. Then add it to `server/integrations/registry.ts`. It appears in Settings automatically, and its tools are offered to the agents listed on each tool. Mark tools that act externally with `confirm: true`.
+
+### Live voice conversation
+
+Tap **Start a live conversation** on Home (it appears when `OPENAI_API_KEY` is set). The browser talks to OpenAI Realtime over WebRTC with a short-lived token minted by the server, so the API key never reaches the browser. You just talk: Sanad answers by voice and you can interrupt him at any time. Anything that touches your data or needs an action goes through the `ask_sanad` tool to the normal agents. The same memory and confirmation rules apply, and approval cards appear on screen.
+
+### Business workflows
+
+- **Invoices:** each invoice has a printable bilingual page (Print → Save as PDF) at a signed link (`/invoice/<id>/<token>`). **Send** (Finance panel, or "send invoice 42 to …") emails the client the link. The send waits for your approval.
+- **Weekly report:** the last 7 days compared with the 7 before: money, tasks, leads, deals won, content. It is shown on the Chief of Staff panel and delivered Sunday at `BRIEF_HOUR` by push and Telegram. You can also ask for it any time ("weekly report" / «تقرير الأسبوع»).
+- **Automatic follow-ups:** every morning Sanad drafts a short email for each lead whose follow-up date has passed (up to 5, once per follow-up date). Each email waits for your approval, and nothing is sent on its own. You can also trigger it from Sales → **Draft follow-ups**.
 
 ### Voice
 

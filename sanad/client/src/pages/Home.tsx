@@ -1,7 +1,7 @@
 /** Home: the orb, live captions, push-to-talk, wake word and text chat. */
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MessageSquareText, Plus, Ear, X } from "lucide-react";
+import { MessageSquareText, Plus, Ear, X, Phone, PhoneOff } from "lucide-react";
 import { Orb } from "../components/Orb";
 import { Captions, Composer, MicButton, Thread } from "../components/Conversation";
 import { useSanad } from "../lib/store";
@@ -9,11 +9,12 @@ import { useI18n } from "../i18n";
 import { cx } from "../components/ui";
 
 export function HomePage() {
-  const { orbState, thread, prefs, setPref, newConversation, send, startVoice, stopTalking, busy, status } = useSanad();
+  const { orbState, thread, prefs, setPref, newConversation, send, startVoice, stopTalking, busy, status, live, startLive, stopLive } = useSanad();
   const { t } = useI18n();
   const [showThread, setShowThread] = useState(false);
 
   const onOrb = () => {
+    if (live) return stopLive();
     if (orbState === "idle") startVoice();
     else stopTalking();
   };
@@ -58,8 +59,20 @@ export function HomePage() {
             <div className="flex-1">
               <Composer />
             </div>
-            <MicButton />
+            {live ? (
+              <button onClick={stopLive} aria-label={t.voice.endLive} title={t.voice.endLive} className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-red-500 text-white shadow-[0_0_30px_rgba(239,68,68,.6)] transition active:scale-95">
+                <PhoneOff className="h-7 w-7" />
+              </button>
+            ) : (
+              <MicButton />
+            )}
           </div>
+          {status?.realtime && !live && (
+            <button onClick={startLive} className="btn-ghost mx-auto flex px-4 py-2 text-xs">
+              <Phone className="h-4 w-4 text-emerald-300" /> {t.voice.live}
+            </button>
+          )}
+          {live && <p className="text-center text-xs text-emerald-300">● {t.voice.liveOn}</p>}
         </div>
       </section>
 

@@ -13,6 +13,7 @@ export class OpenAIProvider implements LLMProvider {
   readonly name = `openai:${env.OPENAI_MODEL}`;
   readonly isReal = true;
   readonly supportsVoice = true;
+  readonly embeddingId = `openai:${env.OPENAI_EMBED_MODEL}`;
   private client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
   async chat(req: ChatRequest): Promise<ChatResult> {

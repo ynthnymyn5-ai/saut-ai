@@ -19,6 +19,7 @@ import { financeTools } from "./finance";
 import { contentTools } from "./content";
 import { memoryTools } from "../memory/service";
 import { getDailyBriefTool } from "../brief/dailyBrief";
+import { businessTools } from "./business";
 import { integrations } from "../integrations/registry";
 import { logActivity } from "../lib/activity";
 
@@ -29,6 +30,7 @@ export const allTools: ToolDef[] = [
   ...contentTools,
   ...memoryTools,
   getDailyBriefTool,
+  ...businessTools,
   ...integrations.flatMap((i) => i.tools),
 ] as ToolDef[];
 
@@ -54,6 +56,8 @@ export function toDTO(p: typeof schema.pendingActions.$inferSelect): PendingActi
 export interface InvokeResult {
   output: ToolOutput;
   pending?: PendingActionDTO;
+  /** approvals a tool queued itself (e.g. one email per overdue lead) */
+  extraPending?: PendingActionDTO[];
   executed?: { tool: string; summary: string };
 }
 
@@ -88,7 +92,8 @@ export async function invokeTool(name: string, rawArgs: Record<string, unknown>,
   try {
     const output = await tool.run(args, ctx);
     if (tool.mutates) await logActivity({ action: name, agentId: ctx.agentId, summary, details: { args } });
-    return { output, executed: tool.mutates ? { tool: name, summary } : undefined };
+    const extraPending = Array.isArray(output.pendingActions) ? (output.pendingActions as PendingActionDTO[]) : undefined;
+    return { output, executed: tool.mutates ? { tool: name, summary } : undefined, extraPending };
   } catch (e) {
     const msg = (e as Error).message;
     await logActivity({ action: name, agentId: ctx.agentId, summary: `Failed: ${summary} — ${msg}`, status: "failed" });
