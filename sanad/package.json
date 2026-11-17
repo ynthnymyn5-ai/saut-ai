@@ -13,8 +13,8 @@
     "db:setup": "tsx server/db/setup.ts",
     "db:seed": "tsx server/db/seed.ts",
     "test": "tsx --test server/tests/*.test.ts",
-    "build:demo": "node scripts/build-demo.mjs",
-    "build:vercel": "node scripts/build-vercel.mjs"
+    "build:demo": "node tools/build-demo.mjs",
+    "build:vercel": "node tools/build-vercel.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.10.0",
