@@ -25,6 +25,8 @@ export interface ThreadMsg {
 export interface AppStatus {
   provider: string;
   aiConfigured: boolean;
+  /** static demo build running on the in-browser mock server */
+  demo?: boolean;
   serverVoice: boolean;
   webSearch: boolean;
   timezone: string;

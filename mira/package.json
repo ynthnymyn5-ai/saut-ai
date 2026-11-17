@@ -2,7 +2,7 @@
   "name": "mira",
   "version": "1.0.0",
   "private": true,
-  "description": "Mira — your AI Chief of Staff. Voice + text personal operating system.",
+  "description": "Mira \u2014 your AI Chief of Staff. Voice + text personal operating system.",
   "type": "module",
   "scripts": {
     "dev": "NODE_ENV=development tsx watch --clear-screen=false server/index.ts",
@@ -12,7 +12,8 @@
     "db:push": "drizzle-kit push --force",
     "db:setup": "tsx server/db/setup.ts",
     "db:seed": "tsx server/db/seed.ts",
-    "test": "tsx --test server/tests/*.test.ts"
+    "test": "tsx --test server/tests/*.test.ts",
+    "build:demo": "node scripts/build-demo.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

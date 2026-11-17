@@ -51,7 +51,7 @@ export function Layout({ children }: { children: ReactNode }) {
         </button>
         {status && !status.aiConfigured && (
           <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 p-2.5 text-[11px] text-amber-200">
-            <WifiOff className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {t.chat.offline}
+            <WifiOff className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {status.demo ? t.chat.demo : t.chat.offline}
           </div>
         )}
       </aside>
@@ -64,7 +64,7 @@ export function Layout({ children }: { children: ReactNode }) {
             {lang === "en" ? "ع" : "EN"}
           </button>
         </header>
-        {status && !status.aiConfigured && <div className="border-b border-amber-400/20 bg-amber-500/10 px-4 py-1.5 text-center text-[11px] text-amber-200 md:hidden">{t.chat.offline}</div>}
+        {status && !status.aiConfigured && <div className="border-b border-amber-400/20 bg-amber-500/10 px-4 py-1.5 text-center text-[11px] text-amber-200 md:hidden">{status.demo ? t.chat.demo : t.chat.offline}</div>}
 
         <main className="flex-1 pb-24 md:pb-8">{children}</main>
       </div>
