@@ -455,6 +455,13 @@
   // ---------- boot ----------
   document.querySelectorAll('[data-year]').forEach((el) => { el.textContent = new Date().getFullYear(); });
   initHeader();
+  document.querySelectorAll('.page-hero').forEach((h) => {
+    const f = document.createElement('div');
+    f.className = 'hero-floats';
+    f.setAttribute('aria-hidden', 'true');
+    for (const ch of ['أ', '✓', 'π', 'A']) { const s = document.createElement('span'); s.textContent = ch; f.append(s); }
+    h.prepend(f);
+  });
   FX.scan();
   const pages = { home: pageHome, courses: pageCourses, course: pageCourse, departments: pageDepartments, about: pageAbout, register: pageRegister, contact: pageContact };
   pages[document.body.dataset.page]?.();
