@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { openDb } from './lib/db.js';
 import { initKey, encrypt, decrypt, decryptText, encryptText, sha256, randomToken, mask } from './lib/crypto.js';
 import { seedIfEmpty, insertProcedure } from './lib/seed.js';
+import { migrate } from './lib/migrations.js';
+import * as providers from './lib/providers.js';
 import { interpret } from './lib/ai.js';
 import { ENTITIES, CATEGORIES, SAHEL_URL } from './lib/procedures-data.js';
 
@@ -58,13 +60,16 @@ export function createApp({
   // instead of leaving a warm serverless instance broken.
   const ready = () => (readyPromise ||= (async () => {
     db ||= await openDb({ dataDir, databaseUrl });
-    await db.init((t) => seedIfEmpty(t, kuwaitToday(), { demoAccounts }));
+    await db.init(async (t) => { await seedIfEmpty(t, kuwaitToday(), { demoAccounts }); await migrate(t); });
     runReminders().catch((e) => console.error('[reminders]', e.message));
   })().catch((e) => { readyPromise = null; throw e; }));
   ready().catch((e) => console.error('[startup]', e.message));
   // No default admin: only numbers listed here become admins (on sign-up or their next sign-in).
   const adminPhones = new Set(String(process.env.ADMIN_PHONES || '').split(',').map((s) => normPhone(s)).filter(Boolean));
-  const demoOtp = !process.env.SMS_PROVIDER;
+  // The OTP is shown on screen only while no SMS provider is configured.
+  const demoOtp = () => !providers.status().sms;
+  const publicUrl = (req) => process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+  const COMMISSION_PCT = Math.max(0, Math.min(100, Number(process.env.AGENT_COMMISSION_PCT ?? 10)));
 
   // ---------- serializers
   const toProc = (r, { full = true } = {}) => r && ({
@@ -153,21 +158,38 @@ export function createApp({
     const m = /(?:^|;\s*)msid=([^;]+)/.exec(req.headers.cookie || '');
     if (!m) return next();
     db.get('SELECT u.* FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?', sha256(m[1]), Date.now())
-      .then((u) => { req.user = u; next(); }, next);
+      .then(async (u) => {
+        // A paid period that has ended falls back to the Free plan (documents are kept).
+        if (u && u.plan !== 'free' && u.plan_expires_at && u.plan_expires_at < nowStamp()) {
+          await db.run("UPDATE users SET plan='free', plan_expires_at=NULL WHERE id=?", u.id);
+          u.plan = 'free'; u.plan_expires_at = null;
+        }
+        req.user = u; next();
+      }).catch(next);
   });
   const auth = (req, res, next) => (req.user ? next() : next(new HttpError(401, 'unauthorized')));
   const admin = (req, res, next) => (req.user?.role === 'admin' ? next() : next(new HttpError(403, 'forbidden')));
+  const agentFor = (u) => db.get("SELECT * FROM agents WHERE phone=? AND status='approved'", u.phone);
 
-  const publicUser = (u) => ({ id: u.id, phone: u.phone, phoneMasked: mask(u.phone), name: u.name, role: u.role, plan: u.plan, lang: u.lang, limits: { ...PLANS[u.plan], maxDocuments: PLANS[u.plan].maxDocuments === Infinity ? null : PLANS[u.plan].maxDocuments } });
+  const publicUser = async (u) => ({
+    id: u.id, phone: u.phone, phoneMasked: mask(u.phone), name: u.name, role: u.role, plan: u.plan, lang: u.lang,
+    planExpiresAt: u.plan_expires_at || null, notifyPush: !!u.notify_push, notifyWhatsapp: !!u.notify_whatsapp,
+    isAgent: !!(await agentFor(u)),
+    limits: { ...PLANS[u.plan], maxDocuments: PLANS[u.plan].maxDocuments === Infinity ? null : PLANS[u.plan].maxDocuments },
+  });
   const userById = (id) => db.get('SELECT * FROM users WHERE id=?', id);
 
   api.get('/health', wrap(async () => ({ ok: true, db: db.kind, procedures: (await db.get(`SELECT ${COUNT} c FROM procedures`)).c })));
 
-  api.get('/config', wrap(() => ({
-    demoOtp, ai: !!process.env.OPENAI_API_KEY, sahelUrl: SAHEL_URL, entities: ENTITIES, categories: CATEGORIES,
-    plans: Object.fromEntries(Object.entries(PLANS).map(([k, v]) => [k, { ...v, maxDocuments: v.maxDocuments === Infinity ? null : v.maxDocuments }])),
-    today: today(),
-  })));
+  api.get('/config', wrap(() => {
+    const live = providers.status();
+    return {
+      demoOtp: demoOtp(), ai: live.ai, providers: live, vapidPublicKey: live.push ? process.env.VAPID_PUBLIC_KEY.trim() : null,
+      sahelUrl: SAHEL_URL, entities: ENTITIES, categories: CATEGORIES,
+      plans: Object.fromEntries(Object.entries(PLANS).map(([k, v]) => [k, { ...v, maxDocuments: v.maxDocuments === Infinity ? null : v.maxDocuments }])),
+      today: today(),
+    };
+  }));
 
   // ----- auth (phone + OTP)
   api.post('/auth/request-otp', wrap(async (req) => {
@@ -178,8 +200,13 @@ export function createApp({
     const code = String(Math.floor(100000 + Math.random() * 900000));
     await db.run(`INSERT INTO otps (phone,code_hash,expires_at,attempts) VALUES (?,?,?,0)
       ON CONFLICT (phone) DO UPDATE SET code_hash=excluded.code_hash, expires_at=excluded.expires_at, attempts=0`, phone, sha256(phone + ':' + code), Date.now() + 5 * 60e3);
-    // No SMS provider wired yet: in demo mode the code is returned so the flow can be tried.
-    return { sent: true, demo: demoOtp, ...(demoOtp ? { devCode: code } : {}) };
+    if (!demoOtp()) {
+      try { await providers.sendSms(phone, `رمز الدخول إلى مرشدك: ${code}\nYour Murshidak code: ${code}`); }
+      catch (e) { console.error('[sms]', e.message); fail(502, 'sms_failed'); }
+      return { sent: true, demo: false };
+    }
+    // No SMS provider configured: the code is returned so the flow can be tried (labelled "demo" in the UI).
+    return { sent: true, demo: true, devCode: code };
   }));
 
   api.post('/auth/verify', wrap(async (req, res) => {
@@ -214,7 +241,7 @@ export function createApp({
     await db.run('INSERT INTO sessions (token_hash,user_id,expires_at) VALUES (?,?,?)', sha256(token), user.id, Date.now() + 30 * 86400e3);
     res.setHeader('Set-Cookie', `msid=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 86400}${process.env.COOKIE_SECURE || process.env.VERCEL ? '; Secure' : ''}`);
     await runReminders(user.id);
-    return { user: publicUser(user), isNew };
+    return { user: await publicUser(user), isNew };
   }));
 
   api.post('/auth/logout', wrap(async (req, res) => {
@@ -224,13 +251,15 @@ export function createApp({
     return { ok: true };
   }));
 
-  api.get('/me', auth, wrap((req) => ({ user: publicUser(req.user) })));
+  api.get('/me', auth, wrap(async (req) => ({ user: await publicUser(req.user) })));
   api.patch('/me', auth, wrap(async (req) => {
     const name = req.body?.name !== undefined ? String(req.body.name).trim().slice(0, 80) : req.user.name;
     const lang = ['ar', 'en'].includes(req.body?.lang) ? req.body.lang : req.user.lang;
-    await db.run('UPDATE users SET name=?, lang=? WHERE id=?', name, lang, req.user.id);
+    const flag = (k, cur) => (typeof req.body?.[k] === 'boolean' ? (req.body[k] ? 1 : 0) : cur);
+    await db.run('UPDATE users SET name=?, lang=?, notify_push=?, notify_whatsapp=? WHERE id=?', name, lang,
+      flag('notifyPush', req.user.notify_push), flag('notifyWhatsapp', req.user.notify_whatsapp), req.user.id);
     if (req.body?.name !== undefined) await db.run("UPDATE members SET name=? WHERE user_id=? AND relation='self'", name, req.user.id);
-    return { user: publicUser(await userById(req.user.id)) };
+    return { user: await publicUser(await userById(req.user.id)) };
   }));
   api.delete('/me', auth, wrap(async (req, res) => {
     await db.run('DELETE FROM users WHERE id=?', req.user.id); // cascades to members, documents, files, sessions, bookings…
@@ -238,18 +267,70 @@ export function createApp({
     return { ok: true };
   }));
 
-  // Plan change. There is no payment provider in this version: the UI says so clearly.
+  const checkDowngrade = async (userId, plan) => {
+    if (plan === 'free') {
+      const c = (await db.get(`SELECT ${COUNT} c FROM documents WHERE user_id=?`, userId)).c;
+      if (c > PLANS.free.maxDocuments) fail(409, 'too_many_documents_for_free', { count: c });
+    }
+    if (plan !== 'business' && await db.get("SELECT 1 x FROM members WHERE user_id=? AND relation='employee'", userId)) fail(409, 'has_employees');
+  };
+
+  // Plan change. With a payment provider configured, paid plans go through /billing/checkout
+  // and are activated only by a verified payment. Without one (demo), the switch is free and the UI says so.
   api.post('/plan', auth, wrap(async (req) => {
     const plan = req.body?.plan;
     if (!PLANS[plan]) fail(400, 'invalid_plan');
-    if (plan === 'free') {
-      const c = (await db.get(`SELECT ${COUNT} c FROM documents WHERE user_id=?`, req.user.id)).c;
-      if (c > PLANS.free.maxDocuments) fail(409, 'too_many_documents_for_free', { count: c });
-    }
-    if (plan !== 'business' && await db.get("SELECT 1 x FROM members WHERE user_id=? AND relation='employee'", req.user.id)) fail(409, 'has_employees');
-    await db.run('UPDATE users SET plan=? WHERE id=?', plan, req.user.id);
+    if (plan !== 'free' && providers.status().payments) fail(402, 'payment_required');
+    await checkDowngrade(req.user.id, plan);
+    await db.run('UPDATE users SET plan=?, plan_expires_at=NULL WHERE id=?', plan, req.user.id);
     await runReminders(req.user.id);
-    return { user: publicUser(await userById(req.user.id)), paymentCollected: false };
+    return { user: await publicUser(await userById(req.user.id)), paymentCollected: false };
+  }));
+
+  // ----- billing (MyFatoorah: KNET + cards)
+  api.post('/billing/checkout', auth, wrap(async (req) => {
+    const plan = req.body?.plan;
+    if (!['family', 'business'].includes(plan)) fail(400, 'invalid_plan');
+    if (!providers.status().payments) fail(503, 'payments_not_configured');
+    await checkDowngrade(req.user.id, plan);
+    limit('pay:' + req.user.id, 10, 3600e3);
+    const reference = `M${req.user.id}-${plan}-${randomToken().slice(0, 12)}`;
+    const amount = PLANS[plan].price;
+    const base = publicUrl(req);
+    const inv = await providers.createInvoice({
+      amount, reference, customerName: req.user.name, phone: req.user.phone, lang: req.user.lang,
+      callbackUrl: `${base}/api/billing/callback`, errorUrl: `${base}/api/billing/callback`,
+    }).catch((e) => { console.error('[billing]', e.message); fail(502, 'payment_provider_error'); });
+    await db.run('INSERT INTO payments (user_id,plan,amount_kwd,provider,reference,invoice_id) VALUES (?,?,?,?,?,?)',
+      req.user.id, plan, amount, 'myfatoorah', reference, inv.invoiceId);
+    return { url: inv.url };
+  }));
+
+  // MyFatoorah redirects the browser here. The plan is activated only after asking MyFatoorah
+  // directly (server-to-server) whether the payment is Paid, for the right amount and reference.
+  api.get('/billing/callback', wrap(async (req, res) => {
+    const paymentId = String(req.query.paymentId || req.query.Id || '');
+    let outcome = 'failed';
+    if (paymentId && providers.status().payments) {
+      try {
+        const st = await providers.getPaymentStatus(paymentId);
+        const p = await db.get("SELECT * FROM payments WHERE reference=? AND invoice_id=?", st.reference || '', st.invoiceId);
+        if (p && st.status === 'Paid' && Math.abs(st.amount - Number(p.amount_kwd)) < 0.001) {
+          await db.tx(async (t) => {
+            const upd = await t.run("UPDATE payments SET status='paid', paid_at=? WHERE id=? AND status<>'paid'", nowStamp(), p.id);
+            if (upd.changes) {
+              const u = await t.get('SELECT plan, plan_expires_at FROM users WHERE id=?', p.user_id);
+              // Renewing the same plan extends from the current end date; a new plan starts today.
+              const from = u.plan === p.plan && u.plan_expires_at && u.plan_expires_at > nowStamp() ? new Date(u.plan_expires_at.replace(' ', 'T') + 'Z') : new Date();
+              const until = new Date(from.getTime() + 30 * 86400e3).toISOString().slice(0, 19).replace('T', ' ');
+              await t.run('UPDATE users SET plan=?, plan_expires_at=? WHERE id=?', p.plan, until, p.user_id);
+            }
+          });
+          outcome = 'paid';
+        } else if (p) await db.run("UPDATE payments SET status='failed' WHERE id=? AND status='pending'", p.id);
+      } catch (e) { console.error('[billing] verify', e.message); }
+    }
+    res.redirect(302, `/#/plans?payment=${outcome}`);
   }));
 
   // ----- procedures (public)
@@ -409,6 +490,45 @@ export function createApp({
     return { ok: true };
   }));
 
+  // Read type / number / expiry from a photo with the AI provider. The image is not stored here;
+  // the client saves it with the document afterwards. The privacy page discloses this.
+  api.post('/documents/scan', auth, wrap(async (req) => {
+    if (!providers.status().ai) fail(503, 'ai_not_configured');
+    limit('scan:' + req.user.id, 20, 3600e3);
+    const mime = String(req.body?.mime || '');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(mime)) fail(415, 'unsupported_type');
+    const data = String(req.body?.data || '');
+    if (!data || data.length > MAX_FILE * 1.4) fail(413, 'file_too_large');
+    try { return { result: await providers.scanDocument(mime, data) }; }
+    catch (e) { console.error('[scan]', e.message); fail(502, 'scan_failed'); }
+  }));
+
+  // Business plan: bulk-import employees with their residency (rows parsed from Excel/CSV on the device).
+  api.post('/members/import', auth, wrap(async (req) => {
+    if (!PLANS[req.user.plan].employees) fail(402, 'plan_required', { plan: 'business' });
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    if (!rows.length) fail(400, 'empty');
+    if (rows.length > 500) fail(400, 'too_many_rows', { max: 500 });
+    const errors = [];
+    let imported = 0;
+    await db.tx(async (t) => {
+      for (const [i, row] of rows.entries()) {
+        const name = String(row.name || '').trim().slice(0, 80);
+        const type = DOC_TYPES.includes(row.type) ? row.type : 'residency';
+        const expiry = String(row.expiry_date || '').trim();
+        const rowNo = Number(row._row) || i + 2; // spreadsheet row as the user sees it
+        if (!name) { errors.push({ row: rowNo, error: 'name_required' }); continue; }
+        if (!validDate(expiry)) { errors.push({ row: rowNo, error: 'invalid_date' }); continue; }
+        const { id: mid } = await t.run('INSERT INTO members (user_id,name,relation,nationality) VALUES (?,?,?,?)', req.user.id, name, 'employee', String(row.nationality || '').slice(0, 40));
+        await t.run('INSERT INTO documents (user_id,member_id,type,label,number_enc,expiry_date,notes) VALUES (?,?,?,?,?,?,?)',
+          req.user.id, mid, type, '', encryptText(String(row.number || '').slice(0, 40)), expiry, String(row.notes || '').slice(0, 300));
+        imported++;
+      }
+    });
+    await runReminders(req.user.id);
+    return { imported, errors };
+  }));
+
   // ----- agents marketplace
   api.get('/agents', wrap(async (req) => {
     let list = (await db.all("SELECT * FROM agents WHERE status='approved'")).map(toAgent);
@@ -438,6 +558,7 @@ export function createApp({
     procedure: r.procedure_slug ? { slug: r.procedure_slug, title: { ar: r.proc_title_ar, en: r.proc_title_en } } : null,
     member: r.member_name ? { id: r.member_id, name: r.member_name } : null,
     user: r.user_name !== undefined ? { name: r.user_name, phoneMasked: mask(r.user_phone) } : undefined,
+    rating: r.rating ?? null, review: r.review || '',
   });
   const BOOKING_SELECT = `SELECT b.*, a.name_ar agent_name_ar, a.name_en agent_name_en, a.rating agent_rating,
     p.slug procedure_slug, p.title_ar proc_title_ar, p.title_en proc_title_en, m.name member_name
@@ -461,6 +582,57 @@ export function createApp({
     await db.run("UPDATE bookings SET status='cancelled', history=?, updated_at=? WHERE id=?", JSON.stringify(h), nowStamp(), r.id);
     return { ok: true };
   }));
+  // Rate the agent once the request is done; the agent's average is recomputed from all ratings.
+  api.post('/bookings/:id/rate', auth, wrap(async (req) => {
+    const r = (await db.get('SELECT * FROM bookings WHERE id=? AND user_id=?', Number(req.params.id) || 0, req.user.id)) || fail(404, 'not_found');
+    if (r.status !== 'done') fail(409, 'not_done');
+    if (r.rating) fail(409, 'already_rated');
+    const rating = Math.round(Number(req.body?.rating));
+    if (!(rating >= 1 && rating <= 5)) fail(400, 'invalid_rating');
+    await db.tx(async (t) => {
+      await t.run('UPDATE bookings SET rating=?, review=? WHERE id=?', rating, String(req.body?.review || '').trim().slice(0, 500), r.id);
+      const a = await t.get('SELECT rating, reviews FROM agents WHERE id=?', r.agent_id);
+      const n = Number(a.reviews) + 1;
+      await t.run('UPDATE agents SET rating=?, reviews=? WHERE id=?', Math.round(((Number(a.rating) * Number(a.reviews) + rating) / n) * 10) / 10, n, r.agent_id);
+    });
+    return { ok: true };
+  }));
+
+  /** Move a booking one stage forward (or cancel it) and notify the customer. Used by admins and agents. */
+  async function advanceBooking(r, st) {
+    const i = BOOKING_FLOW.indexOf(r.status);
+    if (!(BOOKING_FLOW.indexOf(st) === i + 1 || (st === 'cancelled' && !['done', 'cancelled'].includes(r.status)))) fail(409, 'invalid_transition');
+    const h = JSON.parse(r.history); h.push({ status: st, at: new Date().toISOString() });
+    await db.run('UPDATE bookings SET status=?, history=?, updated_at=? WHERE id=?', st, JSON.stringify(h), nowStamp(), r.id);
+    const L = { accepted: ['قَبِل المندوب طلبك', 'Agent accepted your booking'], in_progress: ['المندوب بدأ العمل على معاملتك', 'Agent started on your request'], done: ['اكتملت المعاملة – قيّم المندوب', 'Your request is complete – rate the agent'], cancelled: ['أُلغي الحجز', 'Booking cancelled'] }[st];
+    await notify(r.user_id, { key: `booking:${r.id}:${st}`, kind: 'booking', title_ar: L[0], title_en: L[1], body_ar: `${r.agent_name_ar} – ${r.proc_title_ar || ''}`, body_en: `${r.agent_name_en} – ${r.proc_title_en || ''}`, link: '#/bookings' });
+    await deliver(r.user_id).catch((e) => console.error('[deliver]', e.message));
+  }
+
+  // ----- agent portal: an approved agent signs in with the phone number on their agent profile.
+  const agentOnly = async (req) => (await agentFor(req.user)) || fail(403, 'not_an_agent');
+  api.get('/agent/bookings', auth, wrap(async (req) => {
+    const a = await agentOnly(req);
+    const rows = await db.all(`SELECT x.*, u.name user_name, u.phone user_phone FROM (${BOOKING_SELECT}) x JOIN users u ON u.id=x.user_id WHERE x.agent_id=? ORDER BY x.id DESC`, a.id);
+    // The agent needs the customer's number to call them, but only for bookings they handle.
+    return { agent: toAgent(a), bookings: rows.map((r) => ({ ...toBooking(r), customerPhone: ['accepted', 'in_progress'].includes(r.status) ? r.user_phone : null })) };
+  }));
+  api.patch('/agent/bookings/:id', auth, wrap(async (req) => {
+    const a = await agentOnly(req);
+    const r = (await db.get(`${BOOKING_SELECT} WHERE b.id=? AND b.agent_id=?`, Number(req.params.id) || 0, a.id)) || fail(404, 'not_found');
+    await advanceBooking(r, req.body?.status);
+    return { ok: true };
+  }));
+
+  // ----- error reports on procedures (anyone, signed in or not)
+  api.post('/reports', wrap(async (req) => {
+    limit('report:' + req.ip, 10, 3600e3);
+    const message = String(req.body?.message || '').trim().slice(0, 1000);
+    if (message.length < 5) fail(400, 'message_required');
+    const p = (await db.get('SELECT id FROM procedures WHERE slug=?', String(req.body?.slug || ''))) || fail(404, 'not_found');
+    await db.run('INSERT INTO reports (user_id,procedure_id,message) VALUES (?,?,?)', req.user?.id ?? null, p.id, message);
+    return { ok: true };
+  }));
 
   // ----- notifications
   api.get('/notifications', auth, wrap(async (req) => ({
@@ -469,6 +641,68 @@ export function createApp({
     remindersEnabled: PLANS[req.user.plan].reminders,
   })));
   api.post('/notifications/read-all', auth, wrap(async (req) => { await db.run('UPDATE notifications SET read=1 WHERE user_id=?', req.user.id); return { ok: true }; }));
+
+  // Web Push subscription from the browser / installed app.
+  api.post('/push/subscribe', auth, wrap(async (req) => {
+    const s = req.body || {};
+    const endpoint = String(s.endpoint || '');
+    if (!/^https:\/\//.test(endpoint) || endpoint.length > 1000 || !s.keys?.p256dh || !s.keys?.auth) fail(400, 'invalid_subscription');
+    await db.run(`INSERT INTO push_subscriptions (user_id,endpoint,p256dh,auth) VALUES (?,?,?,?)
+      ON CONFLICT (endpoint) DO UPDATE SET user_id=excluded.user_id, p256dh=excluded.p256dh, auth=excluded.auth`,
+      req.user.id, endpoint, String(s.keys.p256dh).slice(0, 200), String(s.keys.auth).slice(0, 100));
+    return { ok: true };
+  }));
+  api.post('/push/unsubscribe', auth, wrap(async (req) => {
+    await db.run('DELETE FROM push_subscriptions WHERE user_id=? AND endpoint=?', req.user.id, String(req.body?.endpoint || ''));
+    return { ok: true };
+  }));
+
+  /**
+   * Send not-yet-delivered notifications (from the last 3 days) by push and/or WhatsApp,
+   * according to each user's preferences and the channels that are configured. Each
+   * notification is delivered at most once.
+   */
+  async function deliver(userId) {
+    const live = providers.status();
+    if (!live.push && !live.whatsapp) return { sent: 0 };
+    const since = new Date(Date.now() - 3 * 86400e3).toISOString().slice(0, 19).replace('T', ' ');
+    const rows = await db.all(`SELECT n.*, u.phone, u.lang, u.notify_push, u.notify_whatsapp FROM notifications n JOIN users u ON u.id=n.user_id
+      WHERE n.delivered_at IS NULL AND n.created_at >= ? ${userId ? 'AND n.user_id=?' : ''} ORDER BY n.id LIMIT 300`, since, ...(userId ? [userId] : []));
+    let sent = 0;
+    for (const n of rows) {
+      // Claim it first so two concurrent runs never send the same notification twice.
+      if (!(await db.run('UPDATE notifications SET delivered_at=? WHERE id=? AND delivered_at IS NULL', nowStamp(), n.id)).changes) continue;
+      const en = n.lang === 'en';
+      const title = en ? n.title_en : n.title_ar, body = en ? n.body_en : n.body_ar;
+      if (live.push && n.notify_push) {
+        for (const s of await db.all('SELECT * FROM push_subscriptions WHERE user_id=?', n.user_id)) {
+          try {
+            if ((await providers.sendPush(s, { title, body, url: '/' + (n.link || '#/notifications') })) === 'gone') await db.run('DELETE FROM push_subscriptions WHERE id=?', s.id);
+            else sent++;
+          } catch (e) { console.error('[push]', e.statusCode || e.message); }
+        }
+      }
+      if (live.whatsapp && n.notify_whatsapp) {
+        try { await providers.sendWhatsApp(n.phone, title, body); sent++; } catch (e) { console.error('[whatsapp]', e.message); }
+      }
+    }
+    return { sent, checked: rows.length };
+  }
+
+  // "Send me a test" button in settings, so a user can confirm push/WhatsApp reach them.
+  api.post('/notifications/test', auth, wrap(async (req) => {
+    limit('ntest:' + req.user.id, 5, 3600e3);
+    await notify(req.user.id, { key: `test:${req.user.id}:${Date.now()}`, kind: 'test', title_ar: 'تجربة تنبيهات مرشدك ✅', title_en: 'Murshidak test notification ✅', body_ar: 'إذا وصلتك هذه الرسالة فالتنبيهات تعمل.', body_en: 'If you received this, notifications work.', link: '#/notifications' });
+    return deliver(req.user.id);
+  }));
+
+  // Daily job (Vercel Cron calls this with "Authorization: Bearer $CRON_SECRET").
+  api.get('/cron/reminders', wrap(async (req) => {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || req.headers.authorization !== `Bearer ${secret}`) fail(401, 'unauthorized');
+    const created = await runReminders();
+    return { created, ...(await deliver()) };
+  }));
 
   // ----- admin
   const ad = express.Router();
@@ -479,7 +713,16 @@ export function createApp({
     procedures: (await db.get(`SELECT ${COUNT} c FROM procedures`)).c,
     pendingAgents: (await db.get(`SELECT ${COUNT} c FROM agents WHERE status='pending'`)).c,
     openBookings: (await db.get(`SELECT ${COUNT} c FROM bookings WHERE status IN ('requested','accepted','in_progress')`)).c,
+    openReports: (await db.get(`SELECT ${COUNT} c FROM reports WHERE status='open'`)).c,
     plans: await db.all(`SELECT plan, ${COUNT} c FROM users GROUP BY plan`),
+    // Commission owed by agents on completed bookings (AGENT_COMMISSION_PCT, default 10%).
+    commission: {
+      pct: COMMISSION_PCT,
+      doneBookings: (await db.get(`SELECT ${COUNT} c FROM bookings WHERE status='done'`)).c,
+      amount: Math.round(Number((await db.get("SELECT COALESCE(SUM(price_kwd),0) s FROM bookings WHERE status='done'")).s) * COMMISSION_PCT) / 100,
+    },
+    revenue: Number((await db.get("SELECT COALESCE(SUM(amount_kwd),0) s FROM payments WHERE status='paid'")).s),
+    channels: providers.status(),
   })));
   ad.get('/procedures', wrap(async () => ({ procedures: (await db.all('SELECT * FROM procedures ORDER BY popular DESC, id')).map((r) => toProc(r)) })));
 
@@ -531,13 +774,18 @@ export function createApp({
   ad.get('/bookings', wrap(async () => ({ bookings: (await db.all(`SELECT x.*, u.name user_name, u.phone user_phone FROM (${BOOKING_SELECT}) x JOIN users u ON u.id=x.user_id ORDER BY x.id DESC`)).map(toBooking) })));
   ad.patch('/bookings/:id', wrap(async (req) => {
     const r = (await db.get(`${BOOKING_SELECT} WHERE b.id=?`, Number(req.params.id) || 0)) || fail(404, 'not_found');
-    const st = req.body?.status;
-    const i = BOOKING_FLOW.indexOf(r.status);
-    if (!(BOOKING_FLOW.indexOf(st) === i + 1 || (st === 'cancelled' && !['done', 'cancelled'].includes(r.status)))) fail(409, 'invalid_transition');
-    const h = JSON.parse(r.history); h.push({ status: st, at: new Date().toISOString() });
-    await db.run('UPDATE bookings SET status=?, history=?, updated_at=? WHERE id=?', st, JSON.stringify(h), nowStamp(), r.id);
-    const L = { accepted: ['قَبِل المندوب طلبك', 'Agent accepted your booking'], in_progress: ['المندوب بدأ العمل على معاملتك', 'Agent started on your request'], done: ['اكتملت المعاملة', 'Your request is complete'], cancelled: ['أُلغي الحجز', 'Booking cancelled'] }[st];
-    await notify(r.user_id, { key: `booking:${r.id}:${st}`, kind: 'booking', title_ar: L[0], title_en: L[1], body_ar: `${r.agent_name_ar} – ${r.proc_title_ar || ''}`, body_en: `${r.agent_name_en} – ${r.proc_title_en || ''}`, link: '#/bookings' });
+    await advanceBooking(r, req.body?.status);
+    return { ok: true };
+  }));
+
+  ad.get('/reports', wrap(async () => ({
+    reports: (await db.all(`SELECT r.*, p.slug, p.title_ar, p.title_en FROM reports r JOIN procedures p ON p.id=r.procedure_id
+      ORDER BY CASE r.status WHEN 'open' THEN 0 ELSE 1 END, r.id DESC LIMIT 200`))
+      .map((r) => ({ id: r.id, status: r.status, message: r.message, created_at: r.created_at, procedure: { id: r.procedure_id, slug: r.slug, title: { ar: r.title_ar, en: r.title_en } } })),
+  })));
+  ad.patch('/reports/:id', wrap(async (req) => {
+    const st = req.body?.status === 'open' ? 'open' : 'resolved';
+    if (!(await db.run('UPDATE reports SET status=? WHERE id=?', st, Number(req.params.id) || 0)).changes) fail(404, 'not_found');
     return { ok: true };
   }));
 

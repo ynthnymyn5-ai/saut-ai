@@ -71,10 +71,28 @@ Everything is optional. With no settings, the app runs in demo mode.
 - `ADMIN_PHONES`: comma-separated phone numbers that are admins. There is no default. A listed number becomes admin when it signs up, or on its next sign-in if the account already exists.
 - `SEED_DEMO_ACCOUNTS`: whether to create the three sample accounts on first start. On by default only for local SQLite; the live database never gets them.
 
+## Services and how to turn them on
+
+Each outside service switches on by itself when its environment variables are set (see `.env.example`); the admin panel's Stats tab shows which are live. Until then the app says plainly that a feature is not enabled.
+
+| Feature | Needs | Notes |
+|---|---|---|
+| SMS sign-in codes | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM` (or `TWILIO_MESSAGING_SERVICE_SID`) | The on-screen demo code disappears once set. |
+| WhatsApp reminders | Twilio vars + `TWILIO_WHATSAPP_FROM` (+ `TWILIO_WHATSAPP_CONTENT_SID`) | WhatsApp only delivers business-initiated messages through an approved template. Users opt in under Profile. |
+| Phone push notifications | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | On iPhone, push works only after "Add to Home Screen" (iOS 16.4+). |
+| Daily reminders job | `CRON_SECRET` | `vercel.json` runs `/api/cron/reminders` daily at 08:00 Kuwait time; each notification is sent once. |
+| Read expiry from a photo, AI request matching | `OPENAI_API_KEY` | The photo is sent to OpenAI only when the user taps the scan button; the privacy page says so. |
+| Paid plans (KNET / cards) | `MYFATOORAH_API_KEY`, `MYFATOORAH_BASE_URL`, `PUBLIC_URL` | A plan is activated only after a server-to-server check that MyFatoorah reports **Paid** for the exact amount. 30 days, no auto-renew; expired plans fall back to Free. |
+
+Other additions:
+- **Agent portal** (`#/agent`): an approved agent signs in with the phone number on their agent profile, moves each request forward (the customer is notified), and sees the customer's number only while working on it. Customers rate the agent once a request is done; the agent's average updates.
+- **Error reports**: every roadmap has "report an error"; admins review them in the Reports tab.
+- **Excel / CSV import** (Business plan, Family screen): headers in Arabic or English; Excel date cells and `DD/MM/YYYY` are understood; errors name the exact spreadsheet row. Read on the device with a built-in reader (no external library); `.xls` (Excel 97) is not supported, save as `.xlsx` or CSV.
+- **Privacy policy and terms** pages (`#/privacy`, `#/terms`), linked from sign-in and Profile. Add a contact email to them before launch.
+- **Database migrations** (`lib/migrations.js`): versioned, applied once per database on startup under the same lock as seeding.
+
 ## Not done yet
 
-- **Payments:** changing plans is free in this version, and the Plans screen says so.
-- **SMS delivery** for OTPs (see above).
-- **Agent side:** agents don't have their own app yet; an admin moves bookings through their stages.
-- **Push notifications** outside the app: reminders are in-app only.
+- **Payments:** until MyFatoorah is configured, changing plans is free, and the Plans screen says so.
+- **Keys for outside services** (table above): the code is ready; the accounts and keys are not.
 - **Fees and durations** in the seed are approximate. Many are worded as "shown when applying" on purpose. An admin should check each one against the official entity before launch.

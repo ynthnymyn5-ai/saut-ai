@@ -65,6 +65,32 @@ export const I18N = {
     slug: 'المعرّف (slug)', category: 'التصنيف', mode: 'طريقة التقديم', popularity: 'الأولوية', published: 'منشور', addStep: 'إضافة خطوة', entity: 'الجهة', docsLines: 'المستندات (سطر لكل مستند: عربي | English)',
     keywordsS: 'كلمات الموضوع (مفصولة بفواصل)', keywordsA: 'كلمات الفعل', keywordsX: 'عبارات كاملة', advance: 'المرحلة التالية', unpublished: 'غير منشور',
     error: 'حدث خطأ، حاول مرة أخرى', loading: 'جارٍ التحميل…', back: 'رجوع', close: 'إغلاق', yes: 'نعم', kwd: 'د.ك',
+    // legal
+    privacy: 'سياسة الخصوصية', terms: 'شروط الاستخدام', agreeNote: 'بالمتابعة فأنت توافق على', and: 'و',
+    // sms
+    sms_failed: 'تعذّر إرسال الرسالة، حاول بعد قليل',
+    // reports
+    reportError: 'أبلغ عن خطأ في هذه المعلومات', reportHint: 'ما المعلومة غير الصحيحة؟ (مثلاً: الرسوم تغيّرت، أو خطوة ناقصة)', send: 'إرسال', reportThanks: 'شكراً! سيراجع فريقنا البلاغ', message_required: 'اكتب تفاصيل البلاغ',
+    reports: 'البلاغات', openReports: 'بلاغات مفتوحة', resolve: 'تم الحل', reopen: 'إعادة فتح', resolved: 'محلول', open: 'مفتوح', noReports: 'لا توجد بلاغات',
+    // scan
+    scanTitle: '📷 صوّر المستند وسنقرأ بياناته', scanHint: 'نقرأ النوع والرقم وتاريخ الانتهاء تلقائياً. راجعها قبل الحفظ.', scanning: 'جارٍ قراءة المستند…', scanned: 'قرأنا البيانات — راجعها قبل الحفظ', scanFailed: 'لم نتمكن من قراءة المستند، أدخل البيانات يدوياً',
+    scanPrivacy: 'لقراءة الصورة تُرسل مؤقتاً إلى مزوّد الذكاء الاصطناعي (OpenAI) ولا تُحفظ عنده لأغراضنا.', scan_failed: 'تعذّرت قراءة المستند', ai_not_configured: 'القراءة التلقائية غير مفعّلة بعد',
+    // notifications settings
+    notifSettings: 'التنبيهات خارج التطبيق', pushLabel: 'إشعارات الهاتف', waLabel: 'تنبيهات واتساب', notConfigured: 'غير مفعّل بعد من الإدارة',
+    pushDenied: 'رفضت الإشعارات في المتصفح؛ فعّلها من إعدادات المتصفح', pushUnsupported: 'هذا المتصفح لا يدعم الإشعارات. على iPhone أضف التطبيق للشاشة الرئيسية أولاً',
+    sendTest: 'أرسل تنبيهاً تجريبياً', testSent: 'أُرسل التنبيه التجريبي', notifHint: 'نرسل تذكير الانتهاء قبل 30 و7 أيام، وتحديثات الحجوزات.',
+    // payments
+    pay: 'ادفع', payNow: 'ادفع الآن (KNET / بطاقة)', paid: 'تم الدفع وتفعيل الباقة 🎉', paymentFailed: 'لم تكتمل عملية الدفع', validUntil: 'سارية حتى', renew: 'تجديد',
+    payment_required: 'هذه الباقة تحتاج دفعاً', payments_not_configured: 'الدفع غير مفعّل بعد', payment_provider_error: 'تعذّر الاتصال بمزوّد الدفع', securePay: 'الدفع عبر MyFatoorah. تُفعّل الباقة لمدة 30 يوماً بعد تأكيد الدفع.',
+    // ratings
+    rateAgent: 'قيّم المندوب', yourReview: 'رأيك (اختياري)', thanksRating: 'شكراً على تقييمك', yourRating: 'تقييمك', already_rated: 'سبق التقييم',
+    // agent portal
+    agentPortal: 'بوابة المندوب', myRequests: 'الطلبات المسندة إليّ', customer: 'العميل', call: 'اتصال', agentPortalHint: 'حدّث حالة كل طلب ليصل التحديث للعميل فوراً.', noAgentBookings: 'لا توجد طلبات بعد', not_an_agent: 'هذا الرقم غير مرتبط بمندوب معتمد',
+    // import
+    importExcel: 'استيراد الموظفين من Excel', importHint: 'ارفع ملف Excel أو CSV بالأعمدة: الاسم، الجنسية، رقم الإقامة، تاريخ الانتهاء.', downloadTemplate: 'تحميل نموذج الملف', chooseFile: 'اختر الملف',
+    rowsFound: 'صف جاهز للاستيراد', importNow: 'استيراد', imported: 'تم استيراد', rowErrors: 'صفوف بها أخطاء', row: 'صف', too_many_rows: 'الحد الأقصى 500 صف في المرة', empty: 'الملف فارغ', fileReadError: 'تعذّرت قراءة الملف',
+    name_required: 'الاسم مطلوب', invalid_date: 'تاريخ غير صحيح', not_done: 'لم تكتمل المعاملة بعد', invalid_rating: 'اختر عدد النجوم',
+    commission: 'عمولة المناديب', revenue: 'إيرادات الباقات', channels: 'القنوات المفعّلة',
   },
   en: {
     appName: 'Murshidak', tagline: 'Your smart guide to government services',
@@ -117,5 +143,22 @@ export const I18N = {
     slug: 'Slug', category: 'Category', mode: 'Mode', popularity: 'Priority', published: 'Published', addStep: 'Add step', entity: 'Entity', docsLines: 'Documents (one per line: Arabic | English)',
     keywordsS: 'Subject keywords (comma separated)', keywordsA: 'Action keywords', keywordsX: 'Full phrases', advance: 'Next stage', unpublished: 'Unpublished',
     error: 'Something went wrong, please try again', loading: 'Loading…', back: 'Back', close: 'Close', yes: 'Yes', kwd: 'KWD',
+    privacy: 'Privacy policy', terms: 'Terms of use', agreeNote: 'By continuing you agree to the', and: 'and',
+    sms_failed: 'Could not send the SMS, please try again shortly',
+    reportError: 'Report an error in this information', reportHint: 'What is wrong? (e.g. fees changed, a step is missing)', send: 'Send', reportThanks: 'Thanks! Our team will review it', message_required: 'Please describe the issue',
+    reports: 'Reports', openReports: 'Open reports', resolve: 'Resolved', reopen: 'Reopen', resolved: 'Resolved', open: 'Open', noReports: 'No reports',
+    scanTitle: '📷 Photograph the document and we\'ll read it', scanHint: 'We read the type, number and expiry date automatically. Check them before saving.', scanning: 'Reading the document…', scanned: 'Done — please check the details before saving', scanFailed: 'Could not read the document, please enter the details manually',
+    scanPrivacy: 'To read it, the photo is sent temporarily to our AI provider (OpenAI) and is not kept by them for our purposes.', scan_failed: 'Could not read the document', ai_not_configured: 'Automatic reading is not enabled yet',
+    notifSettings: 'Notifications outside the app', pushLabel: 'Phone notifications', waLabel: 'WhatsApp reminders', notConfigured: 'Not enabled by the admin yet',
+    pushDenied: 'Notifications are blocked in your browser; allow them in browser settings', pushUnsupported: 'This browser does not support notifications. On iPhone, add the app to your Home Screen first',
+    sendTest: 'Send a test notification', testSent: 'Test notification sent', notifHint: 'We send expiry reminders 30 and 7 days ahead, plus booking updates.',
+    pay: 'Pay', payNow: 'Pay now (KNET / card)', paid: 'Payment received, plan activated 🎉', paymentFailed: 'The payment was not completed', validUntil: 'Valid until', renew: 'Renew',
+    payment_required: 'This plan requires payment', payments_not_configured: 'Payments are not enabled yet', payment_provider_error: 'Could not reach the payment provider', securePay: 'Payment via MyFatoorah. The plan is active for 30 days once payment is confirmed.',
+    rateAgent: 'Rate the agent', yourReview: 'Your review (optional)', thanksRating: 'Thanks for your rating', yourRating: 'Your rating', already_rated: 'Already rated',
+    agentPortal: 'Agent portal', myRequests: 'Requests assigned to me', customer: 'Customer', call: 'Call', agentPortalHint: 'Update each request\'s status so the customer is notified right away.', noAgentBookings: 'No requests yet', not_an_agent: 'This number is not linked to an approved agent',
+    importExcel: 'Import employees from Excel', importHint: 'Upload an Excel or CSV file with columns: name, nationality, residency number, expiry date.', downloadTemplate: 'Download template', chooseFile: 'Choose file',
+    rowsFound: 'rows ready to import', importNow: 'Import', imported: 'Imported', rowErrors: 'rows with errors', row: 'Row', too_many_rows: 'Maximum 500 rows at a time', empty: 'The file is empty', fileReadError: 'Could not read the file',
+    name_required: 'Name is required', invalid_date: 'Invalid date', not_done: 'The request is not done yet', invalid_rating: 'Pick a star rating',
+    commission: 'Agent commission', revenue: 'Plan revenue', channels: 'Enabled channels',
   },
 };

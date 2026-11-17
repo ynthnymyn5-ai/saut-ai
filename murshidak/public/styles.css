@@ -265,3 +265,8 @@ textarea.input { min-height: 90px; resize: vertical; }
 /* fees can be long: give them a full row */
 .meta { grid-template-columns: 1fr 1fr; }
 .meta > div:first-child { grid-column: 1 / -1; }
+
+/* admin tabs can outgrow a phone screen: scroll sideways */
+.tabs { overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs button { flex: 1 0 auto; white-space: nowrap; }
