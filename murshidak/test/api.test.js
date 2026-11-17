@@ -6,11 +6,15 @@ import path from 'node:path';
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'murshidak-test-'));
 delete process.env.OPENAI_API_KEY; // always exercise the local matcher in tests
+// Set TEST_DATABASE_URL to run the same suite against Postgres (it must point at an empty schema).
+const databaseUrl = process.env.TEST_DATABASE_URL || undefined;
+if (databaseUrl) process.env.MURSHIDAK_SECRET ||= 'test-secret-for-postgres-suite';
 const { createApp } = await import('../server.js');
-let server, base;
+let server, base, app;
 
 before(async () => {
-  const app = createApp({ dataDir });
+  app = createApp({ dataDir, databaseUrl });
+  await app.locals.ready;
   await new Promise((r) => { server = app.listen(0, r); });
   base = `http://localhost:${server.address().port}/api`;
 });
@@ -108,8 +112,8 @@ test('uploads are encrypted at rest, owner-only, and type-checked', async () => 
   const png = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex');
   assert.equal((await call('PUT', `/documents/${id}/file`, { mime: 'image/jpeg', data: png.toString('base64') }, a.cookie)).status, 415);
   assert.equal((await call('PUT', `/documents/${id}/file`, { mime: 'image/png', data: png.toString('base64') }, a.cookie)).status, 200);
-  const stored = fs.readdirSync(path.join(dataDir, 'uploads')).map((f) => fs.readFileSync(path.join(dataDir, 'uploads', f)));
-  assert.ok(stored.every((s) => !s.includes(png)), 'plaintext must not be on disk');
+  const stored = await app.locals.db().all('SELECT data FROM files');
+  assert.ok(stored.length && stored.every((r) => !Buffer.from(r.data).includes(png)), 'plaintext must not be stored');
   const got = await call('GET', `/documents/${id}/file`, null, a.cookie);
   assert.deepEqual(got.body, png);
   assert.equal((await call('GET', `/documents/${id}/file`, null, b.cookie)).status, 404);

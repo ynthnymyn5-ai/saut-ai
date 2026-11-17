@@ -1,19 +1,17 @@
 import { PROCEDURES } from './procedures-data.js';
 import { encryptText } from './crypto.js';
-import { tx } from './db.js';
 
 export const DEMO_PHONE = '99999999';
 export const BUSINESS_PHONE = '98888888';
 export const ADMIN_PHONE = '90000000';
 
-export function insertProcedure(db, p) {
-  return db.prepare(`INSERT INTO procedures (slug, category, mode, popular, title_ar, title_en, summary_ar, summary_en,
+export async function insertProcedure(db, p) {
+  return (await db.run(`INSERT INTO procedures (slug, category, mode, popular, title_ar, title_en, summary_ar, summary_en,
     fees_ar, fees_en, duration_ar, duration_en, keywords, steps, documents, published)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)`).run(
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     p.slug, p.category, p.mode, p.popular || 0, p.title.ar, p.title.en, p.summary.ar, p.summary.en,
     p.fees.ar, p.fees.en, p.duration.ar, p.duration.en,
-    JSON.stringify(p.keywords || {}), JSON.stringify(p.steps), JSON.stringify(p.documents),
-  ).lastInsertRowid;
+    JSON.stringify(p.keywords || {}), JSON.stringify(p.steps), JSON.stringify(p.documents), p.published === 0 ? 0 : 1)).id;
 }
 
 const AGENTS = [
@@ -33,71 +31,72 @@ function addDays(base, n) {
   return d.toISOString().slice(0, 10);
 }
 
-/** Seed everything once. `today` is YYYY-MM-DD in Kuwait time so expiries stay meaningful. */
-export function seedIfEmpty(db, today) {
-  const n = db.prepare('SELECT COUNT(*) c FROM procedures').get().c;
+/** Seed sample data once (inside the caller's transaction). `today` is YYYY-MM-DD in Kuwait time. */
+export async function seedIfEmpty(db, today) {
+  const n = (await db.get('SELECT CAST(COUNT(*) AS INTEGER) c FROM procedures')).c;
   if (n > 0) return false;
-  tx(db, () => {
-    for (const p of PROCEDURES) insertProcedure(db, p);
-    const insAgent = db.prepare(`INSERT INTO agents (name_ar,name_en,phone,bio_ar,bio_en,categories,areas_ar,areas_en,rating,reviews,price_kwd,years,status)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-    for (const a of AGENTS) insAgent.run(a[0], a[1], a[2], a[3], a[4], JSON.stringify(a[5]), a[6], a[7], a[8], a[9], a[10], a[11], a[12]);
+  const procId = {};
+  for (const p of PROCEDURES) procId[p.slug] = await insertProcedure(db, p);
+  const agentId = [];
+  for (const a of AGENTS) {
+    agentId.push((await db.run(`INSERT INTO agents (name_ar,name_en,phone,bio_ar,bio_en,categories,areas_ar,areas_en,rating,reviews,price_kwd,years,status)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, a[0], a[1], a[2], a[3], a[4], JSON.stringify(a[5]), a[6], a[7], a[8], a[9], a[10], a[11], a[12])).id);
+  }
+  const user = async (phone, name, role, plan) => (await db.run('INSERT INTO users (phone,name,role,plan) VALUES (?,?,?,?)', phone, name, role, plan)).id;
+  const member = async (u, name, rel, nat) => (await db.run('INSERT INTO members (user_id,name,relation,nationality) VALUES (?,?,?,?)', u, name, rel, nat)).id;
+  const doc = (u, mid, type, label, num, days, notes) => db.run('INSERT INTO documents (user_id,member_id,type,label,number_enc,expiry_date,notes) VALUES (?,?,?,?,?,?,?)',
+    u, mid, type, label, encryptText(num), addDays(today, days), notes);
 
-    const insUser = db.prepare('INSERT INTO users (phone,name,role,plan) VALUES (?,?,?,?)');
-    const insMember = db.prepare('INSERT INTO members (user_id,name,relation,nationality) VALUES (?,?,?,?)');
-    const insDoc = db.prepare('INSERT INTO documents (user_id,member_id,type,label,number_enc,expiry_date,notes) VALUES (?,?,?,?,?,?,?)');
-    const proc = (slug) => db.prepare('SELECT id FROM procedures WHERE slug=?').get(slug).id;
+  // --- Family demo account
+  const u = await user(DEMO_PHONE, 'عبدالله الكويتي', 'user', 'family');
+  const m = {
+    self: await member(u, 'عبدالله الكويتي', 'self', 'كويتي'),
+    wife: await member(u, 'نورة', 'spouse', 'كويتية'),
+    sara: await member(u, 'سارة', 'child', 'كويتية'),
+    moh: await member(u, 'محمد', 'child', 'كويتي'),
+    maid: await member(u, 'ماريا سانتوس', 'domestic_worker', 'فلبينية'),
+    driver: await member(u, 'راجو كومار', 'domestic_worker', 'هندي'),
+  };
+  const docs = [
+    [m.self, 'civil_id', '287031501234', 200, ''],
+    [m.self, 'driving_license', '287031501234', 18, ''],
+    [m.self, 'car_registration', '45-123456', 55, 'لاند كروزر 2021'],
+    [m.self, 'passport', 'K12345678', 700, ''],
+    [m.wife, 'civil_id', '290050207788', 75, ''],
+    [m.wife, 'passport', 'K22334455', -5, ''],
+    [m.sara, 'passport', 'K99887766', 400, ''],
+    [m.moh, 'civil_id', '312090104455', 1100, ''],
+    [m.maid, 'residency', '20-2019-556677', 12, 'مادة 20'],
+    [m.maid, 'passport', 'P8765432A', 500, ''],
+    [m.maid, 'civil_id', '286121309911', 12, ''],
+    [m.driver, 'residency', '20-2021-112233', 140, 'مادة 20'],
+    [m.driver, 'driving_license', '285040612345', 25, ''],
+  ];
+  for (const [mid, type, num, days, notes] of docs) await doc(u, mid, type, '', num, days, notes);
 
-    // --- Family demo account
-    const u = insUser.run(DEMO_PHONE, 'عبدالله الكويتي', 'user', 'family').lastInsertRowid;
-    const m = {
-      self: insMember.run(u, 'عبدالله الكويتي', 'self', 'كويتي').lastInsertRowid,
-      wife: insMember.run(u, 'نورة', 'spouse', 'كويتية').lastInsertRowid,
-      sara: insMember.run(u, 'سارة', 'child', 'كويتية').lastInsertRowid,
-      moh: insMember.run(u, 'محمد', 'child', 'كويتي').lastInsertRowid,
-      maid: insMember.run(u, 'ماريا سانتوس', 'domestic_worker', 'فلبينية').lastInsertRowid,
-      driver: insMember.run(u, 'راجو كومار', 'domestic_worker', 'هندي').lastInsertRowid,
-    };
-    const docs = [
-      [m.self, 'civil_id', '287031501234', 200, ''],
-      [m.self, 'driving_license', '287031501234', 18, ''],
-      [m.self, 'car_registration', '45-123456', 55, 'لاند كروزر 2021'],
-      [m.self, 'passport', 'K12345678', 700, ''],
-      [m.wife, 'civil_id', '290050207788', 75, ''],
-      [m.wife, 'passport', 'K22334455', -5, ''],
-      [m.sara, 'passport', 'K99887766', 400, ''],
-      [m.moh, 'civil_id', '312090104455', 1100, ''],
-      [m.maid, 'residency', '20-2019-556677', 12, 'مادة 20'],
-      [m.maid, 'passport', 'P8765432A', 500, ''],
-      [m.maid, 'civil_id', '286121309911', 12, ''],
-      [m.driver, 'residency', '20-2021-112233', 140, 'مادة 20'],
-      [m.driver, 'driving_license', '285040612345', 25, ''],
-    ];
-    for (const [mid, type, num, days, notes] of docs) insDoc.run(u, mid, type, '', encryptText(num), addDays(today, days), notes);
+  const hist = (statuses, start) => JSON.stringify(statuses.map((st, i) => ({ status: st, at: addDays(today, start + i * 2) + 'T09:00:00Z' })));
+  const booking = (agentIdx, slug, mid, status, date, notes, price, statuses, start, updated) => db.run(
+    `INSERT INTO bookings (user_id,agent_id,procedure_id,member_id,status,preferred_date,notes,price_kwd,history,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+    u, agentId[agentIdx], procId[slug], mid, status, addDays(today, date), notes, price, hist(statuses, start), addDays(today, start), addDays(today, updated));
+  await booking(0, 'domestic-worker-recruitment', m.self, 'in_progress', -6, 'استقدام سائق ثانٍ من الهند', 15, ['requested', 'accepted', 'in_progress'], -10, -6);
+  await booking(4, 'kuwaiti-passport-renewal', m.wife, 'accepted', 3, 'تجديد جواز نورة المنتهي', 8, ['requested', 'accepted'], -4, -2);
+  await booking(1, 'vehicle-registration-renewal', m.self, 'done', -30, 'فحص فني وتجديد', 10, ['requested', 'accepted', 'in_progress', 'done'], -40, -30);
+  await booking(3, 'birth-certificate', m.moh, 'requested', 5, '', 12, ['requested'], -1, -1);
 
-    const insBooking = db.prepare(`INSERT INTO bookings (user_id,agent_id,procedure_id,member_id,status,preferred_date,notes,price_kwd,history,created_at,updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
-    const hist = (statuses, start) => JSON.stringify(statuses.map((st, i) => ({ status: st, at: addDays(today, start + i * 2) + 'T09:00:00Z' })));
-    insBooking.run(u, 1, proc('domestic-worker-recruitment'), m.self, 'in_progress', addDays(today, -6), 'استقدام سائق ثانٍ من الهند', 15, hist(['requested', 'accepted', 'in_progress'], -10), addDays(today, -10), addDays(today, -6));
-    insBooking.run(u, 5, proc('kuwaiti-passport-renewal'), m.wife, 'accepted', addDays(today, 3), 'تجديد جواز نورة المنتهي', 8, hist(['requested', 'accepted'], -4), addDays(today, -4), addDays(today, -2));
-    insBooking.run(u, 2, proc('vehicle-registration-renewal'), m.self, 'done', addDays(today, -30), 'فحص فني وتجديد', 10, hist(['requested', 'accepted', 'in_progress', 'done'], -40), addDays(today, -40), addDays(today, -30));
-    insBooking.run(u, 4, proc('birth-certificate'), m.moh, 'requested', addDays(today, 5), '', 12, hist(['requested'], -1), addDays(today, -1), addDays(today, -1));
+  // --- Business demo account: employees' residencies
+  const b = await user(BUSINESS_PHONE, 'شركة الأفق للتجارة العامة', 'user', 'business');
+  const owner = await member(b, 'فهد العتيبي (المالك)', 'self', 'كويتي');
+  await doc(b, owner, 'civil_id', '', '281110105566', 300, '');
+  const emps = [['أحمد حسن', 'مصري', 20], ['جون ماثيو', 'هندي', 48], ['علي رضا', 'باكستاني', 95], ['محمد سليم', 'بنغلاديشي', 210], ['ريتا فرنانديز', 'فلبينية', -3]];
+  for (const [name, nat, days] of emps) {
+    const e = await member(b, name, 'employee', nat);
+    await doc(b, e, 'residency', '', '18-' + (100000 + e * 7919), days, 'مادة 18');
+    await doc(b, e, 'passport', '', 'X' + (5000000 + e * 31), days + 600, '');
+  }
+  await doc(b, owner, 'other', 'الرخصة التجارية', '2023/44551', 40, '');
 
-    // --- Business demo account: employees' residencies
-    const b = insUser.run(BUSINESS_PHONE, 'شركة الأفق للتجارة العامة', 'user', 'business').lastInsertRowid;
-    const owner = insMember.run(b, 'فهد العتيبي (المالك)', 'self', 'كويتي').lastInsertRowid;
-    insDoc.run(b, owner, 'civil_id', 'رخصة', encryptText('281110105566'), addDays(today, 300), '');
-    const emps = [['أحمد حسن', 'مصري', 20], ['جون ماثيو', 'هندي', 48], ['علي رضا', 'باكستاني', 95], ['محمد سليم', 'بنغلاديشي', 210], ['ريتا فرنانديز', 'فلبينية', -3]];
-    for (const [name, nat, days] of emps) {
-      const e = insMember.run(b, name, 'employee', nat).lastInsertRowid;
-      insDoc.run(b, e, 'residency', '', encryptText('18-' + (100000 + e * 7919)), addDays(today, days), 'مادة 18');
-      insDoc.run(b, e, 'passport', '', encryptText('X' + (5000000 + e * 31)), addDays(today, days + 600), '');
-    }
-    insDoc.run(b, owner, 'other', 'الرخصة التجارية', encryptText('2023/44551'), addDays(today, 40), '');
-
-    // --- Admin
-    const a = insUser.run(ADMIN_PHONE, 'مشرف مرشدك', 'admin', 'business').lastInsertRowid;
-    insMember.run(a, 'مشرف مرشدك', 'self', '');
-  });
+  // --- Admin
+  const a = await user(ADMIN_PHONE, 'مشرف مرشدك', 'admin', 'business');
+  await member(a, 'مشرف مرشدك', 'self', '');
   return true;
 }

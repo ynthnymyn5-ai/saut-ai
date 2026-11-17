@@ -37,7 +37,7 @@ export const I18N = {
     addDocument: 'إضافة مستند', editDocument: 'تعديل المستند', docType: 'نوع المستند', owner: 'صاحب المستند', docNumber: 'رقم المستند', expiryDate: 'تاريخ الانتهاء', notes: 'ملاحظات', label: 'اسم المستند (اختياري)',
     photo: 'صورة المستند', uploadPhoto: 'رفع صورة', replacePhoto: 'تغيير الصورة', removePhoto: 'حذف الصورة', show: 'إظهار', hide: 'إخفاء', delete: 'حذف', confirmDelete: 'متأكد من الحذف؟',
     renewNow: 'كيف أجدده؟', planLimit: 'وصلت للحد الأقصى في الباقة المجانية (3 مستندات). رقّ باقتك لإضافة المزيد.', upgrade: 'ترقية الباقة', of: 'من',
-    secureNote: 'الصور والأرقام محفوظة مشفّرة، والأرقام تظهر مخفية في القوائم.', file_too_large: 'الملف أكبر من 5 ميجابايت', unsupported_type: 'نوع الملف غير مدعوم (JPG/PNG/WEBP/PDF)',
+    secureNote: 'الصور والأرقام محفوظة مشفّرة، والأرقام تظهر مخفية في القوائم.', file_too_large: 'الملف أكبر من 3 ميجابايت', unsupported_type: 'نوع الملف غير مدعوم (JPG/PNG/WEBP/PDF)',
     t_civil_id: 'البطاقة المدنية', t_passport: 'جواز السفر', t_residency: 'الإقامة', t_driving_license: 'رخصة القيادة', t_car_registration: 'دفتر السيارة', t_other: 'مستند آخر',
     expiresOn: 'ينتهي في', saved: 'تم الحفظ', deleted: 'تم الحذف', uploading: 'جارٍ الرفع…', pdfFile: 'ملف PDF', openFile: 'فتح الملف',
     // family
@@ -97,7 +97,7 @@ export const I18N = {
     addDocument: 'Add document', editDocument: 'Edit document', docType: 'Document type', owner: 'Belongs to', docNumber: 'Document number', expiryDate: 'Expiry date', notes: 'Notes', label: 'Document name (optional)',
     photo: 'Document photo', uploadPhoto: 'Upload photo', replacePhoto: 'Replace photo', removePhoto: 'Remove photo', show: 'Show', hide: 'Hide', delete: 'Delete', confirmDelete: 'Delete this?',
     renewNow: 'How do I renew it?', planLimit: 'You reached the Free plan limit (3 documents). Upgrade to add more.', upgrade: 'Upgrade', of: 'of',
-    secureNote: 'Photos and numbers are stored encrypted; numbers are masked in lists.', file_too_large: 'File is larger than 5 MB', unsupported_type: 'Unsupported file (JPG/PNG/WEBP/PDF)',
+    secureNote: 'Photos and numbers are stored encrypted; numbers are masked in lists.', file_too_large: 'File is larger than 3 MB', unsupported_type: 'Unsupported file (JPG/PNG/WEBP/PDF)',
     t_civil_id: 'Civil ID', t_passport: 'Passport', t_residency: 'Residency', t_driving_license: 'Driving license', t_car_registration: 'Car registration', t_other: 'Other document',
     expiresOn: 'Expires', saved: 'Saved', deleted: 'Deleted', uploading: 'Uploading…', pdfFile: 'PDF file', openFile: 'Open file',
     addMember: 'Add member', editMember: 'Edit member', name: 'Name', relation: 'Relation', nationality: 'Nationality', documents: 'documents', nextExpiry: 'Next expiry', viewDocs: 'View documents',

@@ -465,7 +465,7 @@ async function uploadFile(id, file) {
       mime = 'image/jpeg';
     }
   }
-  if (blob.size > 5 * 1024 * 1024) throw new ApiError('file_too_large', 413);
+  if (blob.size > 3 * 1024 * 1024) throw new ApiError('file_too_large', 413);
   const data = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = rej; fr.readAsDataURL(blob); });
   return api('PUT', `/documents/${id}/file`, { mime, data });
 }

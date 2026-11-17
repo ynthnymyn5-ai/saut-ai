@@ -18,7 +18,15 @@ npm test             # API tests (node:test)
 npm run reset        # wipe local data; sample data is re-seeded on next start
 ```
 
-Needs Node ≥ 22.13 (uses the built-in `node:sqlite`). The only dependency is Express.
+Needs Node ≥ 22.13. Dependencies: Express and `pg`.
+
+**Database.** With `DATABASE_URL` set, the app uses Postgres (Supabase); without it, a local SQLite file (`node:sqlite`), which is what `npm test` uses. The same SQL runs on both (`lib/db.js`). Tables are created and sample data seeded automatically on first start; an advisory lock makes this safe when several serverless instances start at once. To run the tests against Postgres: `TEST_DATABASE_URL=postgres://… npm test` (point it at an empty schema).
+
+## Live deployment
+
+- **App:** Vercel project `murshidak` (team SAUT AI), function region `hnd1` (Tokyo), next to the database.
+- **Database:** Supabase project `hmidan6611@gmail.com` (`dbcxopmhwpjjbqyrfqps`, Tokyo), schema **`murshidak`**, owned by a dedicated login role **`murshidak_app`**. That role can't read any other table in the project, and the schema is not exposed through Supabase's REST API, so only the app server reaches it.
+- **Secrets on Vercel (sensitive, write-only):** `DATABASE_URL` (pooler, transaction mode, port 6543, user `murshidak_app.<project-ref>`) and `MURSHIDAK_SECRET`. Back up `MURSHIDAK_SECRET`: without it, stored documents can't be decrypted. To rotate the database password: `alter role murshidak_app password '…'` in Supabase, then update `DATABASE_URL` on Vercel.
 
 **Demo accounts** (buttons on the sign-in screen). No SMS provider is wired yet, so the OTP is shown on screen and labeled as a demo code:
 
@@ -48,9 +56,9 @@ Needs Node ≥ 22.13 (uses the built-in `node:sqlite`). The only dependency is E
 
 ## Security and privacy
 
-- **Uploads** are stored encrypted with AES-256-GCM, outside the web root, and served only to their owner (`Cache-Control: no-store`). Type is checked against the file's magic bytes; max 5 MB. Images are resized on the device before upload.
+- **Uploads** are stored encrypted with AES-256-GCM in the database (`files` table, never publicly reachable) and served only to their owner (`Cache-Control: no-store`). Type is checked against the file's magic bytes; max 3 MB. Images are resized on the device before upload.
 - **ID numbers** are encrypted at rest and **masked in every list** (`•••• 1234`). The full number is returned only by `GET /api/documents/:id/number` when the owner taps "Show", and is hidden again after 15 seconds.
-- **The encryption key** comes from `MURSHIDAK_SECRET`. If it isn't set, one is generated in `DATA_DIR/.secret`; back that file up, because the documents can't be decrypted without it.
+- **The encryption key** comes from `MURSHIDAK_SECRET` (required with Postgres). Locally, if it isn't set, one is generated in `DATA_DIR/.secret`.
 - OTPs are hashed, expire after 5 minutes, allow 5 attempts, and are rate-limited per phone and per IP. Sessions are random tokens, stored hashed, in an `HttpOnly; SameSite=Lax` cookie (set `COOKIE_SECURE=1` behind HTTPS).
 - Users can delete their account, which removes all their data and files.
 

@@ -1,5 +1,6 @@
 {
   "framework": null,
   "outputDirectory": "public",
+  "regions": ["hnd1"],
   "rewrites": [{ "source": "/api/:path*", "destination": "/api" }]
 }
