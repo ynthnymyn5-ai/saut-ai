@@ -7,6 +7,8 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem('m_' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('m_' + k, JSON.stringify(v)); } catch { /* private mode */ } },
 };
+// Arabic-Indic (٠-٩) and Persian (۰-۹) digits → 0-9, so phone numbers and codes typed on Arabic keyboards work.
+const toLatinDigits = (s) => String(s ?? '').replace(/[\u0660-\u0669\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) & 0xf));
 const t = (k) => I18N[S.lang][k] ?? I18N.ar[k] ?? k;
 const L = (o) => (o ? o[S.lang] || o.ar || '' : '');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -186,13 +188,14 @@ on(/^#\/login$/, (root) => {
       <button class="btn btn-primary block" id="go">${t('sendCode')}</button>`);
     bindLang();
     const send = async () => {
-      phone = $('#ph', root).value.replace(/\D/g, '');
+      phone = toLatinDigits($('#ph', root).value).replace(/\D/g, '');
       $('#go', root).disabled = true;
       try { const r = await api('POST', '/auth/request-otp', { phone }); stepOtp(r.devCode); }
       catch (e) { $('#err', root).textContent = errMsg(e); $('#go', root).disabled = false; }
     };
     $('#go', root).onclick = send;
-    $('#ph', root).onkeydown = (e) => e.key === 'Enter' && send();
+    // Must not return false for other keys: that would cancel every keypress (digits never appear).
+    $('#ph', root).onkeydown = (e) => { if (e.key === 'Enter') send(); };
   };
 
   const stepOtp = (devCode) => {
@@ -208,13 +211,13 @@ on(/^#\/login$/, (root) => {
     const verify = async () => {
       $('#go', root).disabled = true;
       try {
-        const r = await api('POST', '/auth/verify', { phone, code: inp.value.trim() });
+        const r = await api('POST', '/auth/verify', { phone, code: toLatinDigits(inp.value).trim() });
         S.user = r.user;
         if (r.isNew || !r.user.name) stepName(); else enter();
       } catch (e) { $('#err', root).textContent = errMsg(e); $('#go', root).disabled = false; }
     };
     $('#go', root).onclick = verify;
-    inp.oninput = () => inp.value.length === 6 && verify();
+    inp.oninput = () => { if (toLatinDigits(inp.value).replace(/\D/g, '').length === 6) verify(); };
     $('#chg', root).onclick = stepPhone;
     $('#re', root).onclick = async () => { try { const r = await api('POST', '/auth/request-otp', { phone }); stepOtp(r.devCode); } catch (e) { $('#err', root).textContent = errMsg(e); } };
   };

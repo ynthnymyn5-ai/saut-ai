@@ -35,7 +35,7 @@ export const expiryLevel = (days) => (days < 30 ? 'red' : days < 90 ? 'yellow' :
 const nowStamp = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
 
 const normPhone = (p) => {
-  const s = String(p || '').replace(/\D/g, '').replace(/^(00965|965)/, '');
+  const s = String(p || '').replace(/[\u0660-\u0669\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) & 0xf)).replace(/\D/g, '').replace(/^(00965|965)/, '');
   return /^[4569]\d{7}$/.test(s) ? s : null;
 };
 
@@ -211,7 +211,7 @@ export function createApp({
 
   api.post('/auth/verify', wrap(async (req, res) => {
     const phone = normPhone(req.body?.phone);
-    const code = String(req.body?.code || '').trim();
+    const code = String(req.body?.code || '').replace(/[\u0660-\u0669\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) & 0xf)).trim();
     if (!phone) fail(400, 'invalid_phone');
     const o = await db.get('SELECT * FROM otps WHERE phone=?', phone);
     if (!o || Number(o.expires_at) < Date.now()) fail(400, 'otp_expired');

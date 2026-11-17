@@ -42,3 +42,11 @@ test('a number in ADMIN_PHONES becomes admin, including an account that already 
   assert.equal(user.role, 'admin');
   assert.equal((await fetch(base + '/admin/stats', { headers: { Cookie: cookie } })).status, 200);
 });
+
+test('phone numbers and codes typed with Arabic-Indic digits are accepted', async () => {
+  const { devCode } = await (await post('/auth/request-otp', { phone: '٦٥٥٥٠٠٠٢' })).json();
+  const arabicCode = devCode.replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[d]);
+  const res = await post('/auth/verify', { phone: '٦٥٥٥٠٠٠٢', code: arabicCode });
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).user.phone, '65550002');
+});
