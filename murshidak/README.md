@@ -67,7 +67,7 @@ Needs Node ≥ 22.13. Dependencies: Express and `pg`.
 Everything is optional. With no settings, the app runs in demo mode.
 
 - `OPENAI_API_KEY`, `OPENAI_CHAT_MODEL`: turn on LLM understanding (the same provider the rest of this repo uses). The model may only return a slug that exists in the library; anything else is discarded. If the call fails or times out, the local matcher answers instead. Each answer is labeled "understood by AI" or "auto-matched".
-- `SMS_PROVIDER`: setting this hides the on-screen demo code. **No SMS gateway is wired yet**, so connect one in `POST /api/auth/request-otp` before going live.
+- SMS: see "Services and how to turn them on" below; once Twilio is configured the on-screen demo code disappears.
 - `ADMIN_PHONES`: comma-separated phone numbers that are admins. There is no default. A listed number becomes admin when it signs up, or on its next sign-in if the account already exists.
 - `SEED_DEMO_ACCOUNTS`: whether to create the three sample accounts on first start. On by default only for local SQLite; the live database never gets them.
 
