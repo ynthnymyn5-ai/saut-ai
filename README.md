@@ -10,6 +10,8 @@ AI employees that answer calls, book appointments and serve customers 24/7 in Ku
 
 ## What's in this repo
 
+> **Also here:** [`mira/`](mira/README.md) — *Mira*, a standalone personal AI Chief of Staff app (React + Express + Postgres/pgvector). It's independent of SAUT AI; see its README for setup.
+
 | Area | Where |
 |---|---|
 | Brand: logo, S-wave mark, SO mascot, favicon, app icon | `src/components/brand/`, `public/brand/`, `src/app/icon.svg`, `docs/BRAND.md` |

@@ -1,0 +1,18 @@
+# Replit configuration for Mira.
+# The Run button sets up the database (pgvector + schema + sample data on first run) and starts the dev server.
+modules = ["nodejs-22", "postgresql-16"]
+run = "npm install && npm run db:setup && npm run dev"
+entrypoint = "server/index.ts"
+
+[nix]
+channel = "stable-24_05"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[deployment]
+# Reserved VM keeps the reminder/morning-brief scheduler running all day.
+deploymentTarget = "vm"
+build = ["sh", "-c", "npm install && npm run build"]
+run = ["sh", "-c", "npm run db:setup && npm start"]
