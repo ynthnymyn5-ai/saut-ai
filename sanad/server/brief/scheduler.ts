@@ -13,6 +13,7 @@ import { notifyAll } from "../push/webpush";
 import { telegramSend } from "../integrations/messaging";
 import { generateBrief } from "./dailyBrief";
 import { logActivity } from "../lib/activity";
+import { ensureEmbeddingsMatchProvider } from "../memory/service";
 import { generateWeeklyReport, runAutoFollowUps } from "../tools/business";
 
 async function getSetting<T>(key: string): Promise<T | undefined> {
@@ -75,7 +76,7 @@ export async function runDailyFollowUps(force = false) {
 
 /** One pass of every job (each one checks its own time). Used by the timer and by /api/cron/tick. */
 export async function runScheduledJobs() {
-  const jobs = { reminders: runReminders, brief: () => runMorningBrief(), weekly: () => runWeeklyReport(), followUps: () => runDailyFollowUps() };
+  const jobs = { embeddings: () => ensureEmbeddingsMatchProvider(), reminders: runReminders, brief: () => runMorningBrief(), weekly: () => runWeeklyReport(), followUps: () => runDailyFollowUps() };
   const out: Record<string, string> = {};
   for (const [name, fn] of Object.entries(jobs)) {
     try {

@@ -18,7 +18,16 @@ import { runScheduledJobs } from "./brief/scheduler";
 export function createApp() {
   const app = express();
   app.disable("x-powered-by");
-  app.get("/api/health", (_req, res) => res.json({ ok: true }));
+  app.get("/api/health", async (_req, res) => {
+    // Also proves the database is reachable (used right after a deploy)
+    try {
+      const { pool } = await import("./db");
+      const r = await pool.query("select count(*)::int as tasks from tasks");
+      res.json({ ok: true, db: "ok", tasks: r.rows[0].tasks });
+    } catch (e) {
+      res.status(503).json({ ok: false, db: (e as Error).message });
+    }
+  });
 
   // Public webhooks (Telegram/WhatsApp) — authenticated by their own secrets
   const publicRouter = express.Router();
