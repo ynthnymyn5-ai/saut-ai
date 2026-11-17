@@ -182,12 +182,7 @@ on(/^#\/login$/, (root) => {
     root.innerHTML = frame(`<h2>${t('login')}</h2>
       <label class="f"><span>${t('phone')}</span><div class="phone"><span>+965</span><input id="ph" inputmode="numeric" autocomplete="tel-national" maxlength="8" placeholder="9XXXXXXX" value="${esc(phone)}"></div></label>
       <p class="err" id="err"></p>
-      <button class="btn btn-primary block" id="go">${t('sendCode')}</button>
-      <div style="border-top:1px solid var(--line);padding-top:12px"><p class="small muted" style="margin-bottom:8px">${t('tryDemo')}</p>
-        <div class="grid2" style="grid-template-columns:repeat(3,1fr)">
-          <button class="btn btn-light btn-sm" data-demo="99999999">👨‍👩‍👧 ${t('demoFamily')}</button>
-          <button class="btn btn-light btn-sm" data-demo="98888888">💼 ${t('demoBusiness')}</button>
-          <button class="btn btn-light btn-sm" data-demo="90000000">🛠️ ${t('demoAdmin')}</button></div></div>`);
+      <button class="btn btn-primary block" id="go">${t('sendCode')}</button>`);
     bindLang();
     const send = async () => {
       phone = $('#ph', root).value.replace(/\D/g, '');
@@ -197,7 +192,6 @@ on(/^#\/login$/, (root) => {
     };
     $('#go', root).onclick = send;
     $('#ph', root).onkeydown = (e) => e.key === 'Enter' && send();
-    $$('[data-demo]', root).forEach((b) => (b.onclick = () => { $('#ph', root).value = b.dataset.demo; send(); }));
   };
 
   const stepOtp = (devCode) => {

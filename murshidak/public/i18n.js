@@ -13,7 +13,6 @@ export const I18N = {
     login: 'تسجيل الدخول', phone: 'رقم الهاتف', sendCode: 'أرسل رمز التحقق', otpTitle: 'أدخل رمز التحقق', otpSent: 'أرسلنا رمزاً من 6 أرقام إلى',
     verify: 'تحقق ودخول', changeNumber: 'تغيير الرقم', resend: 'إعادة الإرسال', demoCode: 'رمز التجربة (لا يوجد مزوّد رسائل مفعّل):',
     yourName: 'ما اسمك؟', nameHint: 'يظهر في ملفك وملفات العائلة', save: 'حفظ', continue: 'متابعة',
-    tryDemo: 'جرّب بحساب تجريبي', demoFamily: 'عائلة', demoBusiness: 'أعمال', demoAdmin: 'مشرف',
     invalid_phone: 'رقم الهاتف غير صحيح (8 أرقام كويتية)', otp_wrong: 'الرمز غير صحيح', otp_expired: 'انتهت صلاحية الرمز، اطلب رمزاً جديداً', rate_limited: 'محاولات كثيرة، انتظر قليلاً', too_many_attempts: 'محاولات كثيرة، اطلب رمزاً جديداً',
     // nav
     home: 'الرئيسية', wallet: 'مستنداتي', agents: 'المناديب', bookings: 'طلباتي', profile: 'حسابي', library: 'مكتبة الإجراءات', family: 'العائلة', plans: 'الباقات', notifications: 'الإشعارات', admin: 'لوحة الإدارة',
@@ -78,7 +77,6 @@ export const I18N = {
     login: 'Sign in', phone: 'Phone number', sendCode: 'Send verification code', otpTitle: 'Enter the code', otpSent: 'We sent a 6-digit code to',
     verify: 'Verify & sign in', changeNumber: 'Change number', resend: 'Resend', demoCode: 'Demo code (no SMS provider configured):',
     yourName: 'What\'s your name?', nameHint: 'Shown on your profile and family files', save: 'Save', continue: 'Continue',
-    tryDemo: 'Try a demo account', demoFamily: 'Family', demoBusiness: 'Business', demoAdmin: 'Admin',
     invalid_phone: 'Invalid phone number (8-digit Kuwaiti number)', otp_wrong: 'Wrong code', otp_expired: 'Code expired, request a new one', rate_limited: 'Too many attempts, please wait', too_many_attempts: 'Too many attempts, request a new code',
     home: 'Home', wallet: 'Documents', agents: 'Agents', bookings: 'Bookings', profile: 'Profile', library: 'Procedure library', family: 'Family', plans: 'Plans', notifications: 'Notifications', admin: 'Admin panel',
     hello: 'Hi', askTitle: 'What do you need to get done?', askHint: 'Describe it in your own words…', askPh: 'e.g. renew my maid\'s residency',

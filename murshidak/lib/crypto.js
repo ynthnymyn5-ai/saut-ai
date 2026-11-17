@@ -8,6 +8,7 @@ let KEY;
 export function initKey(dataDir) {
   let secret = process.env.MURSHIDAK_SECRET;
   if (!secret) {
+    fs.mkdirSync(dataDir, { recursive: true });
     const file = path.join(dataDir, '.secret');
     if (fs.existsSync(file)) secret = fs.readFileSync(file, 'utf8').trim();
     else {

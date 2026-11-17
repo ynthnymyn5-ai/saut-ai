@@ -28,7 +28,7 @@ Needs Node ≥ 22.13. Dependencies: Express and `pg`.
 - **Database:** Supabase project `hmidan6611@gmail.com` (`dbcxopmhwpjjbqyrfqps`, Tokyo), schema **`murshidak`**, owned by a dedicated login role **`murshidak_app`**. That role can't read any other table in the project, and the schema is not exposed through Supabase's REST API, so only the app server reaches it.
 - **Secrets on Vercel (sensitive, write-only):** `DATABASE_URL` (pooler, transaction mode, port 6543, user `murshidak_app.<project-ref>`) and `MURSHIDAK_SECRET`. Back up `MURSHIDAK_SECRET`: without it, stored documents can't be decrypted. To rotate the database password: `alter role murshidak_app password '…'` in Supabase, then update `DATABASE_URL` on Vercel.
 
-**Demo accounts** (buttons on the sign-in screen). No SMS provider is wired yet, so the OTP is shown on screen and labeled as a demo code:
+**Sample accounts** (type the number on the sign-in screen; there are no shortcut buttons). No SMS provider is wired yet, so the OTP is shown on screen and labeled as a demo code:
 
 | Phone | Account |
 |---|---|
