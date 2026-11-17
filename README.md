@@ -29,6 +29,7 @@ AI employees that answer calls, book appointments and serve customers 24/7 in Ku
 | In-app assistant SO with talking face (photoreal via Simli, built-in fallback), voice + text | `src/components/assistant/`, `src/lib/assistant/`, `src/app/api/assistant/*` |
 | Installable phone app (PWA): manifest, icons, offline page, tab bar | `src/app/manifest.ts`, `public/sw.js`, `public/offline.html`, `src/components/pwa/` |
 | Bilingual RTL/LTR | `src/lib/i18n/*`, `src/middleware.ts` |
+| **Murshidak (مرشدك)**: separate, self-contained guide to Kuwaiti government procedures (Express + SQLite) | [`murshidak/`](murshidak/README.md) |
 
 ## Honest-by-design
 

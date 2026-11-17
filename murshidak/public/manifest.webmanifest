@@ -1,0 +1,12 @@
+{
+  "name": "مرشدك – Murshidak",
+  "short_name": "مرشدك",
+  "description": "دليل إرشادي مستقل للمعاملات الحكومية في الكويت (ليس تطبيقاً حكومياً)",
+  "start_url": "/",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0b2e59",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
