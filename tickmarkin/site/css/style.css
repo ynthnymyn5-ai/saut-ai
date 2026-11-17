@@ -577,6 +577,14 @@ td select { padding: 6px 8px; width: auto; font-size: .9rem; }
 @keyframes drift2 { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-16px) rotate(6deg); } }
 @media (max-width: 700px) { .hero-floats span:nth-child(n+3) { display: none; } .hero-floats span { opacity: .6; } }
 
+/* ---------- 3D ---------- */
+.hero3d { display: block; width: 100%; height: auto; aspect-ratio: 520 / 500; opacity: 0; transition: opacity .8s var(--ease); }
+.hero-visual.has-3d .hero3d { opacity: 1; }
+.hero-visual.has-3d .scene { display: none; }
+.hero-visual.has-3d .hero-stage { transform: none; }
+.card.glow.tilting { transform: perspective(900px) rotateX(var(--tx, 0deg)) rotateY(var(--ty, 0deg)) translateY(-6px); transition: transform .12s linear, box-shadow .35s var(--ease), border-color .35s; }
+@media (prefers-reduced-motion: reduce) { .card.glow.tilting { transform: none; } }
+
 /* ---------- institute office (admin + teacher) ---------- */
 .office { display: grid; grid-template-columns: 250px 1fr; min-height: calc(100vh - 64px); }
 .office-nav { position: sticky; top: 0; align-self: start; height: calc(100vh - 64px); display: flex; flex-direction: column; gap: 4px; padding: 20px 14px; background: var(--card); border-inline-end: 1px solid var(--line); overflow-y: auto; }

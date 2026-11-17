@@ -169,10 +169,23 @@
         const card = e.target.closest?.('.glow');
         if (card) {
           const r = card.getBoundingClientRect();
-          card.style.setProperty('--mx', e.clientX - r.left + 'px');
-          card.style.setProperty('--my', e.clientY - r.top + 'px');
+          const x = e.clientX - r.left, y = e.clientY - r.top;
+          card.style.setProperty('--mx', x + 'px');
+          card.style.setProperty('--my', y + 'px');
+          // 3D tilt toward the pointer
+          card.classList.add('tilting');
+          card.style.setProperty('--tx', ((y / r.height) - 0.5) * -10 + 'deg');
+          card.style.setProperty('--ty', ((x / r.width) - 0.5) * 12 + 'deg');
         }
       }, { passive: true });
+      document.addEventListener('pointerout', (e) => {
+        const card = e.target.closest?.('.glow');
+        if (card && !card.contains(e.relatedTarget)) {
+          card.classList.remove('tilting');
+          card.style.removeProperty('--tx');
+          card.style.removeProperty('--ty');
+        }
+      });
       const hero = $('.hero');
       const stage = $('.hero-stage');
       const spot = $('.spotlight');
