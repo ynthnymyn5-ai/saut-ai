@@ -6,6 +6,7 @@ import { agentMeta, type AgentId } from "@shared/agents";
 import { useSanad, type ThreadMsg } from "../lib/store";
 import { useI18n } from "../i18n";
 import { Markdown, cx, Icon } from "./ui";
+import { DEMO } from "../voice/voiceEngine";
 
 /** Typewriter reveal for Sanad's caption. */
 function useTypewriter(text: string, speed = 14) {
@@ -57,13 +58,15 @@ export function MicButton({ size = "lg" }: { size?: "lg" | "sm" }) {
 
   const onDown = () => {
     downAt.current = Date.now();
-    if (orbState === "idle") startVoice();
+    if (orbState === "idle" && !DEMO) startVoice();
   };
   const onUp = () => {
     const held = Date.now() - downAt.current;
     if (orbState === "listening" && held > 450) stopVoice(); // hold-to-talk release
   };
   const onClick = () => {
+    // Demo: claude.ai dictation must start from a click, synchronously
+    if (DEMO && orbState === "idle") return startVoice();
     if (Date.now() - downAt.current > 450) return; // handled by hold
     if (orbState === "listening") stopVoice();
     else if (orbState === "speaking") stopTalking();

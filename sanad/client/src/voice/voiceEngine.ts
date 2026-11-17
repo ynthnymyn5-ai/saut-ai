@@ -44,10 +44,76 @@ export interface ListenSession {
   cancel: () => void;
 }
 
+// ─── Demo build: claude.ai artifact voice (dictation + tts capabilities) ────
+// A published artifact can't open the microphone itself; the claude.ai viewer
+// offers dictation/tts instead (Chromium tabs and the desktop app — not the
+// Claude mobile apps). Resolved once at load; null where not offered.
+export const DEMO = import.meta.env.VITE_DEMO === "1";
+type Dictation = {
+  start(o?: { language?: string }): Promise<void>;
+  stop(): Promise<void>;
+  onPartial(h: (e: { text: string }) => void): () => void;
+  onFinal(h: (e: { text: string }) => void): () => void;
+  onState(h: (e: { state: string; reason?: string }) => void): () => void;
+};
+type Tts = { speak(text: string, o?: { language?: string }): Promise<void>; stop(): Promise<void> };
+let demoDictation: Dictation | null = null;
+let demoTts: Tts | null = null;
+if (DEMO) {
+  const c = (window as unknown as { claude?: { use(n: string): Promise<unknown> } }).claude;
+  c?.use("dictation").then((d) => (demoDictation = d as Dictation)).catch(() => {});
+  c?.use("tts").then((x) => (demoTts = x as Tts)).catch(() => {});
+}
+
+function listenDemo(uiLang: "en" | "ar", h: ListenHandlers): ListenSession {
+  const d = demoDictation;
+  if (!d) {
+    h.onError("demo_unavailable");
+    return { stop() {}, cancel() {} };
+  }
+  let final = "";
+  let cancelled = false;
+  let timer = 0;
+  const wiggle = () => {
+    audioBus.level = 0.25 + Math.random() * 0.35;
+    timer = window.setTimeout(wiggle, 120);
+  };
+  const offs = [
+    d.onPartial(({ text }) => h.onInterim?.(final + text)),
+    d.onFinal(({ text }) => {
+      final += text;
+      h.onInterim?.(final);
+    }),
+    d.onState(({ state }) => {
+      if (state === "listening" && !timer) wiggle();
+      if (state === "idle") {
+        clearTimeout(timer);
+        audioBus.level = 0;
+        offs.forEach((o) => o());
+        if (!cancelled && final.trim()) h.onFinal(final.trim(), isArabic(final) ? "ar" : "en");
+        else h.onEnd?.();
+      }
+    }),
+  ];
+  // Must run synchronously inside the viewer's click — nothing awaited before it.
+  d.start(uiLang === "ar" ? { language: "ar" } : undefined).catch((e: { code?: string }) => {
+    if (e?.code === "stopped") return;
+    h.onError(e?.code === "not_granted" ? "denied" : "demo_unavailable");
+  });
+  return {
+    stop: () => void d.stop().catch(() => {}),
+    cancel: () => {
+      cancelled = true;
+      void d.stop().catch(() => {});
+    },
+  };
+}
+
 const isArabic = (s: string) => /[؀-ۿ]/.test(s);
 
 /** Start listening. `serverVoice` picks Whisper vs. the browser recogniser. */
 export async function listen(serverVoice: boolean, uiLang: "en" | "ar", h: ListenHandlers): Promise<ListenSession> {
+  if (DEMO) return listenDemo(uiLang, h);
   if (serverVoice && canRecord) return listenServer(h);
   if (browserSTT) return listenBrowser(uiLang, h);
   if (canRecord) return listenServer(h);
@@ -184,6 +250,7 @@ let currentAudio: HTMLAudioElement | null = null;
 let stopSpeakingPump: (() => void) | null = null;
 
 export function stopSpeaking() {
+  if (DEMO) void demoTts?.stop().catch(() => {});
   currentAudio?.pause();
   currentAudio = null;
   stopSpeakingPump?.();
@@ -195,6 +262,25 @@ export function stopSpeaking() {
 /** Speak `text`; resolves when playback ends. */
 export async function speak(text: string, lang: "en" | "ar", serverVoice: boolean): Promise<void> {
   stopSpeaking();
+  if (DEMO && demoTts) {
+    const start = performance.now();
+    let raf = 0;
+    const env = () => {
+      const t = (performance.now() - start) / 1000;
+      audioBus.level = 0.3 + 0.25 * Math.abs(Math.sin(t * 9)) * (0.6 + 0.4 * Math.sin(t * 2.3));
+      raf = requestAnimationFrame(env);
+    };
+    env();
+    try {
+      await demoTts.speak(text.replace(/[*_#`>]/g, "").slice(0, 2000), { language: lang });
+    } catch {
+      /* viewer stopped it or reading aloud is off */
+    } finally {
+      cancelAnimationFrame(raf);
+      audioBus.level = 0;
+    }
+    return;
+  }
   if (serverVoice) {
     try {
       const res = await fetch("/api/voice/speak", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, lang }) });

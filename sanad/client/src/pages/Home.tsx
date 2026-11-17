@@ -9,7 +9,7 @@ import { useI18n } from "../i18n";
 import { cx } from "../components/ui";
 
 export function HomePage() {
-  const { orbState, thread, prefs, setPref, newConversation, send, startVoice, stopTalking, busy } = useSanad();
+  const { orbState, thread, prefs, setPref, newConversation, send, startVoice, stopTalking, busy, status } = useSanad();
   const { t } = useI18n();
   const [showThread, setShowThread] = useState(false);
 
@@ -23,7 +23,7 @@ export function HomePage() {
       <section className="flex min-w-0 flex-1 flex-col items-center">
         {/* top controls */}
         <div className="flex w-full items-center justify-between gap-2">
-          <button onClick={() => setPref("wakeWord", !prefs.wakeWord)} className={cx("btn-ghost px-3 py-1.5 text-xs", prefs.wakeWord && "border-neon-purple/50 bg-neon-purple/15 text-white")}>
+          <button onClick={() => setPref("wakeWord", !prefs.wakeWord)} className={cx("btn-ghost px-3 py-1.5 text-xs", status?.demo && "invisible", prefs.wakeWord && "border-neon-purple/50 bg-neon-purple/15 text-white")}>
             <Ear className="h-3.5 w-3.5" /> {t.voice.wakeWord}
             <span className={cx("h-1.5 w-1.5 rounded-full", prefs.wakeWord ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-zinc-600")} />
           </button>

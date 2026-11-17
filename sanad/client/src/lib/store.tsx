@@ -189,7 +189,7 @@ export function SanadProvider({ children }: { children: ReactNode }) {
       onError: (err) => {
         listenRef.current = null;
         setOrbState("idle");
-        toast(err === "denied" ? t.voice.micDenied : err === "unsupported" ? t.voice.unsupported : err, "error");
+        toast(err === "denied" ? t.voice.micDenied : err === "unsupported" ? t.voice.unsupported : err === "demo_unavailable" ? t.voice.demoUnavailable : err, "error");
       },
       onEnd: () => {
         listenRef.current = null;
