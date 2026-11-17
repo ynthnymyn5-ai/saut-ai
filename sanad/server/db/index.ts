@@ -9,8 +9,12 @@ if (!env.DATABASE_URL) {
   process.exit(1);
 }
 
+// node-postgres turns `sslmode=require` into full certificate verification,
+// which hosted poolers (Supabase, Neon) fail; TLS is configured below instead.
+const connectionString = env.DATABASE_URL.replace(/([?&])sslmode=[^&]*&?/, "$1").replace(/[?&]$/, "");
+
 export const pool = new pg.Pool({
-  connectionString: env.DATABASE_URL,
+  connectionString,
   ssl: /sslmode=require|neon\.tech|supabase\.com/.test(env.DATABASE_URL) ? { rejectUnauthorized: false } : undefined,
   // Serverless functions each hold a small pool; a VM can use more.
   max: process.env.VERCEL ? 3 : 10,
