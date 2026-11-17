@@ -17,6 +17,26 @@ Sanad is a personal AI "operating system": one assistant you talk to by **voice 
 
 **Deploying:** use **Reserved VM**. It is already set in `.replit`, and it keeps the reminder and morning-brief scheduler running all day.
 
+## Deploying on Vercel + Supabase
+
+The production setup for this repo:
+
+- **Vercel project `sanad`**, root directory `sanad/`. `vercel.json` runs `npm run build:vercel` (`tools/build-vercel.mjs`), which writes Vercel's Build Output: the PWA as static files, plus the Express API bundled into one Node function (`server/vercel.ts`) running in `hnd1`. `/api/*` and `/invoice/*` go to the function; everything else serves the app.
+- **Database:** a dedicated `sanad` schema inside an existing Supabase project. Sanad connects as its own role, `sanad_app`, whose `search_path` is `sanad, extensions`, so it only sees its own tables. pgvector lives in `extensions`. Connect through the Supavisor pooler (port 6543). The code strips `sslmode` from the URL and handles TLS itself.
+- **Sign-in:** there's no Replit Auth on Vercel, so the owner signs in with `OWNER_PASSWORD`.
+- **Scheduler:** there's no long-running process. Reminders, the brief, the weekly report and follow-ups run when something calls `POST /api/cron/tick` with `Authorization: Bearer $CRON_SECRET` every minute, for example Supabase `pg_cron` + `pg_net`:
+
+```sql
+select cron.schedule('sanad-tick', '* * * * *', $$
+  select net.http_post(url := 'https://<your-app>/api/cron/tick',
+                       headers := '{"Authorization": "Bearer <CRON_SECRET>"}'::jsonb)
+$$);
+```
+
+If Vercel Authentication protects the production URL, also send `x-vercel-protection-bypass: <automation bypass secret>` (Project → Settings → Deployment Protection → Protection Bypass for Automation). The same applies to Telegram/WhatsApp webhooks and to client invoice links. Alternatively, attach a custom domain, which Vercel leaves public.
+
+Vercel environment variables: `DATABASE_URL`, `SESSION_SECRET`, `OWNER_PASSWORD`, `CRON_SECRET`, plus any AI or integration keys from the table below.
+
 ## Running locally
 
 ```bash
@@ -44,6 +64,8 @@ Without `REPL_ID`, development mode signs you in automatically as the local owne
 | `OPENAI_REALTIME_MODEL` / `OPENAI_REALTIME_VOICE` | Optional | Live voice model (default `gpt-realtime`) and voice (defaults to `OPENAI_TTS_VOICE`) |
 | `BUSINESS_NAME`, `BUSINESS_DETAILS` | Optional | Shown on invoices |
 | `AUTO_FOLLOWUPS` | Optional | `false` turns off the daily follow-up drafts |
+| `OWNER_PASSWORD` | On Vercel | Password login for the owner, used where Replit Auth isn't available |
+| `CRON_SECRET` | On Vercel | Bearer secret for `/api/cron/tick` |
 | `OWNER_EMAIL` | Optional | Locks sign-in to this email. Otherwise the first account to sign in becomes the owner. |
 | `OPENAI_MODEL` / `OPENAI_FAST_MODEL` | Optional | Defaults are `gpt-4o` / `gpt-4o-mini` |
 | `OPENAI_TTS_VOICE` | Optional | Default `shimmer` |
