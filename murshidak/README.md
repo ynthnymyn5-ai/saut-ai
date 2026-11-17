@@ -91,6 +91,20 @@ Other additions:
 - **Privacy policy and terms** pages (`#/privacy`, `#/terms`), linked from sign-in and Profile. Add a contact email to them before launch.
 - **Database migrations** (`lib/migrations.js`): versioned, applied once per database on startup under the same lock as seeding.
 
+## Release 5: growth features
+
+- **Document readiness on every roadmap:** pick who the procedure is for; each required document shows whether the wallet has it and whether it is valid (passports need 6 months, others 30 days), for the person or their sponsor. Documents the wallet doesn't track (receipts, certificates) are left as a manual checklist.
+- **Renew in one tap:** a document's "How do I renew it?" opens the roadmap already set to that person, and booking an agent carries the person through.
+- **Unmatched requests** (Admin → "Unmatched requests"): what people typed that matched no procedure, grouped and counted, with no user attached.
+- **Chat with the agent** on each booking. The customer can share a wallet document; the agent sees its full number and photo only while the request is accepted or in progress.
+- **Pay the agent in the app** (MyFatoorah): the platform holds the fee; Admin → Payouts shows the net per agent after commission, and a payout can be marked only after the request is done. Paying agents out is a manual bank transfer by the admin.
+- **Agent licences:** applicants upload a licence number and photo (encrypted); admins view it before approving. The public badge says "approved by Murshidak on <date>", not that a government verified it.
+- **Smart questions:** procedures can ask about the case (e.g. Kuwaiti or resident, worker inside Kuwait?) and show only the matching steps. Admins edit questions as JSON and per-step conditions as `question=value`.
+- **Library:** 41 procedures (19 new). Migration `005` adds only the new ones, so procedures an admin deleted are not brought back, and questions are added only where an admin hasn't edited the steps.
+- **Business:** team members (sign in with their own number, switch to the company account; owner-only plan, billing and team), CSV export for Excel with masked numbers, bulk agent requests for many employees.
+- **Calendar:** `.ics` export of one or all expiry dates with alerts 30 and 7 days before.
+- **Phone app:** `mobile/` + `.github/workflows/murshidak-android.yml` build an Android APK (and a signed bundle once keystore secrets exist). See `mobile/README.md` for iOS and the shell's limits (push and voice input).
+
 ## Not done yet
 
 - **Payments:** until MyFatoorah is configured, changing plans is free, and the Plans screen says so.

@@ -1,0 +1,77 @@
+name: murshidak-android
+# Builds the Murshidak Android app (Capacitor shell around the live web app).
+# Run it from the Actions tab, or it runs when murshidak/mobile changes.
+on:
+  workflow_dispatch:
+  push:
+    paths: ["murshidak/mobile/**", ".github/workflows/murshidak-android.yml"]
+permissions:
+  contents: write
+concurrency:
+  group: murshidak-android
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: murshidak/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Use the runner's preinstalled Android SDK
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+      - name: Install Capacitor
+        run: npm install --no-audit --no-fund 2>&1 | tee ../build-android.log
+      - name: Create Android project
+        run: |
+          npx cap add android 2>&1 | tee -a ../build-android.log
+          npx capacitor-assets generate --android --iconBackgroundColor '#0b2e59' --splashBackgroundColor '#0b2e59' 2>&1 | tee -a ../build-android.log || echo "assets step failed (default icon kept)" | tee -a ../build-android.log
+          # camera for photographing documents
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.CAMERA" />#' $M
+          npx cap sync android 2>&1 | tee -a ../build-android.log
+      - name: Build debug APK
+        working-directory: murshidak/mobile/android
+        run: ./gradlew assembleDebug --no-daemon 2>&1 | tail -40 | tee -a ../../build-android.log
+      - name: Build signed release bundle (if keystore secrets exist)
+        if: ${{ env.KS != '' }}
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        working-directory: murshidak/mobile/android
+        run: |
+          echo "$KS" | base64 -d > release.jks
+          ./gradlew bundleRelease --no-daemon -Pandroid.injected.signing.store.file=$PWD/release.jks -Pandroid.injected.signing.store.password="$KS_PASS" -Pandroid.injected.signing.key.alias="$KEY_ALIAS" -Pandroid.injected.signing.key.password="$KEY_PASS" 2>&1 | tail -20 | tee -a ../../build-android.log
+      - name: Publish to murshidak-android-build branch
+        if: always()
+        working-directory: .
+        run: |
+          mkdir -p /tmp/out
+          cp murshidak/mobile/android/app/build/outputs/apk/debug/app-debug.apk /tmp/out/murshidak.apk 2>/dev/null || true
+          cp murshidak/mobile/android/app/build/outputs/bundle/release/app-release.aab /tmp/out/murshidak.aab 2>/dev/null || true
+          cp murshidak/build-android.log /tmp/out/ 2>/dev/null || true
+          echo "${GITHUB_SHA}" > /tmp/out/commit.txt
+          echo '{"git":{"deploymentEnabled":false}}' > /tmp/out/vercel.json
+          cd /tmp/out && git init -q -b murshidak-android-build && git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm "murshidak android build ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" murshidak-android-build
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: murshidak-android
+          path: |
+            murshidak/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+            murshidak/mobile/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: warn

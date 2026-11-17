@@ -1,0 +1,18 @@
+{
+  "name": "murshidak-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Murshidak Android/iOS shell (Capacitor) around the live web app.",
+  "scripts": {
+    "assets": "capacitor-assets generate --android --ios --iconBackgroundColor '#0b2e59' --splashBackgroundColor '#0b2e59'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}

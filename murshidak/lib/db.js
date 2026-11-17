@@ -96,7 +96,7 @@ function pgApi(pool) {
     async all(sql, ...p) { return (await q(toPg(sql), p)).rows; },
     async run(sql, ...p) {
       // Tables without an id column are excluded; ON CONFLICT DO NOTHING simply returns no row.
-      const r = await q(toPg(isInsert(sql) && !/^\s*insert into (otps|sessions|files|schema_migrations)\b/i.test(sql) ? sql + ' RETURNING id' : sql), p);
+      const r = await q(toPg(isInsert(sql) && !/^\s*insert into (otps|sessions|files|schema_migrations|agent_files)\b/i.test(sql) ? sql + ' RETURNING id' : sql), p);
       return { changes: r.rowCount, id: r.rows?.[0]?.id };
     },
   });

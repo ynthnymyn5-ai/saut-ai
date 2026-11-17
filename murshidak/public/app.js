@@ -98,7 +98,8 @@ function shell(content, { tab, back, title } = {}) {
   </header>`;
   const backbar = back ? `<div class="backbar"><button data-back aria-label="${t('back')}">${svg('back', 20).replace('<svg', '<svg class="flip"')}</button><h1 class="grow" style="font-size:1.2rem">${esc(title || '')}</h1></div>` : '';
   const tabs = S.user ? `<nav class="tabbar">${['home', 'wallet', 'agents', 'bookings', 'profile'].map((k) => `<a href="#/${k}" class="${tab === k ? 'on' : ''}">${svg(k, 24)}<span>${t(k)}</span></a>`).join('')}</nav>` : '';
-  return `${top}${backbar}<main id="view">${content}</main>${tabs}`;
+  const acct = S.user?.account?.isTeam ? `<a class="team-banner" href="#/accounts">🏢 ${t('workingIn')}: <b>${esc(S.user.account.name)}</b> · ${t('switchAccount')}</a>` : '';
+  return `${top}${acct}${backbar}<main id="view">${content}</main>${tabs}`;
 }
 
 function bindShell(root) {
@@ -133,16 +134,17 @@ function procRow(p) {
     <span class="badge ${MODE_BADGE[p.mode]}">${t('mode_' + p.mode)}</span>
   </a>`;
 }
-function agentCard(a, slug) {
+function agentCard(a, slug, memberId) {
   return `<div class="card">
     <div class="row"><div class="avatar">${esc(L(a.name).trim()[0] || '؟')}</div>
-      <div class="grow"><h3>${esc(L(a.name))} ${a.verified ? `<span class="badge b-green">✓ ${t('verified')}</span>` : ''}</h3>
+      <div class="grow"><h3>${esc(L(a.name))} ${a.verified ? `<span class="badge b-green" title="${a.verifiedAt ? t('licenseCheckedOn') + ' ' + esc(a.verifiedAt.slice(0, 10)) : ''}">✓ ${t('verified')}</span>` : ''}</h3>
+        ${a.verifiedAt ? `<p class="tiny muted">🪪 ${t('licenseCheckedOn')} ${fmtDate(a.verifiedAt.slice(0, 10))}</p>` : ''}
         <p class="small"><span class="stars">★ ${a.rating.toFixed(1)}</span> <span class="muted">(${a.reviews} ${t('reviews')}) · ${a.years} ${t('years')}</span></p></div></div>
     <p class="small muted" style="margin-top:8px">${esc(L(a.bio))}</p>
     <div class="row wrap" style="margin-top:8px">${a.categories.map((c) => `<span class="badge b-blue">${catIcon(c)} ${esc(L(S.config.categories[c]))}</span>`).join('')}</div>
     <p class="tiny muted" style="margin-top:6px">📍 ${esc(L(a.areas))}</p>
     <div class="row between" style="margin-top:12px"><div><b style="font-size:1.3rem;color:var(--blue-900)">${a.price}</b> <span class="small muted">${t('perRequest')}</span></div>
-      <button class="btn btn-primary btn-sm" data-book="${a.id}" data-slug="${esc(slug || '')}">${t('book')}</button></div>
+      <button class="btn btn-primary btn-sm" data-book="${a.id}" data-slug="${esc(slug || '')}" data-member="${memberId || ''}">${t('book')}</button></div>
   </div>`;
 }
 
@@ -341,12 +343,45 @@ on(/^#\/library(?:\?(.*))?$/, async (root, m) => {
 }, { public: true });
 
 // Roadmap
-on(/^#\/p\/([\w-]+)$/, async (root, m) => {
+on(/^#\/p\/([\w-]+)(?:\?(.*))?$/, async (root, m) => {
   const { procedure: p, agents } = await api('GET', '/procedures/' + m[1]);
   const E = S.config.entities;
   const key = 'checks:' + p.slug;
   const checks = store.get(key, {});
   const needsVisit = p.mode !== 'online';
+  // Smart questions: answers tailor which steps show (kept on this device).
+  const akey = 'answers:' + p.slug;
+  const answers = store.get(akey, {});
+  const questions = p.questions || [];
+  const stepShown = (s) => {
+    if (!s.when) return 'yes';
+    const [qid, v] = s.when.split('=');
+    return answers[qid] === undefined ? 'maybe' : answers[qid] === v ? 'yes' : 'no';
+  };
+  // Who is this for? (signed-in users) → readiness of each required document from the wallet.
+  let members = [], memberId = null, ready = null;
+  if (S.user) {
+    members = (await api('GET', '/members')).members;
+    const pre = new URLSearchParams(m[2] || '').get('member');
+    memberId = Number(pre) || store.get('who:' + p.slug, null) || members[0]?.id;
+    if (!members.some((x) => x.id === memberId)) memberId = members[0]?.id;
+    if (memberId) ready = await api('GET', `/procedures/${p.slug}/readiness?member_id=${memberId}`).catch(() => null);
+  }
+  const readyOf = (i) => ready?.items.find((x) => x.index === i);
+  const R = {
+    ok: ['b-green', '✓', 'rdOk'], expiring: ['b-yellow', '⚠️', 'rdExpiring'], expired: ['b-red', '✕', 'rdExpired'], missing: ['b-gray', '＋', 'rdMissing'],
+  };
+  const readyBadge = (i) => {
+    const r = readyOf(i);
+    if (!r || r.status === 'manual') return '';
+    const [cls, ico, k] = R[r.status];
+    const who = r.doc?.memberName ? ` · ${esc(r.doc.memberName)}` : '';
+    const days = r.doc ? ` (${Math.abs(r.doc.daysLeft)} ${t('daysLeft')})` : '';
+    const href = r.doc ? `#/wallet/doc/${r.doc.id}` : `#/wallet/new?member=${r.memberId}`;
+    return `<a class="badge ${cls}" href="${href}" style="margin-inline-start:auto">${ico} ${t(k)}${who}${days}</a>`;
+  };
+  const issues = ready ? ready.items.filter((x) => ['expiring', 'expired', 'missing'].includes(x.status)).length : 0;
+  let n = 0;
   root.innerHTML = shell(`<div class="stack">
     ${disclaimerBox()}
     <div class="card">
@@ -359,32 +394,44 @@ on(/^#\/p\/([\w-]+)$/, async (root, m) => {
       </div>
     </div>
 
+    ${members.length ? `<div class="card"><label class="f" style="margin:0"><span>👤 ${t('whoFor')}</span>
+      <select class="input" id="who">${members.map((x) => `<option value="${x.id}" ${x.id === memberId ? 'selected' : ''}>${REL_ICON[x.relation]} ${esc(x.name)} – ${t('r_' + x.relation)}</option>`).join('')}</select></label>
+      ${ready ? `<p class="small" style="margin-top:8px">${issues ? `⚠️ ${issues} ${t('docsNeedAttention')}` : `✓ ${t('docsAllGood')}`}</p>` : ''}</div>` : ''}
+
+    ${questions.length ? `<div class="card"><h3 style="margin-bottom:8px">❓ ${t('aboutYourCase')}</h3>${questions.map((qq) => `
+      <p class="small" style="margin:8px 0 6px;font-weight:700">${esc(L(qq.q))}</p>
+      <div class="row wrap" style="gap:6px">${qq.options.map((o) => `<button class="chip ${answers[qq.id] === o.v ? 'active' : ''}" data-q="${esc(qq.id)}" data-v="${esc(o.v)}">${esc(L(o.label))}</button>`).join('')}</div>`).join('')}</div>` : ''}
+
     <div class="card"><h2 style="margin-bottom:14px">🧭 ${t('steps')}</h2>
-      <ol class="steps">${p.steps.map((s, i) => {
+      <ol class="steps">${p.steps.map((s) => {
+        const shown = stepShown(s);
+        if (shown === 'no') return '';
         const e = E[s.entity] || E.self;
-        return `<li><span class="num">${i + 1}</span><p class="t">${esc(L(s.title))}</p>
-          <div class="tags"><span class="badge b-blue">🏛️ ${esc(L(e))}</span><span class="badge ${s.mode === 'online' ? 'b-green' : 'b-yellow'}">${s.mode === 'online' ? '💻' : '🚶'} ${t('step_' + s.mode)}</span>
+        return `<li><span class="num">${++n}</span><p class="t">${esc(L(s.title))}</p>
+          <div class="tags">${shown === 'maybe' ? `<span class="badge b-gray">❓ ${t('dependsOnCase')}</span>` : ''}<span class="badge b-blue">🏛️ ${esc(L(e))}</span><span class="badge ${s.mode === 'online' ? 'b-green' : 'b-yellow'}">${s.mode === 'online' ? '💻' : '🚶'} ${t('step_' + s.mode)}</span>
           ${e.url ? `<a class="badge b-gray" href="${esc(e.url)}" target="_blank" rel="noopener noreferrer">↗ ${t('entitySite')}</a>` : ''}</div></li>`;
       }).join('')}</ol>
     </div>
 
     <div class="card"><div class="row between"><h2>📋 ${t('requiredDocs')}</h2><span class="small muted" id="cnt"></span></div>
       <div class="progress" style="margin:10px 0 4px"><i id="bar"></i></div>
-      <div id="checks">${p.documents.map((d, i) => `<label class="check ${checks[i] ? 'done' : ''}"><input type="checkbox" data-i="${i}" ${checks[i] ? 'checked' : ''}><span>${esc(L(d))}</span></label>`).join('')}</div>
+      <div id="checks">${p.documents.map((d, i) => `<div class="row" style="gap:6px;flex-wrap:wrap"><label class="check grow ${checks[i] ? 'done' : ''}"><input type="checkbox" data-i="${i}" ${checks[i] ? 'checked' : ''}><span>${esc(L(d))}</span></label>${readyBadge(i)}</div>`).join('')}</div>
     </div>
 
     <div class="grid2">
       ${p.mode !== 'in_person' ? `<a class="btn btn-dark" href="${esc(S.config.sahelUrl)}" target="_blank" rel="noopener noreferrer">📱 ${t('openSahel')}</a>` : ''}
-      <a class="btn ${needsVisit ? 'btn-primary' : 'btn-light'}" href="#/agents?p=${p.slug}" ${p.mode === 'in_person' ? 'style="grid-column:1/-1"' : ''}>🤝 ${t('bookAgent')}</a>
+      <a class="btn ${needsVisit ? 'btn-primary' : 'btn-light'}" href="#/agents?p=${p.slug}${memberId ? '&m=' + memberId : ''}" ${p.mode === 'in_person' ? 'style="grid-column:1/-1"' : ''}>🤝 ${t('bookAgent')}</a>
     </div>
 
-    ${agents.length && S.user ? `<div><div class="section-title" style="margin-top:6px"><h2>${needsVisit ? t('needAgent') : t('suggestedAgents')}</h2></div><div class="list">${agents.map((a) => agentCard(a, p.slug)).join('')}</div></div>` : ''}
+    ${agents.length && S.user ? `<div><div class="section-title" style="margin-top:6px"><h2>${needsVisit ? t('needAgent') : t('suggestedAgents')}</h2></div><div class="list">${agents.map((a) => agentCard(a, p.slug, memberId)).join('')}</div></div>` : ''}
 
     ${disclaimerBox()}
     <button class="btn btn-ghost btn-sm block" id="report">🚩 ${t('reportError')}</button>
     <p class="footer-note">${t('lastUpdated')}: ${fmtDate(p.updated_at.slice(0, 10))} · ${t('notOfficial')}</p>
   </div>`, { tab: 'home', back: true, title: t('steps') });
   bindShell(root);
+  $('#who', root)?.addEventListener('change', (e) => { store.set('who:' + p.slug, Number(e.target.value)); history.replaceState(null, '', `#/p/${p.slug}?member=${e.target.value}`); route(); });
+  $$('[data-q]', root).forEach((b) => (b.onclick = () => { answers[b.dataset.q] = b.dataset.v; store.set(akey, answers); route(); }));
   $('#report', root).onclick = () => sheet(`<h2>🚩 ${t('reportError')}</h2><p class="small muted" style="margin:6px 0 10px">${esc(L(p.title))}</p>
     <form id="rf"><textarea class="input" name="message" maxlength="1000" required placeholder="${t('reportHint')}"></textarea>
     <p class="err" id="err"></p><button class="btn btn-primary block">${t('send')}</button></form>`, (el) => {
@@ -416,6 +463,7 @@ on(/^#\/wallet(?:\?(.*))?$/, async (root, m) => {
     <div class="row small muted wrap" style="gap:14px;margin:6px 2px 12px"><span class="row" style="gap:5px"><i class="lvl red"></i>${t('lvlRed')}</span><span class="row" style="gap:5px"><i class="lvl yellow"></i>${t('lvlYellow')}</span><span class="row" style="gap:5px"><i class="lvl green"></i>${t('lvlGreen')}</span></div>
     ${limit && documents.length >= limit ? `<div class="card" style="background:var(--blue-50)"><p class="small">${t('planLimit')}</p><a class="btn btn-primary btn-sm" style="margin-top:8px" href="#/plans">${t('upgrade')}</a></div>` : ''}
     <div class="list" style="margin-top:10px">${list.length ? list.map(docRow).join('') : `<div class="card empty"><div class="big">🗂️</div><p>${t('noDocsYet')}</p></div>`}</div>
+    <a class="btn btn-light block" href="/api/calendar.ics" style="margin-top:14px">📅 ${t('addAllToCalendar')}</a>
     <p class="footer-note">🔒 ${t('secureNote')}</p>
     <button class="fab" aria-label="${t('addDocument')}" id="add">+</button>`, { tab: 'wallet' });
   bindShell(root);
@@ -516,7 +564,7 @@ on(/^#\/wallet\/doc\/(\d+)$/, async (root, m) => {
     <div class="card"><div class="row between"><div><small class="muted">${t('docNumber')}</small><p><b class="ltr" id="num" style="font-size:1.15rem;letter-spacing:1px">${esc(d.numberMasked || '—')}</b></p></div>
       ${d.numberMasked ? `<button class="btn btn-light btn-sm" id="reveal" data-shown="0">👁 ${t('show')}</button>` : ''}</div></div>
 
-    ${slug ? `<a class="btn btn-primary block" href="#/p/${slug}">🧭 ${t('renewNow')}</a>` : ''}
+    <div class="grid2">${slug ? `<a class="btn btn-primary" href="#/p/${slug}?member=${d.member_id}">🧭 ${t('renewNow')}</a>` : ''}<a class="btn btn-light" href="/api/calendar.ics?doc=${d.id}" ${slug ? '' : 'style="grid-column:1/-1"'}>📅 ${t('addToCalendar')}</a></div>
 
     <div class="card"><h3 style="margin-bottom:10px">${t('photo')}</h3>
       ${d.hasFile ? (d.file_mime === 'application/pdf'
@@ -625,7 +673,11 @@ on(/^#\/family$/, async (root) => {
   const biz = S.user.limits.employees;
   const groups = [[t('family'), members.filter((x) => x.relation !== 'employee')], [t('employees'), members.filter((x) => x.relation === 'employee')]].filter((g) => g[1].length);
   root.innerHTML = shell(`<p class="muted small">${t('familyHint')}</p>
-    ${biz ? `<button class="btn btn-light block" id="import" style="margin-top:10px">📊 ${t('importExcel')}</button>` : ''}
+    ${biz ? `<div class="grid2" style="margin-top:10px">
+      <button class="btn btn-light" id="import">📊 ${t('importExcel')}</button>
+      <a class="btn btn-light" href="/api/export/documents.csv">⬇️ ${t('exportExcel')}</a>
+      <button class="btn btn-light" id="bulk">📦 ${t('bulkRequest')}</button>
+      ${S.user.account?.isTeam ? '' : `<a class="btn btn-light" href="#/team">👥 ${t('team')}</a>`}</div>` : ''}
     ${groups.map(([title, list]) => `<div class="section-title"><h2>${title}</h2><span class="small muted">${list.length}</span></div><div class="list">${list.map((x) => `
       <div class="card tight row">
         <div class="avatar" aria-hidden="true">${REL_ICON[x.relation]}</div>
@@ -637,6 +689,7 @@ on(/^#\/family$/, async (root) => {
     <button class="fab" aria-label="${t('addMember')}" id="add">+</button>`, { tab: 'profile', back: true, title: t('family') });
   bindShell(root);
   $('#import', root)?.addEventListener('click', importSheet);
+  $('#bulk', root)?.addEventListener('click', () => bulkSheet(members.filter((x) => x.relation === 'employee')));
   const rels = ['spouse', 'child', 'parent', 'domestic_worker', 'employee', 'other'];
   const form = (x = {}) => sheet(`<h2 style="margin-bottom:12px">${x.id ? t('editMember') : t('addMember')}</h2><form id="mf">
       <label class="f"><span>${t('name')}</span><input class="input" name="name" required maxlength="80" value="${esc(x.name || '')}"></label>
@@ -664,13 +717,13 @@ on(/^#\/agents(?:\?(.*))?$/, async (root, m) => {
   if (slug) { proc = (await api('GET', '/procedures/' + slug)).procedure; if (!q.get('c')) cat = proc.category; }
   const sort = q.get('sort') || 'rating';
   const { agents } = await api('GET', `/agents?sort=${sort}${cat ? '&category=' + cat : ''}`);
-  const link = (o) => '#/agents?' + new URLSearchParams({ ...(slug ? { p: slug } : {}), ...(cat ? { c: cat } : {}), sort, ...o }).toString();
+  const link = (o) => '#/agents?' + new URLSearchParams({ ...(slug ? { p: slug } : {}), ...(q.get('m') ? { m: q.get('m') } : {}), ...(cat ? { c: cat } : {}), sort, ...o }).toString();
   root.innerHTML = shell(`
     <div class="row between"><h1>${t('agents')}</h1><a class="small" href="#/agents/apply">${t('joinAsAgent')}</a></div>
     ${proc ? `<div class="card tight" style="margin-top:10px;background:var(--blue-50)"><p class="small">${t('procedure')}: <b>${esc(L(proc.title))}</b></p></div>` : ''}
     <div class="chips"><a class="chip ${!cat ? 'active' : ''}" href="${link({ c: '' })}">${t('all')}</a>${Object.entries(S.config.categories).map(([k, c]) => `<a class="chip ${cat === k ? 'active' : ''}" href="${link({ c: k })}">${c.icon} ${esc(L(c))}</a>`).join('')}</div>
     <div class="tabs" style="margin:8px 0 12px"><button class="${sort === 'rating' ? 'on' : ''}" data-sort="rating">★ ${t('sortRating')}</button><button class="${sort === 'price' ? 'on' : ''}" data-sort="price">💰 ${t('sortPrice')}</button></div>
-    <div class="list">${agents.map((a) => agentCard(a, slug)).join('') || `<div class="card empty">—</div>`}</div>
+    <div class="list">${agents.map((a) => agentCard(a, slug, q.get('m'))).join('') || `<div class="card empty">—</div>`}</div>
     <p class="footer-note">${t('agentNote')}</p>`, { tab: 'agents' });
   bindShell(root);
   $$('[data-sort]', root).forEach((b) => (b.onclick = () => go(link({ sort: b.dataset.sort }))));
@@ -686,7 +739,7 @@ function bindBooking(root) {
     sheet(`<h2>${t('bookingFor')}</h2><p class="muted small" style="margin-bottom:12px">${esc(L(a.name))} · ${a.price} ${t('kwd')}</p>
       <form id="bf">
         <label class="f"><span>${t('procedure')}</span><select class="input" name="procedure_slug"><option value="">${t('none')}</option>${procedures.map((p) => `<option value="${p.slug}" ${p.slug === b.dataset.slug ? 'selected' : ''}>${esc(L(p.title))}</option>`).join('')}</select></label>
-        <label class="f"><span>${t('forWhom')}</span><select class="input" name="member_id">${members.map((x) => `<option value="${x.id}">${REL_ICON[x.relation]} ${esc(x.name)}</option>`).join('')}</select></label>
+        <label class="f"><span>${t('forWhom')}</span><select class="input" name="member_id">${members.map((x) => `<option value="${x.id}" ${String(x.id) === b.dataset.member ? 'selected' : ''}>${REL_ICON[x.relation]} ${esc(x.name)}</option>`).join('')}</select></label>
         <label class="f"><span>${t('preferredDate')}</span><input class="input" type="date" name="preferred_date" min="${minDate}"></label>
         <label class="f"><span>${t('notes')}</span><textarea class="input" name="notes" maxlength="500"></textarea></label>
         <p class="tiny muted" style="margin-bottom:10px">${t('agentNote')}</p>
@@ -712,35 +765,55 @@ on(/^#\/agents\/apply$/, (root) => {
     <label class="f"><span>${t('areas')}</span><input class="input" name="areas" maxlength="80"></label>
     <div class="f"><span style="display:block;font-weight:700;margin-bottom:6px">${t('categories')}</span><div class="row wrap">${Object.entries(S.config.categories).map(([k, c]) => `<label class="chip"><input type="checkbox" name="cat" value="${k}"> ${c.icon} ${esc(L(c))}</label>`).join('')}</div></div>
     <label class="f"><span>${t('bio')}</span><textarea class="input" name="bio" maxlength="300"></textarea></label>
+    <label class="f"><span>${t('licenseNumber')}</span><input class="input" name="license_number" maxlength="40" dir="ltr"></label>
+    <label class="f"><span>${t('licensePhoto')}</span><input class="input" type="file" name="license" accept="image/jpeg,image/png,image/webp,application/pdf"></label>
+    <p class="tiny muted" style="margin-bottom:10px">🔒 ${t('licenseNote')}</p>
     <p class="err" id="err"></p><button class="btn btn-primary block">${t('sendRequest')}</button></form>`, { tab: 'agents', back: true, title: t('applyTitle') });
   bindShell(root);
   $('#f', root).onsubmit = async (e) => {
     e.preventDefault();
     const fd = formData(e.target);
-    try { await api('POST', '/agents/apply', { ...fd, categories: $$('[name=cat]:checked', root).map((c) => c.value) }); toast(t('applied')); go('#/agents'); }
+    const lf = e.target.license.files[0];
+    delete fd.license;
+    try {
+      await api('POST', '/agents/apply', { ...fd, categories: $$('[name=cat]:checked', root).map((c) => c.value), ...(lf ? { license_file: await prepareFile(lf) } : {}) });
+      toast(t('applied')); go('#/agents');
+    }
     catch (err) { $('#err', root).textContent = errMsg(err); }
   };
-});
+}, { public: true });
 
 // Bookings
 const FLOW = ['requested', 'accepted', 'in_progress', 'done'];
 const statusBadge = (s) => `<span class="badge ${{ requested: 'b-gray', accepted: 'b-blue', in_progress: 'b-yellow', done: 'b-green', cancelled: 'b-red' }[s]}">${t('s_' + s)}</span>`;
 const stepper = (s) => s === 'cancelled' ? '' : `<div class="stepper">${FLOW.map((k, i) => `<div class="${i <= FLOW.indexOf(s) ? 'on' : ''}"><i></i>${t('s_' + k)}</div>`).join('')}</div>`;
-on(/^#\/bookings$/, async (root) => {
+on(/^#\/bookings(?:\?(.*))?$/, async (root, m) => {
+  const payResult = new URLSearchParams(m?.[1] || '').get('payment');
+  if (payResult) { toast(payResult === 'paid' ? t('agentFeePaid') : t('paymentFailed')); history.replaceState(null, '', '#/bookings'); }
   const { bookings } = await api('GET', '/bookings');
+  const canPay = S.config.providers?.payments;
   root.innerHTML = shell(`<h1>${t('bookings')}</h1><div class="list" style="margin-top:12px">${bookings.length ? bookings.map((b) => `
     <div class="card"><div class="row between"><h3>${esc(b.procedure ? L(b.procedure.title) : '—')}</h3>${statusBadge(b.status)}</div>
       <p class="small muted">🤝 ${esc(L(b.agent.name))} · ${b.price} ${t('kwd')}${b.member ? ' · ' + esc(b.member.name) : ''}</p>
       ${b.preferred_date ? `<p class="tiny muted">📅 ${fmtDate(b.preferred_date)}</p>` : ''}
       ${b.notes ? `<p class="small" style="margin-top:4px">${esc(b.notes)}</p>` : ''}
       ${stepper(b.status)}
-      ${['requested', 'accepted'].includes(b.status) ? `<button class="btn btn-danger btn-sm" style="margin-top:12px" data-cancel="${b.id}">${t('cancel')}</button>` : ''}
+      <div class="row wrap" style="margin-top:12px;gap:8px">
+        ${b.status !== 'cancelled' ? `<button class="btn btn-light btn-sm" data-chat="${b.id}">💬 ${t('chat')}</button>` : ''}
+        ${b.paid ? `<span class="badge b-green">✓ ${t('feePaid')}</span>` : canPay && ['accepted', 'in_progress'].includes(b.status) ? `<button class="btn btn-primary btn-sm" data-pay="${b.id}">💳 ${t('payAgent')} ${b.price} ${t('kwd')}</button>` : ''}
+        ${['requested', 'accepted'].includes(b.status) ? `<button class="btn btn-danger btn-sm" data-cancel="${b.id}">${t('cancel')}</button>` : ''}
+      </div>
       ${b.status === 'done' ? (b.rating
         ? `<p class="small" style="margin-top:10px">${t('yourRating')}: <span class="stars">${'★'.repeat(b.rating)}${'☆'.repeat(5 - b.rating)}</span></p>`
         : `<button class="btn btn-light btn-sm" style="margin-top:12px" data-rate="${b.id}">⭐ ${t('rateAgent')}</button>`) : ''}
     </div>`).join('') : `<div class="card empty"><div class="big">📭</div><p>${t('noBookings')}</p><a class="btn btn-primary" style="margin-top:10px" href="#/agents">${t('bookAgent')}</a></div>`}</div>`, { tab: 'bookings' });
   bindShell(root);
   $$('[data-cancel]', root).forEach((b) => (b.onclick = async () => { if (!confirm(t('cancel') + '?')) return; await api('POST', `/bookings/${b.dataset.cancel}/cancel`); toast(t('cancelled')); route(); }));
+  $$('[data-chat]', root).forEach((b) => (b.onclick = () => openChat(b.dataset.chat)));
+  $$('[data-pay]', root).forEach((b) => (b.onclick = async () => {
+    b.disabled = true;
+    try { location.href = (await api('POST', `/bookings/${b.dataset.pay}/pay`)).url; } catch (e) { toast(errMsg(e)); b.disabled = false; }
+  }));
   $$('[data-rate]', root).forEach((b) => (b.onclick = () => {
     let stars = 0;
     sheet(`<h2>⭐ ${t('rateAgent')}</h2><div class="row" id="stars" style="justify-content:center;gap:6px;margin:16px 0">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="btn btn-ghost" data-s="${n}" style="font-size:2rem;padding:4px;min-height:auto" aria-label="${n}">☆</button>`).join('')}</div>
@@ -759,6 +832,52 @@ on(/^#\/bookings$/, async (root) => {
   }));
 });
 
+// ---------------------------------------------------------------- booking chat (customers and agents; refreshes while open)
+async function openChat(bookingId) {
+  let timer = null, last = '';
+  const draw = async (el) => {
+    const r = await api('GET', `/bookings/${bookingId}/messages`);
+    const sig = r.messages.map((x) => x.id).join(',') + r.status;
+    if (sig === last) return;
+    last = sig;
+    const mine = r.role;
+    const box = $('#msgs', el);
+    box.innerHTML = r.messages.length ? r.messages.map((x) => `<div class="msg ${x.from === mine ? 'me' : 'them'}">
+        ${x.body ? `<p>${esc(x.body)}</p>` : ''}
+        ${x.document ? `<div class="msg-doc">📎 ${esc(x.document.label || t('t_' + x.document.type))} – ${esc(x.document.member || '')}<br><span class="ltr">${esc(x.document.number)}</span>
+          ${x.document.hasFile && x.document.viewable ? `<br><a href="/api/bookings/${bookingId}/documents/${x.document.id}/file" target="_blank" rel="noopener">🖼️ ${t('openFile')}</a>` : ''}</div>` : ''}
+        <span class="tiny muted">${esc(x.created_at.slice(11, 16))}</span></div>`).join('') : `<p class="small muted" style="text-align:center">${t('chatEmpty')}</p>`;
+    box.scrollTop = box.scrollHeight;
+    const open = ['requested', 'accepted', 'in_progress'].includes(r.status);
+    $('#cf', el).style.display = open ? '' : 'none';
+    $('#share', el).style.display = open && mine === 'customer' ? '' : 'none';
+  };
+  sheet(`<h2>💬 ${t('chat')}</h2><p class="tiny muted" style="margin:4px 0 8px">${t('chatHint')}</p>
+    <div id="msgs" class="msgs"></div>
+    <form id="cf" class="row" style="margin-top:10px;gap:6px">
+      <button type="button" class="btn btn-light btn-sm" id="share" title="${t('shareDoc')}">📎</button>
+      <input class="input grow" name="body" maxlength="2000" autocomplete="off" placeholder="${t('typeMessage')}">
+      <button class="btn btn-primary btn-sm">${t('send')}</button></form>
+    <div id="pick"></div>`, async (el) => {
+    await draw(el);
+    timer = setInterval(() => { if (!el.isConnected) { clearInterval(timer); return; } draw(el).catch(() => {}); }, 5000);
+    $('#cf', el).onsubmit = async (e) => {
+      e.preventDefault();
+      const body = e.target.body.value.trim();
+      if (!body) return;
+      try { await api('POST', `/bookings/${bookingId}/messages`, { body }); e.target.body.value = ''; await draw(el); } catch (err) { toast(errMsg(err)); }
+    };
+    $('#share', el).onclick = async () => {
+      const { documents } = await api('GET', '/documents');
+      const pick = $('#pick', el);
+      pick.innerHTML = `<div class="card" style="margin-top:8px"><p class="small" style="margin-bottom:6px">${t('shareDocHint')}</p>` + documents.map((d) => `<button class="btn btn-light btn-sm" style="margin:3px" data-d="${d.id}">${DOC_ICON[d.type]} ${esc(d.label || t('t_' + d.type))} – ${esc(d.member_name)}</button>`).join('') + '</div>';
+      $$('[data-d]', pick).forEach((b) => (b.onclick = async () => {
+        try { await api('POST', `/bookings/${bookingId}/messages`, { document_id: Number(b.dataset.d) }); pick.innerHTML = ''; await draw(el); } catch (err) { toast(errMsg(err)); }
+      }));
+    };
+  });
+}
+
 // Agent portal: approved agents sign in with their own number and update their requests.
 on(/^#\/agent$/, async (root) => {
   const { agent, bookings } = await api('GET', '/agent/bookings');
@@ -775,6 +894,8 @@ on(/^#\/agent$/, async (root) => {
         <div class="row wrap" style="margin-top:12px">
           ${next && b.status !== 'cancelled' ? `<button class="btn btn-primary btn-sm" data-st="${next}" data-id="${b.id}">${t('advance')}: ${t('s_' + next)}</button>` : ''}
           ${b.customerPhone ? `<a class="btn btn-light btn-sm" href="tel:+965${esc(b.customerPhone)}">📞 ${t('call')}</a>` : ''}
+          ${b.status !== 'cancelled' ? `<button class="btn btn-light btn-sm" data-chat="${b.id}">💬 ${t('chat')}</button>` : ''}
+          ${b.paid ? `<span class="badge b-green">✓ ${t('feePaid')}</span>` : ''}
           ${b.rating ? `<span class="stars small">${'★'.repeat(b.rating)}</span>` : ''}
         </div></div>`;
     }).join('') : `<div class="card empty"><div class="big">📭</div><p>${t('noAgentBookings')}</p></div>`}</div>`, { tab: 'profile', back: true, title: t('agentPortal') });
@@ -783,6 +904,7 @@ on(/^#\/agent$/, async (root) => {
     b.disabled = true;
     try { await api('PATCH', '/agent/bookings/' + b.dataset.id, { status: b.dataset.st }); route(); } catch (e) { toast(errMsg(e)); b.disabled = false; }
   }));
+  $$('[data-chat]', root).forEach((b) => (b.onclick = () => openChat(b.dataset.chat)));
 });
 
 // Plans
@@ -846,6 +968,7 @@ on(/^#\/profile$/, (root) => {
       <a href="#/family">👨‍👩‍👧 ${t('family')}<span class="chev">›</span></a>
       <a href="#/plans">⭐ ${t('plans')}<span class="chev">›</span></a>
       <a href="#/notifications">🔔 ${t('notifications')}<span class="chev">›</span></a>
+      ${S.user.hasTeams || S.user.account?.isTeam ? `<a href="#/accounts">🏢 ${t('switchAccount')}<span class="chev">›</span></a>` : ''}
       <a href="#/library">📚 ${t('library')}<span class="chev">›</span></a>
       <button data-lang2>🌐 ${t('language')}: ${S.lang === 'ar' ? 'العربية' : 'English'}<span class="chev">⇄</span></button>
       ${S.user.isAgent ? `<a href="#/agent">🧑‍💼 ${t('agentPortal')}<span class="chev">›</span></a>` : ''}
@@ -895,8 +1018,8 @@ on(/^#\/notifications$/, async (root) => {
 on(/^#\/admin(?:\/(\w+))?$/, async (root, m) => {
   if (S.user.role !== 'admin') return go('#/home');
   const tab = m[1] || 'stats';
-  const tabs = ['stats', 'procedures', 'reports', 'agents', 'bookings'];
-  const tabLabel = { stats: t('stats'), procedures: t('procedures'), reports: t('reports'), agents: t('agents'), bookings: t('bookings') };
+  const tabs = ['stats', 'procedures', 'queries', 'reports', 'agents', 'payouts', 'bookings'];
+  const tabLabel = { stats: t('stats'), procedures: t('procedures'), queries: t('unmatchedTab'), reports: t('reports'), agents: t('agents'), payouts: t('payouts'), bookings: t('bookings') };
   let body = '';
   if (tab === 'stats') {
     const s = await api('GET', '/admin/stats');
@@ -906,8 +1029,25 @@ on(/^#\/admin(?:\/(\w+))?$/, async (root, m) => {
         <p class="row between small" style="margin-top:6px;border-top:1px solid var(--line);padding-top:6px"><span>${t('revenue')}</span><b>${s.revenue.toFixed(3)} ${t('kwd')}</b></p></div>
       <div class="card" style="margin-top:10px"><h3>${t('commission')} (${s.commission.pct}%)</h3>
         <p class="row between small"><span>${t('s_done')}</span><b>${s.commission.doneBookings}</b></p>
-        <p class="row between small"><span>${t('commission')}</span><b>${s.commission.amount.toFixed(3)} ${t('kwd')}</b></p></div>
+        <p class="row between small"><span>${t('commission')}</span><b>${s.commission.amount.toFixed(3)} ${t('kwd')}</b></p>
+        <p class="row between small"><span>${t('agentFeesCollected')}</span><b>${s.agentFeesCollected.toFixed(3)} ${t('kwd')}</b></p>
+        <p class="row between small"><span>${t('pendingPayouts')}</span><b>${s.pendingPayouts}</b></p></div>
+      <a class="card link row" href="#/admin/queries" style="margin-top:10px"><span style="font-size:1.4rem">🔎</span><div class="grow"><h3>${t('unmatchedTab')}</h3><p class="small muted">${t('unmatchedHint')}</p></div><b>${s.unmatchedQueries}</b></a>
       <div class="card" style="margin-top:10px"><h3>${t('channels')}</h3>${[['SMS', ch.sms], ['WhatsApp', ch.whatsapp], ['Push', ch.push], ['AI', ch.ai], ['MyFatoorah', ch.payments]].map(([n, on]) => `<p class="row between small"><span>${n}</span><span class="badge ${on ? 'b-green' : 'b-gray'}">${on ? '✓' : t('notConfigured')}</span></p>`).join('')}</div>`;
+  } else if (tab === 'queries') {
+    const q = await api('GET', '/admin/queries');
+    body = `<p class="small muted" style="margin-bottom:10px">${t('unmatchedHint')} (${q.totals.unmatched || 0} / ${q.totals.total || 0})</p>
+      <div class="list">${q.unmatched.length ? q.unmatched.map((x) => `<div class="card tight row"><div class="grow"><p>${esc(x.sample)}</p><p class="tiny muted">${esc(x.last)}</p></div><span class="badge b-blue">×${x.c}</span></div>`).join('')
+      : `<div class="card empty"><p>${t('noUnmatched')}</p></div>`}</div>
+      <a class="btn btn-primary block" style="margin-top:12px" href="#/admin-p/new">+ ${t('newProcedure')}</a>`;
+  } else if (tab === 'payouts') {
+    const { payouts, pct } = await api('GET', '/admin/payouts');
+    body = `<p class="small muted" style="margin-bottom:10px">${t('payoutsHint')} (${pct}%)</p><div class="list">${payouts.length ? payouts.map((x) => `<div class="card tight">
+      <div class="row between"><h3 style="font-size:.95rem">${esc(L(x.agent))}</h3><span class="badge ${x.payoutStatus === 'paid_out' ? 'b-green' : 'b-yellow'}">${t(x.payoutStatus === 'paid_out' ? 'paidOut' : 'toPayOut')}</span></div>
+      <p class="small muted">${esc(L(x.procedure) || '—')} · ${statusBadge(x.bookingStatus)}</p>
+      <p class="small">${t('collected')} ${x.amount.toFixed(3)} − ${t('commission')} ${x.commission.toFixed(3)} = <b>${x.net.toFixed(3)} ${t('kwd')}</b></p>
+      ${x.payoutStatus === 'pending' ? `<button class="btn btn-primary btn-sm" style="margin-top:8px" data-po="${x.id}" ${x.bookingStatus === 'done' ? '' : 'disabled'}>${t('markPaidOut')}</button>` : ''}</div>`).join('')
+      : `<div class="card empty"><p>${t('noPayouts')}</p></div>`}</div>`;
   } else if (tab === 'reports') {
     const { reports } = await api('GET', '/admin/reports');
     body = `<div class="list">${reports.length ? reports.map((r) => `<div class="card tight"><div class="row between"><a href="#/admin-p/${r.procedure.id}"><h3 style="font-size:.95rem">${esc(L(r.procedure.title))}</h3></a><span class="badge ${r.status === 'open' ? 'b-yellow' : 'b-green'}">${t(r.status)}</span></div>
@@ -922,6 +1062,8 @@ on(/^#\/admin(?:\/(\w+))?$/, async (root, m) => {
     const { agents } = await api('GET', '/admin/agents');
     body = `<div class="list">${agents.map((a) => `<div class="card tight"><div class="row between"><h3>${esc(L(a.name))}</h3><span class="badge ${{ pending: 'b-yellow', approved: 'b-green', rejected: 'b-red' }[a.status]}">${t(a.status)}</span></div>
       <p class="small muted"><span class="ltr">${esc(a.phone)}</span> · ${a.price} ${t('kwd')} · ${a.categories.map((c) => catIcon(c)).join(' ')}</p>
+      <p class="small">🪪 ${t('licenseNumber')}: <b class="ltr">${esc(a.licenseNumber || '—')}</b> ${a.hasLicense ? `· <a href="/api/admin/agents/${a.id}/license" target="_blank" rel="noopener">${t('viewLicense')}</a>` : `· <span class="muted">${t('noLicense')}</span>`}
+      ${a.verifiedAt ? ` · ${t('licenseCheckedOn')} ${fmtDate(a.verifiedAt.slice(0, 10))}` : ''}</p>
       <div class="row" style="margin-top:8px">${a.status !== 'approved' ? `<button class="btn btn-primary btn-sm" data-ag="${a.id}" data-st="approved">${t('approve')}</button>` : ''}${a.status !== 'rejected' ? `<button class="btn btn-danger btn-sm" data-ag="${a.id}" data-st="rejected">${t('reject')}</button>` : ''}</div></div>`).join('')}</div>`;
   } else {
     const { bookings } = await api('GET', '/admin/bookings');
@@ -937,6 +1079,7 @@ on(/^#\/admin(?:\/(\w+))?$/, async (root, m) => {
   $$('[data-tab]', root).forEach((b) => (b.onclick = () => go('#/admin/' + b.dataset.tab)));
   $$('[data-ag]', root).forEach((b) => (b.onclick = async () => { await api('PATCH', '/admin/agents/' + b.dataset.ag, { status: b.dataset.st }); route(); }));
   $$('[data-rp]', root).forEach((b) => (b.onclick = async () => { await api('PATCH', '/admin/reports/' + b.dataset.rp, { status: b.dataset.st }); route(); }));
+  $$('[data-po]', root).forEach((b) => (b.onclick = async () => { if (!confirm(t('markPaidOut') + '?')) return; try { await api('PATCH', '/admin/payouts/' + b.dataset.po); route(); } catch (e) { toast(errMsg(e)); } }));
   $$('[data-bk]', root).forEach((b) => (b.onclick = async () => { try { await api('PATCH', '/admin/bookings/' + b.dataset.bk, { status: b.dataset.st }); route(); } catch (e) { toast(errMsg(e)); } }));
 });
 
@@ -951,6 +1094,7 @@ on(/^#\/admin-p\/(new|\d+)$/, async (root, m) => {
     <input class="input" data-k="ar" placeholder="${t('titleAr')}" value="${esc(s.title.ar || '')}" style="margin-bottom:6px">
     <input class="input" data-k="en" placeholder="${t('titleEn')}" value="${esc(s.title.en || '')}" dir="ltr" style="margin-bottom:6px">
     <div class="row"><select class="input" data-k="entity">${Object.entries(E).map(([k, e]) => `<option value="${k}" ${s.entity === k ? 'selected' : ''}>${esc(L(e))}</option>`).join('')}</select>
+      <input class="input" data-k="when" placeholder="${t('stepWhen')}" value="${esc(s.when || '')}" dir="ltr" style="max-width:120px">
       <select class="input" data-k="mode" style="max-width:130px"><option value="online" ${s.mode === 'online' ? 'selected' : ''}>${t('step_online')}</option><option value="in_person" ${s.mode === 'in_person' ? 'selected' : ''}>${t('step_in_person')}</option></select></div>
     <div class="row" style="margin-top:6px"><button type="button" class="btn btn-ghost btn-sm" data-up>↑</button><button type="button" class="btn btn-ghost btn-sm" data-down>↓</button><span class="grow"></span><button type="button" class="btn btn-danger btn-sm" data-rm>✕</button></div></div>`;
   const pair = (name, lab, o, ta) => `<div class="grid2">${['ar', 'en'].map((lg) => `<label class="f"><span>${t(lab + (lg === 'ar' ? 'Ar' : 'En'))}</span>${ta ? `<textarea class="input" name="${name}_${lg}" ${lg === 'en' ? 'dir="ltr"' : ''}>${esc(o[lg] || '')}</textarea>` : `<input class="input" name="${name}_${lg}" value="${esc(o[lg] || '')}" ${lg === 'en' ? 'dir="ltr"' : ''}>`}</label>`).join('')}</div>`;
@@ -966,6 +1110,7 @@ on(/^#\/admin-p\/(new|\d+)$/, async (root, m) => {
     <label class="f" style="margin-top:14px"><span>${t('docsLines')}</span><textarea class="input" name="docs" rows="5">${esc(p.documents.map((d) => `${d.ar} | ${d.en}`).join('\n'))}</textarea></label>
     <label class="f"><span>${t('keywordsS')}</span><input class="input" name="kw_s" value="${esc((p.keywords.s || []).join('، '))}"></label>
     <label class="f"><span>${t('keywordsA')}</span><input class="input" name="kw_a" value="${esc((p.keywords.a || []).join('، '))}"></label>
+    <label class="f"><span>${t('questionsJson')}</span><textarea class="input" name="questions" rows="5" dir="ltr" style="font-family:monospace;font-size:.8rem">${esc(JSON.stringify(p.questions || [], null, 1))}</textarea></label>
     <label class="f"><span>${t('keywordsX')}</span><input class="input" name="kw_x" value="${esc((p.keywords.x || []).join('، '))}"></label>
     <p class="err" id="err"></p><button class="btn btn-primary block">${t('save')}</button>
     ${isNew ? '' : `<button type="button" class="btn btn-danger block" style="margin-top:8px" id="pdel">${t('delete')}</button>`}
@@ -987,32 +1132,93 @@ on(/^#\/admin-p\/(new|\d+)$/, async (root, m) => {
     const body = {
       slug: f.slug, category: f.category, mode: f.mode, popular: Number(f.popular), published: !!e.target.published.checked,
       title: bi('title'), summary: bi('summary'), fees: bi('fees'), duration: bi('duration'),
-      steps: $$('.step-edit', stepsEl).map((r) => ({ title: { ar: $('[data-k=ar]', r).value, en: $('[data-k=en]', r).value }, entity: $('[data-k=entity]', r).value, mode: $('[data-k=mode]', r).value })),
+      steps: $$('.step-edit', stepsEl).map((r) => ({ title: { ar: $('[data-k=ar]', r).value, en: $('[data-k=en]', r).value }, entity: $('[data-k=entity]', r).value, mode: $('[data-k=mode]', r).value, when: $('[data-k=when]', r).value.trim() })),
+      questions: (() => { try { return JSON.parse(f.questions || '[]'); } catch { return null; } })(),
       documents: f.docs.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => { const [ar, en] = l.split('|').map((x) => x.trim()); return { ar, en: en || ar }; }),
       keywords: { s: split(f.kw_s), a: split(f.kw_a), x: split(f.kw_x) },
     };
+    if (body.questions === null) { $('#err', root).textContent = t('invalidJson'); return; }
     try { isNew ? await api('POST', '/admin/procedures', body) : await api('PUT', '/admin/procedures/' + p.id, body); toast(t('saved')); go('#/admin/procedures'); }
     catch (err) { $('#err', root).textContent = errMsg(err) + ` (${err.code})`; }
   };
   $('#pdel', root)?.addEventListener('click', async () => { if (!confirm(t('confirmDelete'))) return; await api('DELETE', '/admin/procedures/' + p.id); go('#/admin/procedures'); });
 });
 
+// ---------------------------------------------------------------- company accounts & teams
+on(/^#\/accounts$/, async (root) => {
+  const { accounts, current } = await api('GET', '/accounts');
+  root.innerHTML = shell(`<p class="small muted" style="margin-bottom:10px">${t('accountsHint')}</p><div class="list">${accounts.map((a) => `
+    <button class="card link row" data-acc="${a.id}" style="width:100%;border:0;text-align:start;cursor:pointer">
+      <span style="font-size:1.5rem">${a.own ? '🙂' : '🏢'}</span><div class="grow"><h3>${esc(a.name)}</h3><p class="small muted">${a.own ? t('myAccount') : t('companyAccount')}</p></div>
+      ${a.id === current ? `<span class="badge b-blue">${t('current')}</span>` : ''}</button>`).join('')}</div>`, { tab: 'profile', back: true, title: t('switchAccount') });
+  bindShell(root);
+  $$('[data-acc]', root).forEach((b) => (b.onclick = async () => {
+    await api('POST', '/accounts/switch', { id: Number(b.dataset.acc) });
+    S.user = (await api('GET', '/me')).user;
+    toast(t('saved')); go('#/home');
+  }));
+});
+
+on(/^#\/team$/, async (root) => {
+  const { members } = await api('GET', '/team');
+  root.innerHTML = shell(`<p class="small muted">${t('teamHint')}</p>
+    <form class="card" id="tf" style="margin-top:12px">
+      <label class="f"><span>${t('name')}</span><input class="input" name="name" maxlength="80"></label>
+      <label class="f"><span>${t('phone')}</span><div class="phone"><span>+965</span><input name="phone" inputmode="numeric" maxlength="8" required></div></label>
+      <p class="err" id="err"></p><button class="btn btn-primary block">+ ${t('addColleague')}</button></form>
+    <div class="list" style="margin-top:12px">${members.map((x) => `<div class="card tight row"><div class="avatar">👤</div><div class="grow"><h3>${esc(x.name)}</h3><p class="small muted ltr">+965 ${esc(x.phoneMasked)}</p></div>
+      <button class="btn btn-danger btn-sm" data-rm="${x.id}">${t('delete')}</button></div>`).join('')}</div>`, { tab: 'profile', back: true, title: t('team') });
+  bindShell(root);
+  $('#tf', root).onsubmit = async (e) => {
+    e.preventDefault();
+    const fd = formData(e.target);
+    try { await api('POST', '/team', { name: fd.name, phone: toLatinDigits(fd.phone) }); toast(t('saved')); route(); } catch (err) { $('#err', root).textContent = errMsg(err); }
+  };
+  $$('[data-rm]', root).forEach((b) => (b.onclick = async () => { if (!confirm(t('confirmDelete'))) return; await api('DELETE', '/team/' + b.dataset.rm); route(); }));
+});
+
+/** Business: one agent and one procedure for many employees at once. */
+async function bulkSheet(employees) {
+  const [{ agents }, { procedures }] = await Promise.all([api('GET', '/agents'), api('GET', '/procedures')]);
+  const def = procedures.find((x) => x.slug === 'private-sector-residency-renewal') ? 'private-sector-residency-renewal' : procedures[0]?.slug;
+  sheet(`<h2>📦 ${t('bulkRequest')}</h2><p class="small muted" style="margin:6px 0 12px">${t('bulkHint')}</p>
+    <form id="bf">
+      <label class="f"><span>${t('procedure')}</span><select class="input" name="procedure_slug">${procedures.map((x) => `<option value="${x.slug}" ${x.slug === def ? 'selected' : ''}>${esc(L(x.title))}</option>`).join('')}</select></label>
+      <label class="f"><span>${t('agents')}</span><select class="input" name="agent_id">${agents.map((a) => `<option value="${a.id}">${esc(L(a.name))} · ${a.price} ${t('kwd')} · ★ ${a.rating.toFixed(1)}</option>`).join('')}</select></label>
+      <div class="f"><span style="display:block;font-weight:700;margin-bottom:6px">${t('employees')} <button type="button" class="btn btn-ghost btn-sm" id="soon">${t('selectExpiringSoon')}</button></span>
+        ${employees.length ? employees.map((x) => `<label class="check"><input type="checkbox" name="m" value="${x.id}" data-level="${x.nextLevel || ''}"><span class="grow">${esc(x.name)}</span>${x.nextExpiry ? `<span class="tiny row" style="gap:4px"><i class="lvl ${x.nextLevel}"></i>${fmtDate(x.nextExpiry)}</span>` : ''}</label>`).join('') : `<p class="small muted">—</p>`}</div>
+      <label class="f"><span>${t('notes')}</span><textarea class="input" name="notes" maxlength="500"></textarea></label>
+      <p class="err" id="err"></p><button class="btn btn-primary block">${t('sendRequest')}</button></form>`, (el) => {
+    $('#soon', el).onclick = () => $$('[name=m]', el).forEach((c) => { c.checked = c.dataset.level === 'red' || c.dataset.level === 'yellow'; });
+    $('#bf', el).onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = formData(e.target);
+      const ids = $$('[name=m]:checked', el).map((c) => Number(c.value));
+      if (!ids.length) { $('#err', el).textContent = t('pickEmployees'); return; }
+      try {
+        const r = await api('POST', '/bookings/bulk', { agent_id: Number(fd.agent_id), procedure_slug: fd.procedure_slug, member_ids: ids, notes: fd.notes });
+        closeSheet(); toast(`✓ ${r.created} ${t('requestsSent')}`); go('#/bookings');
+      } catch (err) { $('#err', el).textContent = errMsg(err); }
+    };
+  });
+}
+
 // ---------------------------------------------------------------- legal pages
 const LEGAL = {
   privacy: {
     ar: [
-      ['ما الذي نجمعه', 'رقم هاتفك واسمك، وأسماء أفراد عائلتك أو موظفيك وصلتهم وجنسيتهم، وبيانات المستندات التي تضيفها (النوع والرقم وتاريخ الانتهاء والصورة إن رفعتها)، وحجوزاتك مع المناديب وملاحظاتك عليها، وتفضيلات التنبيهات.'],
+      ['ما الذي نجمعه', 'رقم هاتفك واسمك، وأسماء أفراد عائلتك أو موظفيك وصلتهم وجنسيتهم، وبيانات المستندات التي تضيفها (النوع والرقم وتاريخ الانتهاء والصورة إن رفعتها)، وحجوزاتك مع المناديب ومحادثاتك معهم، وتفضيلات التنبيهات. كما نحفظ نص ما تكتبه في مربع الطلب دون ربطه بحسابك، لنعرف الإجراءات الناقصة في المكتبة.'],
       ['كيف نحفظها', 'تُحفظ البيانات في قاعدة بيانات سحابية (Supabase) ويعمل التطبيق على خوادم Vercel، وقد تكون هذه الخوادم خارج الكويت. أرقام المستندات وصورها مشفّرة بمعيار AES-256 ولا تظهر الأرقام كاملة في القوائم. الاتصال بالتطبيق مشفّر (HTTPS).'],
-      ['من يطّلع عليها', 'أنت فقط ترى مستنداتك. المندوب الذي تحجزه يرى اسمك وتفاصيل الطلب، ويرى رقم هاتفك فقط أثناء تنفيذ طلبك. فريق الإدارة يرى بيانات الحجوزات ورقم هاتفك مخفياً جزئياً، ولا يرى مستنداتك.'],
+      ['من يطّلع عليها', 'أنت فقط ترى مستنداتك. المندوب الذي تحجزه يرى اسمك وتفاصيل الطلب، ويرى رقم هاتفك فقط أثناء تنفيذ طلبك. إذا شاركت مستنداً في محادثة حجز، يراه المندوب كاملاً (الرقم والصورة) فقط أثناء تنفيذ طلبك. في حساب الشركة، يرى الزملاء الذين يضيفهم صاحب الحساب بيانات الشركة. فريق الإدارة يرى بيانات الحجوزات ورقم هاتفك مخفياً جزئياً، ولا يرى مستنداتك.'],
       ['الخدمات الخارجية', 'نستعين بمزوّدين عند تفعيل خدماتهم: Twilio لإرسال رمز الدخول ورسائل واتساب (يستلم رقمك ونص الرسالة)، وOpenAI لفهم طلبك المكتوب ولقراءة صورة المستند عندما تستخدم «القراءة التلقائية» (تُرسل الصورة مؤقتاً لقراءتها)، وMyFatoorah لمعالجة الدفع (لا نحفظ بيانات بطاقتك). لا نبيع بياناتك ولا نستخدمها للإعلانات.'],
       ['حذف بياناتك', 'من «حسابي ← حذف الحساب وكل بياناته» تُحذف فوراً كل بياناتك: الحساب والأفراد والمستندات والصور والحجوزات والتنبيهات.'],
       ['ملفات الارتباط والتخزين', 'نستخدم ملف ارتباط واحداً لإبقائك مسجلاً، ونحفظ على جهازك لغتك وعلامات قائمة المستندات فقط.'],
       ['تنبيه', 'مرشدك تطبيق إرشادي مستقل وليس جهة حكومية، ولا يرتبط بتطبيق سهل أو أي جهة رسمية.'],
     ],
     en: [
-      ['What we collect', 'Your phone number and name; names, relations and nationalities of family members or employees; the documents you add (type, number, expiry date and photo if uploaded); your bookings with agents and notes; and your notification preferences.'],
+      ['What we collect', 'Your phone number and name; names, relations and nationalities of family members or employees; the documents you add (type, number, expiry date and photo if uploaded); your bookings and chats with agents; and your notification preferences. We also keep the text typed into the request box, not linked to your account, to learn which procedures are missing.'],
       ['How we store it', 'Data is stored in a cloud database (Supabase) and the app runs on Vercel; these servers may be outside Kuwait. Document numbers and photos are encrypted with AES-256, and numbers are never shown in full in lists. Connections are encrypted (HTTPS).'],
-      ['Who can see it', 'Only you see your documents. An agent you book sees your name and the request details, and your phone number only while working on your request. The admin team sees booking details and a partly hidden phone number, not your documents.'],
+      ['Who can see it', 'Only you see your documents. An agent you book sees your name and the request details, and your phone number only while working on your request. If you share a document in a booking chat, the agent sees it in full (number and photo) only while working on your request. In a company account, colleagues added by the owner see the company data. The admin team sees booking details and a partly hidden phone number, not your documents.'],
       ['Outside services', 'When enabled we use: Twilio to send sign-in codes and WhatsApp messages (it receives your number and the message text); OpenAI to understand typed requests and to read a document photo when you use "automatic reading" (the photo is sent temporarily); MyFatoorah to process payments (we never store card details). We do not sell your data or use it for advertising.'],
       ['Deleting your data', '"Profile → Delete account and all data" immediately deletes everything: account, members, documents, photos, bookings and notifications.'],
       ['Cookies & storage', 'One cookie keeps you signed in. On your device we store only your language and document-checklist ticks.'],

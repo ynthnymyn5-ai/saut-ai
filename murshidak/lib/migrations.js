@@ -53,6 +53,63 @@ export const MIGRATIONS = [
   },
 ];
 
+MIGRATIONS.push({
+  id: '004_growth',
+  run: async (t, k) => {
+    const BLOB = k === 'pg' ? 'BYTEA' : 'BLOB';
+    const sql = [
+      // Requests typed into the smart box (no user id), to find missing procedures.
+      `CREATE TABLE IF NOT EXISTS queries (id ${ID[k]}, text TEXT NOT NULL, normalized TEXT NOT NULL, matched_slug TEXT, source TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT ${NOW[k]})`,
+      'CREATE INDEX IF NOT EXISTS idx_queries_norm ON queries(normalized)',
+      // Chat between a customer and the agent of a booking; a message may share one wallet document.
+      `CREATE TABLE IF NOT EXISTS messages (
+        id ${ID[k]}, booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+        sender_role TEXT NOT NULL CHECK (sender_role IN ('customer','agent')), sender_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        body TEXT NOT NULL DEFAULT '', document_id INTEGER REFERENCES documents(id) ON DELETE SET NULL,
+        created_at TEXT NOT NULL DEFAULT ${NOW[k]})`,
+      'CREATE INDEX IF NOT EXISTS idx_messages_booking ON messages(booking_id, id)',
+      // Paying the agent's fee through the app; the platform pays the agent out after completion.
+      `CREATE TABLE IF NOT EXISTS booking_payments (
+        id ${ID[k]}, booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        amount_kwd REAL NOT NULL, reference TEXT NOT NULL UNIQUE, invoice_id TEXT,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','failed')),
+        payout_status TEXT NOT NULL DEFAULT 'pending' CHECK (payout_status IN ('pending','paid_out')),
+        created_at TEXT NOT NULL DEFAULT ${NOW[k]}, paid_at TEXT, payout_at TEXT)`,
+      "ALTER TABLE bookings ADD COLUMN paid INTEGER NOT NULL DEFAULT 0",
+      // Agent licence: number + encrypted photo, reviewed by an admin.
+      'ALTER TABLE agents ADD COLUMN license_number TEXT',
+      'ALTER TABLE agents ADD COLUMN verified_at TEXT',
+      `CREATE TABLE IF NOT EXISTS agent_files (agent_id INTEGER PRIMARY KEY REFERENCES agents(id) ON DELETE CASCADE, mime TEXT NOT NULL, data ${BLOB} NOT NULL)`,
+      // Smart questions that tailor a roadmap.
+      "ALTER TABLE procedures ADD COLUMN questions TEXT NOT NULL DEFAULT '[]'",
+      // Company teams: staff who manage a Business account's data with their own login.
+      `CREATE TABLE IF NOT EXISTS team_members (
+        id ${ID[k]}, owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        role TEXT NOT NULL DEFAULT 'staff', created_at TEXT NOT NULL DEFAULT ${NOW[k]}, UNIQUE (owner_id, user_id))`,
+      'ALTER TABLE sessions ADD COLUMN account_id INTEGER',
+    ];
+    for (const s of sql) await t.run(s);
+    // No back-fill: verified_at is recorded only when an admin approves an agent from now on.
+  },
+});
+
+MIGRATIONS.push({
+  // Smart questions for a few procedures — only where an admin has not edited the steps.
+  id: '005_questions_and_library',
+  run: async (t) => {
+    for (const p of PROCEDURES) {
+      const cur = await t.get('SELECT id, steps FROM procedures WHERE slug=?', p.slug);
+      // Only entries introduced in this release are inserted, so procedures an admin deleted stay deleted.
+      if (!cur) { if (p.since === 5) { const id = await insertProcedure(t, p); if (p.questions?.length) await t.run('UPDATE procedures SET questions=? WHERE id=?', JSON.stringify(p.questions), id); } continue; }
+      // Untouched by an admin (still the original or the new seed steps): add the questions.
+      const untouched = [p.originalSteps, p.steps].filter(Boolean).some((s) => cur.steps === JSON.stringify(s));
+      if (p.questions?.length && untouched) {
+        await t.run('UPDATE procedures SET questions=?, steps=? WHERE id=?', JSON.stringify(p.questions), JSON.stringify(p.steps), cur.id);
+      }
+    }
+  },
+});
+
 export async function migrate(t) {
   await t.run(`CREATE TABLE IF NOT EXISTS schema_migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT ${NOW[t.kind]})`);
   const done = new Set((await t.all('SELECT id FROM schema_migrations')).map((r) => r.id));

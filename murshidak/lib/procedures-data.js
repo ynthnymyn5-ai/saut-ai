@@ -381,3 +381,309 @@ export const PROCEDURES = [
     documents: [d('البطاقة المدنية للكفيل', 'Sponsor\'s civil ID'), d('البطاقة المدنية أو جواز المؤمَّن عليه', 'Insured person\'s civil ID or passport')],
   },
 ];
+
+// ---------------------------------------------------------------- library additions (release 5)
+const NEW = [
+  {
+    slug: 'private-sector-residency-renewal', category: 'residency', mode: 'online', popular: 60,
+    title: d('تجديد إقامة عامل في القطاع الأهلي (مادة 18)', 'Private-sector employee residency renewal (Article 18)'),
+    summary: d('للشركات: تجديد إذن العمل ثم إقامة الموظف قبل انتهائها.', 'For companies: renew the work permit, then the employee\'s residency before it expires.'),
+    fees: d('رسوم إذن العمل + الإقامة + الضمان الصحي – تظهر عند التقديم', 'Work permit + residency + health insurance fees – shown when applying'),
+    duration: d('1 – 5 أيام عمل', '1 – 5 working days'),
+    keywords: { s: ['ماده 18', 'موظف', 'عامل الشركه', 'اقامه موظف', 'قطاع اهلي', 'employee', 'article 18'], a: ['تجديد', 'اجدد', 'جدد', 'renew'], x: ['تجديد اقامه موظف', 'تجديد ماده 18'] },
+    steps: [
+      s('تأكد من سريان جواز الموظف ورخصة الشركة', 'Check the employee\'s passport and the company licence are valid', 'self'),
+      s('جدّد إذن العمل عبر بوابة الهيئة', 'Renew the work permit on the PAM portal', 'pam'),
+      s('ادفع الضمان الصحي', 'Pay health insurance', 'sahel'),
+      s('قدّم تجديد الإقامة وادفع الرسوم', 'Submit the residency renewal and pay', 'moi_res'),
+      s('حدّث البطاقة المدنية للموظف', 'Update the employee\'s civil ID', 'paci'),
+    ],
+    documents: [d('جواز سفر الموظف', 'Employee\'s passport'), d('البطاقة المدنية للموظف', 'Employee\'s civil ID'), d('الرخصة التجارية', 'Commercial licence'), d('اعتماد التوقيع', 'Signature authorisation')],
+  },
+  {
+    slug: 'private-work-permit-transfer', category: 'residency', mode: 'online', popular: 30,
+    title: d('تحويل إذن عمل بين شركتين (القطاع الأهلي)', 'Work permit transfer between companies'),
+    summary: d('نقل الموظف من صاحب عمل إلى آخر وفق شروط الهيئة العامة للقوى العاملة.', 'Move an employee to a new employer under Public Authority for Manpower rules.'),
+    fees: d('رسوم التحويل حسب الحالة – تظهر عند التقديم', 'Transfer fee depends on the case – shown when applying'),
+    duration: d('3 – 10 أيام عمل', '3 – 10 working days'),
+    keywords: { s: ['اذن عمل', 'تحويل شركه', 'نقل كفاله موظف', 'work permit'], a: ['تحويل', 'نقل', 'انقل', 'transfer'], x: ['تحويل اذن عمل', 'نقل اقامه من شركه'] },
+    steps: [
+      s('تحقق من شروط التحويل الحالية (مدة العمل، موافقة صاحب العمل)', 'Check current transfer conditions (service period, employer consent)', 'pam'),
+      s('صاحب العمل الحالي يوافق إلكترونياً', 'Current employer approves online', 'pam'),
+      s('صاحب العمل الجديد يقدّم الطلب ويدفع الرسوم', 'New employer submits and pays', 'pam'),
+      s('تُنقل الإقامة على ملف الشركة الجديدة', 'Residency moves to the new company file', 'moi_res'),
+    ],
+    documents: [d('جواز سفر الموظف', 'Employee\'s passport'), d('البطاقة المدنية للموظف', 'Employee\'s civil ID'), d('عقد العمل الجديد', 'New employment contract')],
+  },
+  {
+    slug: 'lost-civil-id-replacement', category: 'civil', mode: 'online', popular: 40,
+    title: d('بدل فاقد أو تالف للبطاقة المدنية', 'Lost or damaged civil ID replacement'),
+    summary: d('إصدار بطاقة مدنية جديدة عند فقدانها أو تلفها.', 'Issue a new civil ID if it is lost or damaged.'),
+    fees: d('رسوم بدل الفاقد – تظهر عند التقديم', 'Replacement fee – shown when applying'),
+    duration: d('3 – 10 أيام عمل', '3 – 10 working days'),
+    keywords: { s: ['البطاقه المدنيه', 'المدنيه', 'civil id'], a: ['ضاعت', 'ضايعه', 'فاقد', 'بدل فاقد', 'تالف', 'انكسرت', 'lost', 'damaged', 'replace'], x: ['بدل فاقد', 'ضاعت المدنيه', 'ضاعت البطاقه المدنيه'] },
+    steps: [
+      s('قدّم طلب بدل فاقد/تالف من خدمات الهيئة', 'Request a replacement under PACI services', 'sahel'),
+      s('ادفع الرسوم', 'Pay the fee', 'paci'),
+      s('استلم البطاقة من أجهزة الاستلام الذاتي', 'Collect the card from a self-service kiosk', 'paci', 'in_person'),
+    ],
+    documents: [d('جواز السفر (لغير الكويتيين)', 'Passport (non-Kuwaitis)'), d('البطاقة التالفة إن وجدت', 'The damaged card, if any')],
+  },
+  {
+    slug: 'driving-license-first-issue', category: 'traffic', mode: 'in_person', popular: 45,
+    title: d('إصدار رخصة قيادة لأول مرة', 'First driving licence'),
+    summary: d('من التسجيل في مدرسة تعليم القيادة حتى استلام الرخصة.', 'From driving-school registration to receiving the licence.'),
+    fees: d('رسوم الفحص والرخصة + أتعاب مدرسة القيادة', 'Test and licence fees + driving-school fees'),
+    duration: d('أسابيع إلى أشهر حسب التدريب والمواعيد', 'Weeks to months depending on training and appointments'),
+    keywords: { s: ['رخصه القياده', 'ليسن', 'ليسنس', 'driving license'], a: ['اطلع', 'اول مره', 'جديد', 'استخراج', 'اصدار', 'first', 'new', 'get'], x: ['اطلع ليسن', 'رخصه قياده اول مره', 'اطلع رخصه قياده'] },
+    steps: [
+      s('تحقق من شروط الأهلية (العمر، وللمقيمين شروط إضافية حسب المهنة والراتب)', 'Check eligibility (age; extra conditions for residents by profession and salary)', 'traffic'),
+      s('الفحص الطبي للنظر', 'Eye test', 'moh', 'in_person'),
+      s('التسجيل في مدرسة قيادة معتمدة والتدريب', 'Register at a licensed driving school and train', 'self', 'in_person'),
+      s('اجتياز الاختبار النظري والعملي', 'Pass the theory and road tests', 'traffic', 'in_person'),
+      s('دفع الرسوم واستلام الرخصة', 'Pay and receive the licence', 'traffic', 'in_person'),
+    ],
+    documents: [d('البطاقة المدنية', 'Civil ID'), d('صور شخصية', 'Personal photos'), d('شهادة الفحص الطبي', 'Medical (eye) certificate')],
+  },
+  {
+    slug: 'traffic-violations-payment', category: 'traffic', mode: 'online', popular: 70,
+    title: d('الاستعلام عن المخالفات المرورية وسدادها', 'Check and pay traffic fines'),
+    summary: d('استعلم عن مخالفاتك أو مخالفات مركبتك وادفعها إلكترونياً.', 'Check your or your vehicle\'s fines and pay online.'),
+    fees: d('قيمة المخالفات', 'The fines\' value'),
+    duration: d('فوري', 'Instant'),
+    keywords: { s: ['مخالفات', 'المخالفات', 'مخالفه', 'غرامه مروريه', 'traffic fines', 'fines', 'violations'], a: ['ادفع', 'سداد', 'اسدد', 'استعلم', 'pay', 'check'], x: ['دفع المخالفات', 'استعلام عن المخالفات', 'سداد المخالفات'] },
+    steps: [
+      s('استعلم بالرقم المدني أو رقم اللوحة', 'Search by civil ID or plate number', 'sahel'),
+      s('راجع تفاصيل كل مخالفة', 'Review each fine', 'traffic'),
+      s('ادفع إلكترونياً واحتفظ بالإيصال', 'Pay online and keep the receipt', 'sahel'),
+    ],
+    documents: [d('الرقم المدني', 'Civil ID number'), d('رقم لوحة المركبة', 'Vehicle plate number')],
+  },
+  {
+    slug: 'new-vehicle-registration', category: 'traffic', mode: 'mixed', popular: 35,
+    title: d('تسجيل مركبة جديدة', 'New vehicle registration'),
+    summary: d('ترخيص سيارة جديدة باسمك، وغالباً يتولاه الوكيل.', 'Register a new car in your name — usually handled by the dealer.'),
+    fees: d('رسوم التسجيل واللوحات + التأمين', 'Registration and plate fees + insurance'),
+    duration: d('1 – 3 أيام', '1 – 3 days'),
+    keywords: { s: ['سياره جديده', 'مركبه جديده', 'لوحات', 'new car'], a: ['تسجيل', 'سجل', 'ترخيص', 'register'], x: ['تسجيل سياره جديده', 'ترخيص سياره جديده'] },
+    steps: [
+      s('التأمين على المركبة باسمك', 'Insure the vehicle in your name', 'insurance'),
+      s('الوكيل أو أنت تقدّم طلب التسجيل', 'The dealer or you submit the registration', 'traffic', 'in_person'),
+      s('استلام اللوحات والدفتر', 'Receive plates and registration', 'traffic', 'in_person'),
+    ],
+    documents: [d('البطاقة المدنية للمالك', 'Owner\'s civil ID'), d('فاتورة الشراء', 'Purchase invoice'), d('وثيقة التأمين', 'Insurance policy')],
+  },
+  {
+    slug: 'death-certificate', category: 'family', mode: 'mixed', popular: 20,
+    title: d('إصدار شهادة وفاة', 'Death certificate'),
+    summary: d('الإجراءات بعد الوفاة: الشهادة، ثم تحديث السجلات وإلغاء المستندات.', 'Steps after a death: the certificate, then updating records and cancelling documents.'),
+    fees: d('رسوم رمزية', 'Nominal fees'),
+    duration: d('1 – 3 أيام عمل', '1 – 3 working days'),
+    keywords: { s: ['شهاده وفاه', 'وفاه', 'توفى', 'متوفي', 'death certificate', 'death'], a: ['اصدار', 'استخراج', 'اطلع', 'issue'], x: ['شهاده وفاه'] },
+    steps: [
+      s('إشعار الوفاة من المستشفى أو الجهة الطبية', 'Death notification from the hospital or medical authority', 'hospital', 'in_person'),
+      s('إصدار شهادة الوفاة', 'Issue the death certificate', 'moh'),
+      s('تحديث السجل المدني وتسليم البطاقة المدنية', 'Update civil records and return the civil ID', 'paci'),
+      s('لغير الكويتيين: إلغاء الإقامة وتسوية الكفالات', 'Non-Kuwaitis: cancel residency and settle sponsorships', 'moi_res'),
+    ],
+    documents: [d('إشعار الوفاة', 'Death notification'), d('البطاقة المدنية للمتوفى', 'Civil ID of the deceased'), d('البطاقة المدنية لمقدّم الطلب', 'Applicant\'s civil ID')],
+  },
+  {
+    slug: 'power-of-attorney', category: 'justice', mode: 'mixed', popular: 30,
+    title: d('إصدار توكيل رسمي', 'Official power of attorney'),
+    summary: d('توكيل عام أو خاص لشخص يتابع معاملاتك نيابة عنك.', 'A general or specific power of attorney for someone to act on your behalf.'),
+    fees: d('رسوم التوثيق حسب نوع التوكيل', 'Notarisation fee depends on the type'),
+    duration: d('نفس اليوم غالباً', 'Usually the same day'),
+    keywords: { s: ['توكيل', 'وكاله', 'power of attorney'], a: ['اسوي', 'اطلع', 'اصدار', 'توثيق', 'issue', 'make'], x: ['توكيل رسمي', 'اسوي توكيل', 'توكيل عام'] },
+    steps: [
+      s('حدّد نوع التوكيل وحدوده بدقة', 'Decide the type and limits of the authority', 'self'),
+      s('احجز موعداً لدى إدارة التوثيقات', 'Book an appointment with the notarisation department', 'moj'),
+      s('احضر مع الطرفين أو حسب الإجراء المتاح إلكترونياً', 'Attend with both parties, or use the online option where available', 'moj', 'in_person'),
+      s('استلم التوكيل الموثّق', 'Receive the notarised power of attorney', 'moj'),
+    ],
+    documents: [d('البطاقة المدنية للموكّل', 'Grantor\'s civil ID'), d('البطاقة المدنية للوكيل', 'Agent\'s civil ID')],
+  },
+  {
+    slug: 'mofa-document-attestation', category: 'justice', mode: 'mixed', popular: 25,
+    title: d('تصديق مستند من وزارة الخارجية', 'Document attestation at the Ministry of Foreign Affairs'),
+    summary: d('تصديق شهادة أو عقد كويتي لاستخدامه خارج الكويت.', 'Attest a Kuwaiti certificate or contract for use abroad.'),
+    fees: d('رسوم تصديق لكل مستند', 'Attestation fee per document'),
+    duration: d('1 – 3 أيام عمل', '1 – 3 working days'),
+    keywords: { s: ['مستند', 'شهاده', 'عقد', 'وثيقه', 'document'], a: ['تصديق الخارجيه', 'اصدق من الخارجيه', 'تصديق', 'attest'], x: ['تصديق من الخارجيه', 'تصديق مستند'] },
+    steps: [
+      s('صدّق المستند من الجهة التي أصدرته أولاً إن لزم', 'First attest at the issuing entity if required', 'self'),
+      s('قدّم طلب التصديق لدى وزارة الخارجية', 'Apply for attestation at MOFA', 'mofa'),
+      s('ادفع الرسوم واستلم المستند المصدّق', 'Pay and collect the attested document', 'mofa', 'in_person'),
+    ],
+    documents: [d('أصل المستند', 'Original document'), d('البطاقة المدنية', 'Civil ID')],
+  },
+  {
+    slug: 'commercial-license-amendment', category: 'commerce', mode: 'online', popular: 15,
+    title: d('تعديل بيانات رخصة تجارية', 'Commercial licence amendment'),
+    summary: d('تغيير النشاط أو العنوان أو المدير أو الشركاء في الرخصة.', 'Change the activity, address, manager or partners on the licence.'),
+    fees: d('حسب نوع التعديل', 'Depends on the amendment'),
+    duration: d('1 – 7 أيام عمل', '1 – 7 working days'),
+    keywords: { s: ['رخصه تجاريه', 'الرخصه التجاريه', 'رخصه المحل', 'commercial license'], a: ['تعديل', 'تغيير', 'اغير', 'amend', 'change'], x: ['تعديل رخصه تجاريه', 'تغيير نشاط الرخصه'] },
+    steps: [
+      s('حدّد التعديل المطلوب وجهّز المستندات', 'Decide the change and prepare documents', 'self'),
+      s('موافقات الجهات المعنية إن لزم (البلدية، الإطفاء)', 'Approvals from related entities if needed (municipality, fire)', 'municipality'),
+      s('قدّم طلب التعديل وادفع الرسوم', 'Submit the amendment and pay', 'moci'),
+    ],
+    documents: [d('الرخصة الحالية', 'Current licence'), d('مستندات التعديل (عقد، موافقات)', 'Supporting documents (contract, approvals)')],
+  },
+  {
+    slug: 'dependent-residency-cancellation', category: 'family', mode: 'online', popular: 15,
+    title: d('إلغاء إقامة التحاق بعائل', 'Cancel a dependent residency'),
+    summary: d('إلغاء إقامة الزوجة أو الأبناء عند السفر النهائي.', 'Cancel a spouse\'s or children\'s residency on final departure.'),
+    fees: d('بدون رسوم غالباً', 'Usually free'),
+    duration: d('فوري', 'Instant'),
+    keywords: { s: ['التحاق بعائل', 'ماده 22', 'زوجتي', 'عيالي', 'dependent'], a: ['الغاء', 'الغي', 'سفر نهائي', 'cancel'], x: ['الغاء اقامه زوجتي', 'الغاء التحاق بعائل'] },
+    steps: [
+      s('تأكد من سداد أي مخالفات أو التزامات', 'Settle any fines or obligations', 'self'),
+      s('قدّم طلب الإلغاء', 'Submit the cancellation', 'sahel'),
+      s('المغادرة خلال المهلة المحددة', 'Depart within the allowed period', 'self'),
+    ],
+    documents: [d('البطاقة المدنية للعائل', 'Sponsor\'s civil ID'), d('جوازات التابعين', 'Dependants\' passports')],
+  },
+  {
+    slug: 'newborn-kuwaiti-passport', category: 'civil', mode: 'mixed', popular: 20,
+    title: d('إصدار جواز سفر لمولود كويتي', 'Passport for a Kuwaiti newborn'),
+    summary: d('بعد شهادة الميلاد والبطاقة المدنية: إصدار أول جواز للطفل.', 'After the birth certificate and civil ID: the child\'s first passport.'),
+    fees: d('حسب نوع الجواز ومدته', 'Depends on passport type and validity'),
+    duration: d('3 – 7 أيام عمل', '3 – 7 working days'),
+    keywords: { s: ['جواز', 'باسبور', 'passport'], a: ['مولود', 'ياهل', 'بيبي', 'طفل', 'newborn', 'baby'], x: ['جواز للمولود', 'جواز سفر طفل'] },
+    steps: [
+      s('أصدر شهادة الميلاد والبطاقة المدنية للطفل أولاً', 'Get the birth certificate and civil ID first', 'paci'),
+      s('احجز موعداً لدى إدارة الجوازات', 'Book a passports appointment', 'meta'),
+      s('احضر مع الطفل للتصوير', 'Attend with the child for the photo', 'passports', 'in_person'),
+      s('استلم الجواز', 'Collect the passport', 'passports', 'in_person'),
+    ],
+    documents: [d('شهادة الميلاد', 'Birth certificate'), d('البطاقة المدنية للطفل', 'Child\'s civil ID'), d('البطاقة المدنية للأب', 'Father\'s civil ID'), d('شهادة جنسية الأب', 'Father\'s nationality certificate')],
+  },
+  {
+    slug: 'housing-welfare-application', category: 'family', mode: 'online', popular: 30,
+    title: d('طلب رعاية سكنية', 'Housing welfare application'),
+    summary: d('للمواطنين: التقديم على الرعاية السكنية لدى المؤسسة العامة للرعاية السكنية.', 'For citizens: apply for housing welfare with the Public Authority for Housing Welfare.'),
+    fees: d('بدون رسوم', 'Free'),
+    duration: d('التسجيل فوري؛ التخصيص حسب الدور', 'Registration is instant; allocation follows the queue'),
+    keywords: { s: ['رعايه سكنيه', 'بيت حكومي', 'طلب اسكان', 'الاسكان', 'housing'], a: ['اقدم', 'تقديم', 'طلب', 'تسجيل', 'apply'], x: ['طلب رعايه سكنيه', 'اقدم على بيت'] },
+    steps: [
+      s('تحقق من شروط الاستحقاق (عقد الزواج، الجنسية…)', 'Check eligibility (marriage contract, nationality…)', 'self'),
+      s('قدّم الطلب إلكترونياً لدى المؤسسة العامة للرعاية السكنية', 'Apply online with the Public Authority for Housing Welfare', 'sahel'),
+      s('تابع حالة الطلب والتحديثات', 'Track the application status', 'sahel'),
+    ],
+    documents: [d('البطاقة المدنية للزوجين', 'Both spouses\' civil IDs'), d('عقد الزواج', 'Marriage contract'), d('شهادة الجنسية', 'Nationality certificate')],
+  },
+  {
+    slug: 'marriage-grant', category: 'family', mode: 'online', popular: 25,
+    title: d('منحة الزواج للمواطنين', 'Marriage grant for citizens'),
+    summary: d('التقديم على منحة الزواج بعد توثيق العقد.', 'Apply for the marriage grant after the contract is registered.'),
+    fees: d('بدون رسوم', 'Free'),
+    duration: d('حسب الجهة', 'Depends on the authority'),
+    keywords: { s: ['منحه الزواج', 'قرض الزواج', 'marriage grant'], a: ['اقدم', 'تقديم', 'طلب', 'apply'], x: ['منحه الزواج', 'قرض الزواج'] },
+    steps: [
+      s('وثّق عقد الزواج أولاً', 'Register the marriage contract first', 'moj'),
+      s('تحقق من الشروط الحالية للمنحة', 'Check the grant\'s current conditions', 'self'),
+      s('قدّم الطلب إلكترونياً لدى الجهة المختصة', 'Apply online with the responsible authority', 'sahel'),
+    ],
+    documents: [d('البطاقة المدنية للزوجين', 'Both spouses\' civil IDs'), d('عقد الزواج', 'Marriage contract')],
+  },
+  {
+    slug: 'domestic-worker-absence-report', category: 'residency', mode: 'mixed', popular: 25,
+    title: d('بلاغ تغيّب عامل منزلي', 'Report an absent domestic worker'),
+    summary: d('إذا غادر العامل المنزلي العمل دون علمك، يجب التبليغ رسمياً.', 'If a domestic worker leaves without notice, report it officially.'),
+    fees: d('بدون رسوم غالباً', 'Usually free'),
+    duration: d('نفس اليوم', 'Same day'),
+    keywords: { s: ['خادمه', 'خدامه', 'شغاله', 'سايق', 'دريول', 'عامل منزلي', 'maid', 'domestic worker'], a: ['هاربه', 'هربت', 'شردت', 'تغيب', 'متغيب', 'بلاغ', 'absent', 'ran away', 'report'], x: ['بلاغ تغيب', 'الخدامه هربت', 'الشغاله شردت'] },
+    steps: [
+      s('تأكد من مستحقات العامل وجمع المعلومات (آخر ظهور، الأوراق)', 'Settle what you can and gather details (last seen, papers)', 'self'),
+      s('قدّم بلاغ التغيّب لدى الجهة المختصة بوزارة الداخلية', 'File the absence report with the Ministry of Interior', 'moi_res', 'in_person'),
+      s('احتفظ بنسخة البلاغ لمتابعة إلغاء الإقامة', 'Keep a copy of the report to follow up on cancelling the residency', 'self'),
+    ],
+    documents: [d('البطاقة المدنية للكفيل', 'Sponsor\'s civil ID'), d('صورة جواز سفر العامل', 'Copy of worker\'s passport'), d('البطاقة المدنية للعامل', 'Worker\'s civil ID')],
+  },
+  {
+    slug: 'work-permit-renewal', category: 'commerce', mode: 'online', popular: 20,
+    title: d('تجديد إذن عمل (القطاع الأهلي)', 'Work permit renewal (private sector)'),
+    summary: d('تجديد إذن العمل لموظف قبل تجديد إقامته.', 'Renew an employee\'s work permit before their residency.'),
+    fees: d('رسوم إذن العمل حسب المدة', 'Work permit fee by period'),
+    duration: d('1 – 3 أيام عمل', '1 – 3 working days'),
+    keywords: { s: ['اذن عمل', 'work permit'], a: ['تجديد', 'اجدد', 'جدد', 'renew'], x: ['تجديد اذن عمل'] },
+    steps: [
+      s('تأكد من سريان رخصة الشركة وملفها لدى الهيئة', 'Ensure the company licence and PAM file are valid', 'pam'),
+      s('قدّم طلب التجديد عبر بوابة الهيئة وادفع الرسوم', 'Submit the renewal on the PAM portal and pay', 'pam'),
+      s('تابع بتجديد إقامة الموظف', 'Follow with the employee\'s residency renewal', 'moi_res'),
+    ],
+    documents: [d('جواز سفر الموظف', 'Employee\'s passport'), d('الرخصة التجارية', 'Commercial licence')],
+  },
+  {
+    slug: 'civil-id-data-update', category: 'civil', mode: 'online', popular: 15,
+    title: d('إضافة فصيلة الدم أو تحديث بيانات البطاقة المدنية', 'Add blood group or update civil ID details'),
+    summary: d('تحديث بعض بيانات السجل المدني إلكترونياً.', 'Update some civil record details online.'),
+    fees: d('بدون رسوم أو رسوم رمزية', 'Free or nominal'),
+    duration: d('1 – 5 أيام عمل', '1 – 5 working days'),
+    keywords: { s: ['فصيله الدم', 'بيانات المدنيه', 'blood group'], a: ['اضافه', 'اضيف', 'تحديث', 'تعديل', 'add', 'update'], x: ['اضافه فصيله الدم', 'تحديث بيانات البطاقه المدنيه'] },
+    steps: [
+      s('اختر خدمة تحديث البيانات من خدمات الهيئة', 'Choose the data-update service under PACI', 'sahel'),
+      s('ارفع المستند المؤيد (مثل نتيجة فحص فصيلة الدم)', 'Upload the supporting document (e.g. blood-group result)', 'paci'),
+      s('تابع حالة الطلب', 'Track the request', 'sahel'),
+    ],
+    documents: [d('البطاقة المدنية', 'Civil ID'), d('المستند المؤيد للتحديث', 'Supporting document')],
+  },
+  {
+    slug: 'kuwaiti-civil-id-for-child', category: 'civil', mode: 'online', popular: 20,
+    title: d('إصدار بطاقة مدنية لطفل', 'Civil ID for a child'),
+    summary: d('أول بطاقة مدنية للمولود بعد شهادة الميلاد (أو بعد إقامته لغير الكويتيين).', 'A newborn\'s first civil ID after the birth certificate (or residency for non-Kuwaitis).'),
+    fees: d('رسوم إصدار البطاقة', 'Card issuance fee'),
+    duration: d('3 – 10 أيام عمل', '3 – 10 working days'),
+    keywords: { s: ['بطاقه مدنيه', 'المدنيه', 'civil id'], a: ['مولود', 'طفل', 'ياهل', 'بيبي', 'child', 'newborn', 'baby'], x: ['بطاقه مدنيه للمولود', 'مدنيه للطفل'] },
+    steps: [
+      s('أصدر شهادة الميلاد أولاً (ولغير الكويتيين: الإقامة)', 'Get the birth certificate first (and residency for non-Kuwaitis)', 'moh'),
+      s('قدّم طلب البطاقة من خدمات الهيئة', 'Apply under PACI services', 'sahel'),
+      s('ادفع الرسوم واستلم البطاقة', 'Pay and collect the card', 'paci', 'in_person'),
+    ],
+    documents: [d('شهادة الميلاد', 'Birth certificate'), d('البطاقة المدنية لولي الأمر', 'Guardian\'s civil ID'), d('صورة شخصية للطفل', 'Child\'s photo')],
+  },
+  {
+    slug: 'expat-exit-permit', category: 'residency', mode: 'online', popular: 30,
+    title: d('إذن السفر للعامل الوافد (إن كان مطلوباً)', 'Exit permit for expatriate workers (where required)'),
+    summary: d('بعض فئات العمالة قد تحتاج إذناً من صاحب العمل قبل السفر وفق القواعد الحالية.', 'Some worker categories may need employer permission before travelling under current rules.'),
+    fees: d('بدون رسوم غالباً', 'Usually free'),
+    duration: d('فوري إلى يوم عمل', 'Instant to one working day'),
+    keywords: { s: ['اذن سفر', 'اذن خروج', 'exit permit'], a: ['اطلع', 'طلب', 'استخراج', 'get', 'request'], x: ['اذن سفر للعامل', 'اذن خروج'] },
+    steps: [
+      s('تحقق أولاً هل تنطبق القاعدة على فئتك ومن الجهة المختصة', 'First check whether the rule applies to your category, and which entity handles it', 'self'),
+      s('اطلب الإذن عبر الخدمة الإلكترونية المخصصة', 'Request the permit through the designated online service', 'sahel'),
+      s('صاحب العمل يوافق ويُصدر الإذن', 'The employer approves and the permit is issued', 'pam'),
+    ],
+    documents: [d('البطاقة المدنية', 'Civil ID'), d('جواز السفر', 'Passport')],
+  },
+];
+for (const p of NEW) PROCEDURES.push({ ...p, since: 5 });
+
+// ---------------------------------------------------------------- smart questions (release 5)
+// Steps with `when: "questionId=value"` show only for matching answers; unanswered = shown and marked.
+const q = (id, ar, en, options) => ({ id, q: { ar, en }, options: options.map(([v, oar, oen]) => ({ v, label: { ar: oar, en: oen } })) });
+const NAT = q('nat', 'هل صاحب المعاملة كويتي أم مقيم؟', 'Is the applicant Kuwaiti or a resident?', [['kw', 'كويتي', 'Kuwaiti'], ['expat', 'مقيم', 'Resident']]);
+const PATCHES = {
+  'civil-id-renewal': { questions: [NAT], when: { 0: 'nat=expat' } },
+  'driving-license-renewal': { questions: [NAT], when: { 1: 'nat=expat' } },
+  'domestic-worker-residency-renewal': {
+    questions: [q('inside', 'هل العامل داخل الكويت الآن؟', 'Is the worker in Kuwait now?', [['yes', 'نعم', 'Yes'], ['no', 'لا، خارج الكويت', 'No, abroad']])],
+    add: [[1, s('العامل خارج الكويت: تحقق أولاً من إمكانية التجديد عن بُعد وشروطه ومهلته الحالية', 'Worker abroad: first check whether remote renewal is allowed, its conditions and deadline', 'moi_res'), 'inside=no']],
+  },
+  'family-visit-visa': {
+    questions: [q('eligible', 'هل تستوفي شرط الراتب والمهنة للزيارة العائلية؟', 'Do you meet the salary and profession condition for a family visit?', [['yes', 'نعم', 'Yes'], ['unsure', 'لست متأكداً', 'Not sure'], ['no', 'لا', 'No']])],
+    add: [
+      [1, s('تحقق من الشروط الحالية في بوابة التأشيرات قبل التقديم، أو استشر مندوباً', 'Check the current conditions on the visa portal before applying, or ask an agent', 'moi_visa'), 'eligible=unsure'],
+      [1, s('لا يمكنك التقديم حالياً؛ راجع الشروط أو أنواع الزيارة الأخرى مع مندوب', 'You cannot apply right now; review the conditions or other visit types with an agent', 'self'), 'eligible=no'],
+    ],
+  },
+};
+for (const [slug, patch] of Object.entries(PATCHES)) {
+  const p = PROCEDURES.find((x) => x.slug === slug);
+  p.originalSteps = p.steps.map((st) => ({ ...st }));
+  p.questions = patch.questions;
+  p.steps = p.steps.map((st, i) => (patch.when?.[i] ? { ...st, when: patch.when[i] } : { ...st }));
+  for (const [at, step, when] of (patch.add || []).slice().reverse()) p.steps.splice(at, 0, { ...step, when });
+}

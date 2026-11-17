@@ -1,0 +1,13 @@
+{
+  "appId": "com.murshidak.app",
+  "appName": "مرشدك",
+  "webDir": "www",
+  "backgroundColor": "#0b2e59",
+  "server": {
+    "url": "https://murshidak-khaki.vercel.app",
+    "cleartext": false,
+    "allowNavigation": ["murshidak-khaki.vercel.app", "*.myfatoorah.com"]
+  },
+  "android": { "allowMixedContent": false, "captureInput": true, "webContentsDebuggingEnabled": false },
+  "appendUserAgent": "MurshidakApp/1.0"
+}

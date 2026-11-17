@@ -270,3 +270,16 @@ textarea.input { min-height: 90px; resize: vertical; }
 .tabs { overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
 .tabs button { flex: 1 0 auto; white-space: nowrap; }
+
+/* booking chat */
+.msgs { max-height: 50dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 4px; background: #eef2f7; border-radius: 14px; min-height: 120px; }
+.msg { max-width: 82%; padding: 8px 12px; border-radius: 14px; font-size: .95rem; word-wrap: break-word; }
+.msg p { margin: 0 0 2px; white-space: pre-wrap; }
+.msg.me { align-self: flex-start; background: var(--blue-500); color: #fff; border-end-start-radius: 4px; }
+.msg.them { align-self: flex-end; background: #fff; border-end-end-radius: 4px; }
+.msg.me .muted { color: rgba(255, 255, 255, .75); }
+.msg.me a { color: #fff; text-decoration: underline; }
+.msg-doc { background: rgba(0, 0, 0, .08); border-radius: 10px; padding: 6px 8px; margin: 4px 0; font-size: .85rem; }
+
+/* working inside a company account */
+.team-banner { display: block; background: #fff5dc; color: #6b4700; padding: 8px 16px; font-size: .85rem; border-bottom: 1px solid #f1dc9f; }

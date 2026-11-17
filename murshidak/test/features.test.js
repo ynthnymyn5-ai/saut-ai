@@ -63,7 +63,7 @@ async function login(phone) {
 
 test('migrations are recorded and add the health procedures', async () => {
   const ids = (await db.all('SELECT id FROM schema_migrations ORDER BY id')).map((r) => r.id);
-  assert.deepEqual(ids, ['002_features', '003_health_procedures']);
+  assert.deepEqual(ids, ['002_features', '003_health_procedures', '004_growth', '005_questions_and_library']);
   assert.equal((await db.all("SELECT slug FROM procedures WHERE category='health'")).length, 2);
 });
 

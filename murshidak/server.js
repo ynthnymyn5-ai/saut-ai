@@ -6,7 +6,7 @@ import { initKey, encrypt, decrypt, decryptText, encryptText, sha256, randomToke
 import { seedIfEmpty, insertProcedure } from './lib/seed.js';
 import { migrate } from './lib/migrations.js';
 import * as providers from './lib/providers.js';
-import { interpret } from './lib/ai.js';
+import { interpret, normalize } from './lib/ai.js';
 import { ENTITIES, CATEGORIES, SAHEL_URL } from './lib/procedures-data.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -76,7 +76,7 @@ export function createApp({
     id: r.id, slug: r.slug, category: r.category, mode: r.mode, popular: r.popular, published: !!r.published,
     title: { ar: r.title_ar, en: r.title_en }, summary: { ar: r.summary_ar, en: r.summary_en },
     fees: { ar: r.fees_ar, en: r.fees_en }, duration: { ar: r.duration_ar, en: r.duration_en },
-    ...(full ? { steps: JSON.parse(r.steps), documents: JSON.parse(r.documents), keywords: JSON.parse(r.keywords) } : {}),
+    ...(full ? { steps: JSON.parse(r.steps), documents: JSON.parse(r.documents), keywords: JSON.parse(r.keywords), questions: JSON.parse(r.questions || '[]') } : {}),
     updated_at: r.updated_at,
   });
   const procsForMatch = async () => (await db.all('SELECT * FROM procedures WHERE published=1')).map((r) => ({ ...r, keywords: JSON.parse(r.keywords) }));
@@ -84,7 +84,7 @@ export function createApp({
   const toAgent = (r) => r && ({
     id: r.id, name: { ar: r.name_ar, en: r.name_en }, bio: { ar: r.bio_ar, en: r.bio_en }, areas: { ar: r.areas_ar, en: r.areas_en },
     categories: JSON.parse(r.categories), rating: Number(r.rating), reviews: r.reviews, price: Number(r.price_kwd), years: r.years,
-    status: r.status, verified: r.status === 'approved', phoneMasked: mask(r.phone),
+    status: r.status, verified: r.status === 'approved', verifiedAt: r.verified_at || null, phoneMasked: mask(r.phone),
   });
 
   const today = () => kuwaitToday();
@@ -157,25 +157,41 @@ export function createApp({
   api.use((req, res, next) => {
     const m = /(?:^|;\s*)msid=([^;]+)/.exec(req.headers.cookie || '');
     if (!m) return next();
-    db.get('SELECT u.* FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?', sha256(m[1]), Date.now())
+    // A paid period that has ended falls back to the Free plan (documents are kept).
+    const expire = async (u) => {
+      if (u && u.plan !== 'free' && u.plan_expires_at && u.plan_expires_at < nowStamp()) {
+        await db.run("UPDATE users SET plan='free', plan_expires_at=NULL WHERE id=?", u.id);
+        u.plan = 'free'; u.plan_expires_at = null;
+      }
+      return u;
+    };
+    req.sessionHash = sha256(m[1]);
+    db.get('SELECT u.*, s.account_id session_account FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?', req.sessionHash, Date.now())
       .then(async (u) => {
-        // A paid period that has ended falls back to the Free plan (documents are kept).
-        if (u && u.plan !== 'free' && u.plan_expires_at && u.plan_expires_at < nowStamp()) {
-          await db.run("UPDATE users SET plan='free', plan_expires_at=NULL WHERE id=?", u.id);
-          u.plan = 'free'; u.plan_expires_at = null;
+        if (!u) return next();
+        req.user = await expire(u);
+        req.owner = req.user;
+        // Working inside a company account the user is a team member of.
+        if (u.session_account && Number(u.session_account) !== u.id) {
+          const team = await db.get('SELECT u.*, t.role team_role FROM team_members t JOIN users u ON u.id=t.owner_id WHERE t.owner_id=? AND t.user_id=?', u.session_account, u.id);
+          if (team && PLANS[team.plan].employees) req.owner = await expire(team);
         }
-        req.user = u; next();
+        next();
       }).catch(next);
   });
   const auth = (req, res, next) => (req.user ? next() : next(new HttpError(401, 'unauthorized')));
   const admin = (req, res, next) => (req.user?.role === 'admin' ? next() : next(new HttpError(403, 'forbidden')));
+  // Plan, billing and team management belong to the account owner, not to team members.
+  const ownerOnly = (req, res, next) => (req.owner && req.owner.id === req.user.id ? next() : next(new HttpError(403, 'owner_only')));
   const agentFor = (u) => db.get("SELECT * FROM agents WHERE phone=? AND status='approved'", u.phone);
 
-  const publicUser = async (u) => ({
-    id: u.id, phone: u.phone, phoneMasked: mask(u.phone), name: u.name, role: u.role, plan: u.plan, lang: u.lang,
-    planExpiresAt: u.plan_expires_at || null, notifyPush: !!u.notify_push, notifyWhatsapp: !!u.notify_whatsapp,
+  const publicUser = async (u, owner = u) => ({
+    id: u.id, phone: u.phone, phoneMasked: mask(u.phone), name: u.name, role: u.role, plan: owner.plan, lang: u.lang,
+    planExpiresAt: owner.plan_expires_at || null, notifyPush: !!u.notify_push, notifyWhatsapp: !!u.notify_whatsapp,
     isAgent: !!(await agentFor(u)),
-    limits: { ...PLANS[u.plan], maxDocuments: PLANS[u.plan].maxDocuments === Infinity ? null : PLANS[u.plan].maxDocuments },
+    account: { id: owner.id, name: owner.name, isTeam: owner.id !== u.id },
+    hasTeams: !!(await db.get('SELECT 1 x FROM team_members WHERE user_id=?', u.id)),
+    limits: { ...PLANS[owner.plan], maxDocuments: PLANS[owner.plan].maxDocuments === Infinity ? null : PLANS[owner.plan].maxDocuments },
   });
   const userById = (id) => db.get('SELECT * FROM users WHERE id=?', id);
 
@@ -251,7 +267,7 @@ export function createApp({
     return { ok: true };
   }));
 
-  api.get('/me', auth, wrap(async (req) => ({ user: await publicUser(req.user) })));
+  api.get('/me', auth, wrap(async (req) => ({ user: await publicUser(req.user, req.owner) })));
   api.patch('/me', auth, wrap(async (req) => {
     const name = req.body?.name !== undefined ? String(req.body.name).trim().slice(0, 80) : req.user.name;
     const lang = ['ar', 'en'].includes(req.body?.lang) ? req.body.lang : req.user.lang;
@@ -259,7 +275,7 @@ export function createApp({
     await db.run('UPDATE users SET name=?, lang=?, notify_push=?, notify_whatsapp=? WHERE id=?', name, lang,
       flag('notifyPush', req.user.notify_push), flag('notifyWhatsapp', req.user.notify_whatsapp), req.user.id);
     if (req.body?.name !== undefined) await db.run("UPDATE members SET name=? WHERE user_id=? AND relation='self'", name, req.user.id);
-    return { user: await publicUser(await userById(req.user.id)) };
+    return { user: await publicUser(await userById(req.user.id), req.owner) };
   }));
   api.delete('/me', auth, wrap(async (req, res) => {
     await db.run('DELETE FROM users WHERE id=?', req.user.id); // cascades to members, documents, files, sessions, bookings…
@@ -277,24 +293,24 @@ export function createApp({
 
   // Plan change. With a payment provider configured, paid plans go through /billing/checkout
   // and are activated only by a verified payment. Without one (demo), the switch is free and the UI says so.
-  api.post('/plan', auth, wrap(async (req) => {
+  api.post('/plan', auth, ownerOnly, wrap(async (req) => {
     const plan = req.body?.plan;
     if (!PLANS[plan]) fail(400, 'invalid_plan');
     if (plan !== 'free' && providers.status().payments) fail(402, 'payment_required');
-    await checkDowngrade(req.user.id, plan);
-    await db.run('UPDATE users SET plan=?, plan_expires_at=NULL WHERE id=?', plan, req.user.id);
-    await runReminders(req.user.id);
-    return { user: await publicUser(await userById(req.user.id)), paymentCollected: false };
+    await checkDowngrade(req.owner.id, plan);
+    await db.run('UPDATE users SET plan=?, plan_expires_at=NULL WHERE id=?', plan, req.owner.id);
+    await runReminders(req.owner.id);
+    return { user: await publicUser(await userById(req.owner.id)), paymentCollected: false };
   }));
 
   // ----- billing (MyFatoorah: KNET + cards)
-  api.post('/billing/checkout', auth, wrap(async (req) => {
+  api.post('/billing/checkout', auth, ownerOnly, wrap(async (req) => {
     const plan = req.body?.plan;
     if (!['family', 'business'].includes(plan)) fail(400, 'invalid_plan');
     if (!providers.status().payments) fail(503, 'payments_not_configured');
-    await checkDowngrade(req.user.id, plan);
-    limit('pay:' + req.user.id, 10, 3600e3);
-    const reference = `M${req.user.id}-${plan}-${randomToken().slice(0, 12)}`;
+    await checkDowngrade(req.owner.id, plan);
+    limit('pay:' + req.owner.id, 10, 3600e3);
+    const reference = `M${req.owner.id}-${plan}-${randomToken().slice(0, 12)}`;
     const amount = PLANS[plan].price;
     const base = publicUrl(req);
     const inv = await providers.createInvoice({
@@ -302,7 +318,7 @@ export function createApp({
       callbackUrl: `${base}/api/billing/callback`, errorUrl: `${base}/api/billing/callback`,
     }).catch((e) => { console.error('[billing]', e.message); fail(502, 'payment_provider_error'); });
     await db.run('INSERT INTO payments (user_id,plan,amount_kwd,provider,reference,invoice_id) VALUES (?,?,?,?,?,?)',
-      req.user.id, plan, amount, 'myfatoorah', reference, inv.invoiceId);
+      req.owner.id, plan, amount, 'myfatoorah', reference, inv.invoiceId);
     return { url: inv.url };
   }));
 
@@ -311,9 +327,24 @@ export function createApp({
   api.get('/billing/callback', wrap(async (req, res) => {
     const paymentId = String(req.query.paymentId || req.query.Id || '');
     let outcome = 'failed';
+    let page = 'plans';
     if (paymentId && providers.status().payments) {
       try {
         const st = await providers.getPaymentStatus(paymentId);
+        // Agent fee for a booking (reference "B…").
+        const bp = String(st.reference || '').startsWith('B') && await db.get('SELECT * FROM booking_payments WHERE reference=? AND invoice_id=?', st.reference, st.invoiceId);
+        if (bp) {
+          page = 'bookings';
+          if (st.status === 'Paid' && Math.abs(st.amount - Number(bp.amount_kwd)) < 0.001) {
+            await db.tx(async (t) => {
+              if ((await t.run("UPDATE booking_payments SET status='paid', paid_at=? WHERE id=? AND status<>'paid'", nowStamp(), bp.id)).changes) {
+                await t.run('UPDATE bookings SET paid=1 WHERE id=?', bp.booking_id);
+              }
+            });
+            outcome = 'paid';
+          } else await db.run("UPDATE booking_payments SET status='failed' WHERE id=? AND status='pending'", bp.id);
+          return res.redirect(302, `/#/${page}?payment=${outcome}`);
+        }
         const p = await db.get("SELECT * FROM payments WHERE reference=? AND invoice_id=?", st.reference || '', st.invoiceId);
         if (p && st.status === 'Paid' && Math.abs(st.amount - Number(p.amount_kwd)) < 0.001) {
           await db.tx(async (t) => {
@@ -330,7 +361,7 @@ export function createApp({
         } else if (p) await db.run("UPDATE payments SET status='failed' WHERE id=? AND status='pending'", p.id);
       } catch (e) { console.error('[billing] verify', e.message); }
     }
-    res.redirect(302, `/#/plans?payment=${outcome}`);
+    res.redirect(302, `/#/${page}?payment=${outcome}`);
   }));
 
   // ----- procedures (public)
@@ -359,6 +390,8 @@ export function createApp({
     limit('ask:' + req.ip, 30, 60e3);
     const procs = await procsForMatch();
     const r = await interpret(text, procs, req.body?.lang);
+    await db.run('INSERT INTO queries (text,normalized,matched_slug,source) VALUES (?,?,?,?)', text.slice(0, 300), normalize(text).slice(0, 200), r.slug, r.source)
+      .catch((e) => console.error('[queries]', e.message));
     const bySlug = Object.fromEntries(procs.map((p) => [p.slug, p]));
     return {
       match: r.slug ? toProc(bySlug[r.slug], { full: false }) : null,
@@ -371,11 +404,11 @@ export function createApp({
 
   // ----- dashboard
   api.get('/dashboard', auth, wrap(async (req) => {
-    const docs = (await db.all(`${DOC_SELECT} WHERE d.user_id=? ORDER BY d.expiry_date`, req.user.id)).map(toDoc);
+    const docs = (await db.all(`${DOC_SELECT} WHERE d.user_id=? ORDER BY d.expiry_date`, req.owner.id)).map(toDoc);
     const popular = (await db.all('SELECT * FROM procedures WHERE published=1 ORDER BY popular DESC LIMIT 6')).map((r) => toProc(r, { full: false }));
-    await runReminders(req.user.id); // serverless hosts may not keep the hourly timer alive
-    const unread = (await db.get(`SELECT ${COUNT} c FROM notifications WHERE user_id=? AND read=0`, req.user.id)).c;
-    const activeBookings = (await db.get(`SELECT ${COUNT} c FROM bookings WHERE user_id=? AND status IN ('requested','accepted','in_progress')`, req.user.id)).c;
+    await runReminders(req.owner.id); // serverless hosts may not keep the hourly timer alive
+    const unread = (await db.get(`SELECT ${COUNT} c FROM notifications WHERE user_id=? AND read=0`, req.owner.id)).c;
+    const activeBookings = (await db.get(`SELECT ${COUNT} c FROM bookings WHERE user_id=? AND status IN ('requested','accepted','in_progress')`, req.owner.id)).c;
     return {
       upcoming: docs.slice(0, 5),
       counts: { red: docs.filter((d) => d.level === 'red').length, yellow: docs.filter((d) => d.level === 'yellow').length, green: docs.filter((d) => d.level === 'green').length, total: docs.length },
@@ -384,22 +417,22 @@ export function createApp({
   }));
 
   // ----- members
-  const ownMember = async (req, id) => (await db.get('SELECT * FROM members WHERE id=? AND user_id=?', Number(id) || 0, req.user.id)) || fail(404, 'not_found');
+  const ownMember = async (req, id) => (await db.get('SELECT * FROM members WHERE id=? AND user_id=?', Number(id) || 0, req.owner.id)) || fail(404, 'not_found');
   const checkRelation = (req, relation) => {
     if (!RELATIONS.includes(relation) || relation === 'self') fail(400, 'invalid_relation');
-    if (relation === 'employee' && !PLANS[req.user.plan].employees) fail(402, 'plan_required', { plan: 'business' });
+    if (relation === 'employee' && !PLANS[req.owner.plan].employees) fail(402, 'plan_required', { plan: 'business' });
   };
   api.get('/members', auth, wrap(async (req) => {
     const rows = await db.all(`SELECT m.id, m.name, m.relation, m.nationality, ${COUNT.replace('*', 'd.id')} doc_count, MIN(d.expiry_date) next_expiry FROM members m
       LEFT JOIN documents d ON d.member_id=m.id WHERE m.user_id=? GROUP BY m.id, m.name, m.relation, m.nationality
-      ORDER BY CASE m.relation WHEN 'self' THEN 0 WHEN 'spouse' THEN 1 WHEN 'child' THEN 2 WHEN 'parent' THEN 3 WHEN 'domestic_worker' THEN 4 ELSE 5 END, m.id`, req.user.id);
+      ORDER BY CASE m.relation WHEN 'self' THEN 0 WHEN 'spouse' THEN 1 WHEN 'child' THEN 2 WHEN 'parent' THEN 3 WHEN 'domestic_worker' THEN 4 ELSE 5 END, m.id`, req.owner.id);
     return { members: rows.map((m) => ({ id: m.id, name: m.name, relation: m.relation, nationality: m.nationality, docCount: m.doc_count, nextExpiry: m.next_expiry, nextLevel: m.next_expiry ? expiryLevel(daysUntil(m.next_expiry, today())) : null })) };
   }));
   api.post('/members', auth, wrap(async (req) => {
     const name = String(req.body?.name || '').trim().slice(0, 80);
     if (!name) fail(400, 'name_required');
     checkRelation(req, req.body?.relation);
-    const { id } = await db.run('INSERT INTO members (user_id,name,relation,nationality) VALUES (?,?,?,?)', req.user.id, name, req.body.relation, String(req.body?.nationality || '').slice(0, 40));
+    const { id } = await db.run('INSERT INTO members (user_id,name,relation,nationality) VALUES (?,?,?,?)', req.owner.id, name, req.body.relation, String(req.body?.nationality || '').slice(0, 40));
     return { id };
   }));
   api.patch('/members/:id', auth, wrap(async (req) => {
@@ -418,12 +451,12 @@ export function createApp({
   }));
 
   // ----- documents wallet
-  const ownDoc = async (req, id) => (await db.get(`${DOC_SELECT} WHERE d.id=? AND d.user_id=?`, Number(id) || 0, req.user.id)) || fail(404, 'not_found');
+  const ownDoc = async (req, id) => (await db.get(`${DOC_SELECT} WHERE d.id=? AND d.user_id=?`, Number(id) || 0, req.owner.id)) || fail(404, 'not_found');
   const validDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s || '') && !Number.isNaN(Date.parse(s));
   api.get('/documents', auth, wrap(async (req) => {
     const mid = Number(req.query.member_id) || 0;
-    const rows = await db.all(`${DOC_SELECT} WHERE d.user_id=? ${mid ? 'AND d.member_id=?' : ''} ORDER BY d.expiry_date`, req.user.id, ...(mid ? [mid] : []));
-    const plan = PLANS[req.user.plan];
+    const rows = await db.all(`${DOC_SELECT} WHERE d.user_id=? ${mid ? 'AND d.member_id=?' : ''} ORDER BY d.expiry_date`, req.owner.id, ...(mid ? [mid] : []));
+    const plan = PLANS[req.owner.plan];
     return { documents: rows.map(toDoc), limit: plan.maxDocuments === Infinity ? null : plan.maxDocuments };
   }));
   api.get('/documents/:id', auth, wrap(async (req) => ({ document: toDoc(await ownDoc(req, req.params.id)) })));
@@ -434,12 +467,12 @@ export function createApp({
     await ownMember(req, b.member_id);
     if (!DOC_TYPES.includes(b.type)) fail(400, 'invalid_type');
     if (!validDate(b.expiry_date)) fail(400, 'invalid_date');
-    const max = PLANS[req.user.plan].maxDocuments;
-    const count = (await db.get(`SELECT ${COUNT} c FROM documents WHERE user_id=?`, req.user.id)).c;
+    const max = PLANS[req.owner.plan].maxDocuments;
+    const count = (await db.get(`SELECT ${COUNT} c FROM documents WHERE user_id=?`, req.owner.id)).c;
     if (count >= max) fail(402, 'plan_limit', { max });
     const { id } = await db.run('INSERT INTO documents (user_id,member_id,type,label,number_enc,expiry_date,notes) VALUES (?,?,?,?,?,?,?)',
-      req.user.id, Number(b.member_id), b.type, String(b.label || '').slice(0, 60), encryptText(String(b.number || '').slice(0, 40)), b.expiry_date, String(b.notes || '').slice(0, 300));
-    await runReminders(req.user.id);
+      req.owner.id, Number(b.member_id), b.type, String(b.label || '').slice(0, 60), encryptText(String(b.number || '').slice(0, 40)), b.expiry_date, String(b.notes || '').slice(0, 300));
+    await runReminders(req.owner.id);
     return { id };
   }));
   api.patch('/documents/:id', auth, wrap(async (req) => {
@@ -452,7 +485,7 @@ export function createApp({
       b.member_id !== undefined ? Number(b.member_id) : d.member_id, b.type ?? d.type, String(b.label ?? d.label).slice(0, 60),
       b.number !== undefined ? encryptText(String(b.number).slice(0, 40)) : d.number_enc,
       b.expiry_date ?? d.expiry_date, String(b.notes ?? d.notes).slice(0, 300), d.id);
-    await runReminders(req.user.id);
+    await runReminders(req.owner.id);
     return { ok: true };
   }));
   api.delete('/documents/:id', auth, wrap(async (req) => {
@@ -494,7 +527,7 @@ export function createApp({
   // the client saves it with the document afterwards. The privacy page discloses this.
   api.post('/documents/scan', auth, wrap(async (req) => {
     if (!providers.status().ai) fail(503, 'ai_not_configured');
-    limit('scan:' + req.user.id, 20, 3600e3);
+    limit('scan:' + req.owner.id, 20, 3600e3);
     const mime = String(req.body?.mime || '');
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(mime)) fail(415, 'unsupported_type');
     const data = String(req.body?.data || '');
@@ -505,7 +538,7 @@ export function createApp({
 
   // Business plan: bulk-import employees with their residency (rows parsed from Excel/CSV on the device).
   api.post('/members/import', auth, wrap(async (req) => {
-    if (!PLANS[req.user.plan].employees) fail(402, 'plan_required', { plan: 'business' });
+    if (!PLANS[req.owner.plan].employees) fail(402, 'plan_required', { plan: 'business' });
     const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
     if (!rows.length) fail(400, 'empty');
     if (rows.length > 500) fail(400, 'too_many_rows', { max: 500 });
@@ -519,13 +552,13 @@ export function createApp({
         const rowNo = Number(row._row) || i + 2; // spreadsheet row as the user sees it
         if (!name) { errors.push({ row: rowNo, error: 'name_required' }); continue; }
         if (!validDate(expiry)) { errors.push({ row: rowNo, error: 'invalid_date' }); continue; }
-        const { id: mid } = await t.run('INSERT INTO members (user_id,name,relation,nationality) VALUES (?,?,?,?)', req.user.id, name, 'employee', String(row.nationality || '').slice(0, 40));
+        const { id: mid } = await t.run('INSERT INTO members (user_id,name,relation,nationality) VALUES (?,?,?,?)', req.owner.id, name, 'employee', String(row.nationality || '').slice(0, 40));
         await t.run('INSERT INTO documents (user_id,member_id,type,label,number_enc,expiry_date,notes) VALUES (?,?,?,?,?,?,?)',
-          req.user.id, mid, type, '', encryptText(String(row.number || '').slice(0, 40)), expiry, String(row.notes || '').slice(0, 300));
+          req.owner.id, mid, type, '', encryptText(String(row.number || '').slice(0, 40)), expiry, String(row.notes || '').slice(0, 300));
         imported++;
       }
     });
-    await runReminders(req.user.id);
+    await runReminders(req.owner.id);
     return { imported, errors };
   }));
 
@@ -547,6 +580,15 @@ export function createApp({
     const cats = (Array.isArray(b.categories) ? b.categories : []).filter((c) => CATEGORIES[c]);
     const { id } = await db.run(`INSERT INTO agents (name_ar,name_en,phone,bio_ar,bio_en,categories,areas_ar,areas_en,price_kwd,years,status) VALUES (?,?,?,?,?,?,?,?,?,?,'pending')`,
       name, name, phone, String(b.bio || '').slice(0, 300), String(b.bio || '').slice(0, 300), JSON.stringify(cats), String(b.areas || '').slice(0, 80), String(b.areas || '').slice(0, 80), price, Math.max(0, Math.min(60, Number(b.years) || 0)));
+    // Licence number + photo, reviewed by an admin before approval (photo stored encrypted).
+    if (b.license_number) await db.run('UPDATE agents SET license_number=? WHERE id=?', String(b.license_number).trim().slice(0, 40), id);
+    if (b.license_file?.data) {
+      const mime = String(b.license_file.mime || '');
+      const buf = Buffer.from(String(b.license_file.data), 'base64');
+      if (MIME_OK[mime] && buf.length && buf.length <= MAX_FILE && buf[0] === MIME_OK[mime][0] && buf[1] === MIME_OK[mime][1]) {
+        await db.run('INSERT INTO agent_files (agent_id,mime,data) VALUES (?,?,?)', id, mime, encrypt(buf));
+      }
+    }
     return { id, status: 'pending' };
   }));
 
@@ -558,12 +600,12 @@ export function createApp({
     procedure: r.procedure_slug ? { slug: r.procedure_slug, title: { ar: r.proc_title_ar, en: r.proc_title_en } } : null,
     member: r.member_name ? { id: r.member_id, name: r.member_name } : null,
     user: r.user_name !== undefined ? { name: r.user_name, phoneMasked: mask(r.user_phone) } : undefined,
-    rating: r.rating ?? null, review: r.review || '',
+    rating: r.rating ?? null, review: r.review || '', paid: !!r.paid,
   });
   const BOOKING_SELECT = `SELECT b.*, a.name_ar agent_name_ar, a.name_en agent_name_en, a.rating agent_rating,
     p.slug procedure_slug, p.title_ar proc_title_ar, p.title_en proc_title_en, m.name member_name
     FROM bookings b JOIN agents a ON a.id=b.agent_id LEFT JOIN procedures p ON p.id=b.procedure_id LEFT JOIN members m ON m.id=b.member_id`;
-  api.get('/bookings', auth, wrap(async (req) => ({ bookings: (await db.all(`${BOOKING_SELECT} WHERE b.user_id=? ORDER BY b.id DESC`, req.user.id)).map(toBooking) })));
+  api.get('/bookings', auth, wrap(async (req) => ({ bookings: (await db.all(`${BOOKING_SELECT} WHERE b.user_id=? ORDER BY b.id DESC`, req.owner.id)).map(toBooking) })));
   api.post('/bookings', auth, wrap(async (req) => {
     const b = req.body || {};
     const agent = (await db.get("SELECT * FROM agents WHERE id=? AND status='approved'", Number(b.agent_id) || 0)) || fail(404, 'agent_not_found');
@@ -572,11 +614,11 @@ export function createApp({
     if (b.preferred_date && !validDate(b.preferred_date)) fail(400, 'invalid_date');
     const now = new Date().toISOString();
     const { id } = await db.run('INSERT INTO bookings (user_id,agent_id,procedure_id,member_id,preferred_date,notes,price_kwd,history) VALUES (?,?,?,?,?,?,?,?)',
-      req.user.id, agent.id, proc?.id ?? null, Number(b.member_id) || null, b.preferred_date || null, String(b.notes || '').slice(0, 500), agent.price_kwd, JSON.stringify([{ status: 'requested', at: now }]));
+      req.owner.id, agent.id, proc?.id ?? null, Number(b.member_id) || null, b.preferred_date || null, String(b.notes || '').slice(0, 500), agent.price_kwd, JSON.stringify([{ status: 'requested', at: now }]));
     return { id, status: 'requested' };
   }));
   api.post('/bookings/:id/cancel', auth, wrap(async (req) => {
-    const r = (await db.get('SELECT * FROM bookings WHERE id=? AND user_id=?', Number(req.params.id) || 0, req.user.id)) || fail(404, 'not_found');
+    const r = (await db.get('SELECT * FROM bookings WHERE id=? AND user_id=?', Number(req.params.id) || 0, req.owner.id)) || fail(404, 'not_found');
     if (!['requested', 'accepted'].includes(r.status)) fail(409, 'cannot_cancel');
     const h = JSON.parse(r.history); h.push({ status: 'cancelled', at: new Date().toISOString() });
     await db.run("UPDATE bookings SET status='cancelled', history=?, updated_at=? WHERE id=?", JSON.stringify(h), nowStamp(), r.id);
@@ -584,7 +626,7 @@ export function createApp({
   }));
   // Rate the agent once the request is done; the agent's average is recomputed from all ratings.
   api.post('/bookings/:id/rate', auth, wrap(async (req) => {
-    const r = (await db.get('SELECT * FROM bookings WHERE id=? AND user_id=?', Number(req.params.id) || 0, req.user.id)) || fail(404, 'not_found');
+    const r = (await db.get('SELECT * FROM bookings WHERE id=? AND user_id=?', Number(req.params.id) || 0, req.owner.id)) || fail(404, 'not_found');
     if (r.status !== 'done') fail(409, 'not_done');
     if (r.rating) fail(409, 'already_rated');
     const rating = Math.round(Number(req.body?.rating));
@@ -634,13 +676,210 @@ export function createApp({
     return { ok: true };
   }));
 
+  // ----- readiness: which of a roadmap's required documents are already in the wallet, and valid
+  const DOC_PATTERNS = [
+    ['passport', /جواز|passport/i], ['civil_id', /البطاق[ةه] المدني|بطاق[ةه] مدني|civil id/i], ['residency', /إقام[ةه]|اقام[ةه]|residency/i],
+    ['driving_license', /رخص[ةه] القياد|driving licen/i], ['car_registration', /دفتر|vehicle registration/i],
+  ];
+  const NOT_IN_WALLET = /الزائر|visitor|صور[ةه] |copy|نسخ|إيصال|receipt|شهاد[ةه]|certificate|عقد|contract|فاتور|invoice|صور شخصي|photo/i;
+  const SPONSOR = /الكفيل|العائل|للمالك|المالك|ولي الأمر|للأب|sponsor|owner|guardian|father|both parties|للطرفين|للزوجين|spouses/i;
+  api.get('/procedures/:slug/readiness', auth, wrap(async (req) => {
+    const p = (await db.get('SELECT documents FROM procedures WHERE slug=? AND published=1', req.params.slug)) || fail(404, 'not_found');
+    const member = await ownMember(req, req.query.member_id);
+    const self = await db.get("SELECT id FROM members WHERE user_id=? AND relation='self'", req.owner.id);
+    const docs = (await db.all(`${DOC_SELECT} WHERE d.user_id=? AND d.member_id IN (?,?)`, req.owner.id, member.id, self?.id ?? member.id)).map(toDoc);
+    const items = JSON.parse(p.documents).map((text, index) => {
+      const both = `${text.ar} ${text.en}`;
+      const type = DOC_PATTERNS.find(([, re]) => re.test(both))?.[0];
+      if (!type || NOT_IN_WALLET.test(text.ar)) return { index, status: 'manual' }; // not something the wallet tracks
+      const whoId = SPONSOR.test(both) ? (self?.id ?? member.id) : member.id;
+      const d = docs.filter((x) => x.member_id === whoId && x.type === type).sort((a, b) => b.daysLeft - a.daysLeft)[0];
+      if (!d) return { index, type, status: 'missing', memberId: whoId };
+      // Passports usually need months of validity left for renewals and travel; others: 30 days.
+      const minDays = type === 'passport' ? 180 : 30;
+      const status = d.daysLeft < 0 ? 'expired' : d.daysLeft < minDays ? 'expiring' : 'ok';
+      return { index, type, status, memberId: whoId, doc: { id: d.id, memberName: d.member_name, daysLeft: d.daysLeft, expiry: d.expiry_date } };
+    });
+    return { member: { id: member.id, name: member.name }, items };
+  }));
+
+  // ----- calendar: expiry dates as an .ics file (with alerts 30 and 7 days before)
+  api.get('/calendar.ics', auth, wrap(async (req, res) => {
+    const docId = Number(req.query.doc) || 0;
+    const rows = (await db.all(`${DOC_SELECT} WHERE d.user_id=? ${docId ? 'AND d.id=?' : ''} ORDER BY d.expiry_date`, req.owner.id, ...(docId ? [docId] : []))).map(toDoc);
+    const icsEsc = (x) => String(x).replace(/[\\;,]/g, (c) => '\\' + c).replace(/\n/g, '\\n');
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Murshidak//AR', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:مرشدك'];
+    for (const d of rows) {
+      const [ar] = DOC_NAMES[d.type];
+      const day = d.expiry_date.replace(/-/g, '');
+      const next = new Date(Date.parse(d.expiry_date + 'T00:00:00Z') + 86400e3).toISOString().slice(0, 10).replace(/-/g, '');
+      lines.push('BEGIN:VEVENT', `UID:murshidak-doc-${d.id}-${day}@murshidak`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${day}`, `DTEND;VALUE=DATE:${next}`,
+        `SUMMARY:${icsEsc(`انتهاء ${d.label || ar} – ${d.member_name}`)}`, `DESCRIPTION:${icsEsc('تذكير من مرشدك. جدّد قبل الانتهاء لتجنب الغرامات.')}`,
+        'BEGIN:VALARM', 'ACTION:DISPLAY', 'TRIGGER:-P30D', `DESCRIPTION:${icsEsc('تنتهي بعد 30 يوماً')}`, 'END:VALARM',
+        'BEGIN:VALARM', 'ACTION:DISPLAY', 'TRIGGER:-P7D', `DESCRIPTION:${icsEsc('تنتهي بعد 7 أيام')}`, 'END:VALARM', 'END:VEVENT');
+    }
+    lines.push('END:VCALENDAR');
+    res.set({ 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="murshidak${docId ? '-' + docId : ''}.ics"`, 'Cache-Control': 'private, no-store' });
+    res.send(lines.join('\r\n'));
+  }));
+
+  // ----- Business: export, bulk requests, team
+  const businessOnly = (req) => { if (!PLANS[req.owner.plan].employees) fail(402, 'plan_required', { plan: 'business' }); };
+  // Spreadsheet of people and documents (numbers stay masked: the export can travel by email).
+  api.get('/export/documents.csv', auth, wrap(async (req, res) => {
+    businessOnly(req);
+    const rows = (await db.all(`${DOC_SELECT} WHERE d.user_id=? ORDER BY m.name, d.expiry_date`, req.owner.id)).map(toDoc);
+    const cell = (x) => { const v = String(x ?? ''); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
+    const out = [['الاسم', 'الصلة', 'المستند', 'الرقم (مخفي)', 'تاريخ الانتهاء', 'الأيام المتبقية', 'الحالة'].join(',')];
+    const lvl = { red: 'أقل من 30 يوم', yellow: 'أقل من 90 يوم', green: 'ساري' };
+    const rel = { self: 'المالك', spouse: 'زوج/زوجة', child: 'ابن/ابنة', parent: 'أب/أم', domestic_worker: 'عامل منزلي', employee: 'موظف', other: 'آخر' };
+    for (const d of rows) out.push([d.member_name, rel[d.member_relation], d.label || DOC_NAMES[d.type][0], d.numberMasked, d.expiry_date, d.daysLeft, d.daysLeft < 0 ? 'منتهي' : lvl[d.level]].map(cell).join(','));
+    res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="murshidak-documents.csv"', 'Cache-Control': 'private, no-store' });
+    res.send('﻿' + out.join('\r\n'));
+  }));
+  // One agent, one procedure, many employees → one booking each.
+  api.post('/bookings/bulk', auth, wrap(async (req) => {
+    businessOnly(req);
+    const b = req.body || {};
+    const agent = (await db.get("SELECT * FROM agents WHERE id=? AND status='approved'", Number(b.agent_id) || 0)) || fail(404, 'agent_not_found');
+    const proc = (await db.get('SELECT id FROM procedures WHERE slug=?', String(b.procedure_slug || ''))) || fail(404, 'procedure_not_found');
+    const ids = [...new Set((Array.isArray(b.member_ids) ? b.member_ids : []).map(Number).filter(Boolean))].slice(0, 100);
+    if (!ids.length) fail(400, 'no_members');
+    for (const id of ids) await ownMember(req, id);
+    const now = new Date().toISOString();
+    const created = [];
+    await db.tx(async (t) => {
+      for (const mid of ids) {
+        created.push((await t.run('INSERT INTO bookings (user_id,agent_id,procedure_id,member_id,notes,price_kwd,history) VALUES (?,?,?,?,?,?,?)',
+          req.owner.id, agent.id, proc.id, mid, String(b.notes || '').slice(0, 500), agent.price_kwd, JSON.stringify([{ status: 'requested', at: now }]))).id);
+      }
+    });
+    return { created: created.length, ids: created };
+  }));
+  api.get('/team', auth, ownerOnly, wrap(async (req) => {
+    businessOnly(req);
+    return { members: (await db.all('SELECT t.id, t.role, t.created_at, u.name, u.phone FROM team_members t JOIN users u ON u.id=t.user_id WHERE t.owner_id=? ORDER BY t.id', req.owner.id))
+      .map((r) => ({ id: r.id, role: r.role, name: r.name || '—', phoneMasked: mask(r.phone), created_at: r.created_at })) };
+  }));
+  // Add a colleague by phone. They sign in with their own number and switch to the company account.
+  api.post('/team', auth, ownerOnly, wrap(async (req) => {
+    businessOnly(req);
+    const phone = normPhone(req.body?.phone);
+    if (!phone) fail(400, 'invalid_phone');
+    if (phone === req.user.phone) fail(400, 'cannot_add_self');
+    if ((await db.get(`SELECT ${COUNT} c FROM team_members WHERE owner_id=?`, req.owner.id)).c >= 20) fail(400, 'team_full');
+    await db.tx(async (t) => {
+      let u = await t.get('SELECT id FROM users WHERE phone=?', phone);
+      if (!u) {
+        u = { id: (await t.run('INSERT INTO users (phone,name,role) VALUES (?,?,?)', phone, String(req.body?.name || '').trim().slice(0, 80), 'user')).id };
+        await t.run('INSERT INTO members (user_id,name,relation) VALUES (?,?,?)', u.id, String(req.body?.name || '—').trim().slice(0, 80) || '—', 'self');
+      }
+      await t.run('INSERT INTO team_members (owner_id,user_id,role) VALUES (?,?,?) ON CONFLICT (owner_id, user_id) DO NOTHING', req.owner.id, u.id, 'staff');
+    });
+    return { ok: true };
+  }));
+  api.delete('/team/:id', auth, ownerOnly, wrap(async (req) => {
+    const r = await db.run('DELETE FROM team_members WHERE id=? AND owner_id=?', Number(req.params.id) || 0, req.owner.id);
+    if (!r.changes) fail(404, 'not_found');
+    return { ok: true };
+  }));
+  // Accounts this user can work in: their own + companies they belong to.
+  api.get('/accounts', auth, wrap(async (req) => ({
+    current: req.owner.id,
+    accounts: [{ id: req.user.id, name: req.user.name || '—', own: true },
+      ...(await db.all('SELECT u.id, u.name FROM team_members t JOIN users u ON u.id=t.owner_id WHERE t.user_id=?', req.user.id)).map((a) => ({ id: a.id, name: a.name, own: false }))],
+  })));
+  api.post('/accounts/switch', auth, wrap(async (req) => {
+    const id = Number(req.body?.id) || 0;
+    if (id !== req.user.id && !(await db.get('SELECT 1 x FROM team_members WHERE owner_id=? AND user_id=?', id, req.user.id))) fail(403, 'forbidden');
+    await db.run('UPDATE sessions SET account_id=? WHERE token_hash=?', id === req.user.id ? null : id, req.sessionHash);
+    return { ok: true };
+  }));
+
+  // ----- chat between the customer and the agent of a booking
+  // The caller is the customer (booking belongs to their account) or the booking's agent.
+  async function bookingParty(req, id) {
+    const b = (await db.get(`${BOOKING_SELECT} WHERE b.id=?`, Number(id) || 0)) || fail(404, 'not_found');
+    if (b.user_id === req.owner.id) return { b, role: 'customer' };
+    const a = await agentFor(req.user);
+    if (a && a.id === b.agent_id) return { b, role: 'agent' };
+    fail(404, 'not_found');
+  }
+  const ACTIVE = ['requested', 'accepted', 'in_progress'];
+  api.get('/bookings/:id/messages', auth, wrap(async (req) => {
+    const { b, role } = await bookingParty(req, req.params.id);
+    const rows = await db.all(`SELECT m.*, d.type doc_type, d.label doc_label, d.number_enc, d.file_mime, mm.name doc_member FROM messages m
+      LEFT JOIN documents d ON d.id=m.document_id LEFT JOIN members mm ON mm.id=d.member_id WHERE m.booking_id=? ORDER BY m.id`, b.id);
+    // The agent sees a shared document's full number only while working on the request.
+    const agentMayView = role === 'agent' && ['accepted', 'in_progress'].includes(b.status);
+    return {
+      role, status: b.status,
+      messages: rows.map((m) => ({
+        id: m.id, from: m.sender_role, body: m.body, created_at: m.created_at,
+        document: m.document_id && m.doc_type ? {
+          id: m.document_id, type: m.doc_type, label: m.doc_label, member: m.doc_member, hasFile: !!m.file_mime,
+          number: role === 'customer' || agentMayView ? decryptText(m.number_enc) : mask(decryptText(m.number_enc)),
+          viewable: role === 'customer' || agentMayView,
+        } : null,
+      })),
+    };
+  }));
+  api.post('/bookings/:id/messages', auth, wrap(async (req) => {
+    const { b, role } = await bookingParty(req, req.params.id);
+    if (!ACTIVE.includes(b.status)) fail(409, 'chat_closed');
+    limit('msg:' + req.user.id, 60, 60e3);
+    const body = String(req.body?.body || '').trim().slice(0, 2000);
+    let docId = null;
+    if (req.body?.document_id) {
+      if (role !== 'customer') fail(403, 'forbidden');
+      docId = (await ownDoc(req, req.body.document_id)).id;
+    }
+    if (!body && !docId) fail(400, 'empty');
+    const { id } = await db.run('INSERT INTO messages (booking_id,sender_role,sender_user_id,body,document_id) VALUES (?,?,?,?,?)', b.id, role, req.user.id, body, docId);
+    // Notify the other side (the agent through the account that uses the agent's phone number).
+    const target = role === 'customer' ? (await db.get('SELECT u.id FROM agents a JOIN users u ON u.phone=a.phone WHERE a.id=?', b.agent_id))?.id : b.user_id;
+    if (target) {
+      await notify(target, { key: `msg:${id}`, kind: 'message', title_ar: `رسالة جديدة – ${b.proc_title_ar || 'حجز'}`, title_en: `New message – ${b.proc_title_en || 'booking'}`,
+        body_ar: body ? body.slice(0, 120) : '📎 مستند مشارك', body_en: body ? body.slice(0, 120) : '📎 Shared document', link: role === 'customer' ? '#/agent' : '#/bookings' });
+      await deliver(target).catch((e) => console.error('[deliver]', e.message));
+    }
+    return { id };
+  }));
+  // A document photo shared in this booking's chat.
+  api.get('/bookings/:id/documents/:docId/file', auth, wrap(async (req, res) => {
+    const { b, role } = await bookingParty(req, req.params.id);
+    if (role === 'agent' && !['accepted', 'in_progress'].includes(b.status)) fail(403, 'forbidden');
+    const shared = await db.get('SELECT d.file_mime FROM messages m JOIN documents d ON d.id=m.document_id WHERE m.booking_id=? AND m.document_id=? LIMIT 1', b.id, Number(req.params.docId) || 0);
+    const f = shared?.file_mime && await db.get('SELECT data FROM files WHERE document_id=?', Number(req.params.docId));
+    if (!f) fail(404, 'no_file');
+    res.set({ 'Content-Type': shared.file_mime, 'Cache-Control': 'private, no-store', 'Content-Disposition': 'inline', 'Content-Security-Policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'" });
+    res.send(decrypt(Buffer.from(f.data)));
+  }));
+
+  // ----- paying the agent's fee through the app (held by the platform, paid out after completion)
+  api.post('/bookings/:id/pay', auth, wrap(async (req) => {
+    if (!providers.status().payments) fail(503, 'payments_not_configured');
+    const b = (await db.get(`${BOOKING_SELECT} WHERE b.id=? AND b.user_id=?`, Number(req.params.id) || 0, req.owner.id)) || fail(404, 'not_found');
+    if (b.paid) fail(409, 'already_paid');
+    if (!['accepted', 'in_progress'].includes(b.status)) fail(409, 'not_payable');
+    limit('pay:' + req.user.id, 10, 3600e3);
+    const reference = `B${b.id}-${randomToken().slice(0, 12)}`;
+    const base = publicUrl(req);
+    const inv = await providers.createInvoice({ amount: Number(b.price_kwd), reference, customerName: req.user.name, phone: req.user.phone, lang: req.user.lang,
+      callbackUrl: `${base}/api/billing/callback`, errorUrl: `${base}/api/billing/callback` })
+      .catch((e) => { console.error('[billing]', e.message); fail(502, 'payment_provider_error'); });
+    await db.run('INSERT INTO booking_payments (booking_id,user_id,amount_kwd,reference,invoice_id) VALUES (?,?,?,?,?)', b.id, req.owner.id, Number(b.price_kwd), reference, inv.invoiceId);
+    return { url: inv.url };
+  }));
+
   // ----- notifications
   api.get('/notifications', auth, wrap(async (req) => ({
-    notifications: (await db.all('SELECT * FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 100', req.user.id))
+    notifications: (await db.all('SELECT * FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 100', req.owner.id))
       .map((n) => ({ id: n.id, kind: n.kind, title: { ar: n.title_ar, en: n.title_en }, body: { ar: n.body_ar, en: n.body_en }, link: n.link, read: !!n.read, created_at: n.created_at })),
-    remindersEnabled: PLANS[req.user.plan].reminders,
+    remindersEnabled: PLANS[req.owner.plan].reminders,
   })));
-  api.post('/notifications/read-all', auth, wrap(async (req) => { await db.run('UPDATE notifications SET read=1 WHERE user_id=?', req.user.id); return { ok: true }; }));
+  api.post('/notifications/read-all', auth, wrap(async (req) => { await db.run('UPDATE notifications SET read=1 WHERE user_id=?', req.owner.id); return { ok: true }; }));
 
   // Web Push subscription from the browser / installed app.
   api.post('/push/subscribe', auth, wrap(async (req) => {
@@ -675,7 +914,7 @@ export function createApp({
       const en = n.lang === 'en';
       const title = en ? n.title_en : n.title_ar, body = en ? n.body_en : n.body_ar;
       if (live.push && n.notify_push) {
-        for (const s of await db.all('SELECT * FROM push_subscriptions WHERE user_id=?', n.user_id)) {
+        for (const s of await db.all('SELECT * FROM push_subscriptions WHERE user_id=? OR user_id IN (SELECT user_id FROM team_members WHERE owner_id=?)', n.user_id, n.user_id)) {
           try {
             if ((await providers.sendPush(s, { title, body, url: '/' + (n.link || '#/notifications') })) === 'gone') await db.run('DELETE FROM push_subscriptions WHERE id=?', s.id);
             else sent++;
@@ -691,9 +930,9 @@ export function createApp({
 
   // "Send me a test" button in settings, so a user can confirm push/WhatsApp reach them.
   api.post('/notifications/test', auth, wrap(async (req) => {
-    limit('ntest:' + req.user.id, 5, 3600e3);
-    await notify(req.user.id, { key: `test:${req.user.id}:${Date.now()}`, kind: 'test', title_ar: 'تجربة تنبيهات مرشدك ✅', title_en: 'Murshidak test notification ✅', body_ar: 'إذا وصلتك هذه الرسالة فالتنبيهات تعمل.', body_en: 'If you received this, notifications work.', link: '#/notifications' });
-    return deliver(req.user.id);
+    limit('ntest:' + req.owner.id, 5, 3600e3);
+    await notify(req.owner.id, { key: `test:${req.owner.id}:${Date.now()}`, kind: 'test', title_ar: 'تجربة تنبيهات مرشدك ✅', title_en: 'Murshidak test notification ✅', body_ar: 'إذا وصلتك هذه الرسالة فالتنبيهات تعمل.', body_en: 'If you received this, notifications work.', link: '#/notifications' });
+    return deliver(req.owner.id);
   }));
 
   // Daily job (Vercel Cron calls this with "Authorization: Bearer $CRON_SECRET").
@@ -722,6 +961,9 @@ export function createApp({
       amount: Math.round(Number((await db.get("SELECT COALESCE(SUM(price_kwd),0) s FROM bookings WHERE status='done'")).s) * COMMISSION_PCT) / 100,
     },
     revenue: Number((await db.get("SELECT COALESCE(SUM(amount_kwd),0) s FROM payments WHERE status='paid'")).s),
+    agentFeesCollected: Number((await db.get("SELECT COALESCE(SUM(amount_kwd),0) s FROM booking_payments WHERE status='paid'")).s),
+    pendingPayouts: (await db.get(`SELECT ${COUNT} c FROM booking_payments bp JOIN bookings b ON b.id=bp.booking_id WHERE bp.status='paid' AND bp.payout_status='pending' AND b.status='done'`)).c,
+    unmatchedQueries: (await db.get(`SELECT ${COUNT} c FROM queries WHERE matched_slug IS NULL`)).c,
     channels: providers.status(),
   })));
   ad.get('/procedures', wrap(async () => ({ procedures: (await db.all('SELECT * FROM procedures ORDER BY popular DESC, id')).map((r) => toProc(r)) })));
@@ -732,7 +974,11 @@ export function createApp({
     const p = {
       slug: str(b.slug, 80).toLowerCase(), category: b.category, mode: b.mode, popular: Math.max(0, Math.min(1000, Number(b.popular) || 0)),
       title: bi(b.title, 120), summary: bi(b.summary), fees: bi(b.fees, 200), duration: bi(b.duration, 100),
-      steps: (Array.isArray(b.steps) ? b.steps : []).slice(0, 30).map((s) => ({ title: bi(s.title, 200), entity: ENTITIES[s.entity] ? s.entity : 'self', mode: s.mode === 'in_person' ? 'in_person' : 'online' })).filter((s) => s.title.ar),
+      steps: (Array.isArray(b.steps) ? b.steps : []).slice(0, 30).map((s) => ({ title: bi(s.title, 200), entity: ENTITIES[s.entity] ? s.entity : 'self', mode: s.mode === 'in_person' ? 'in_person' : 'online', ...(/^\w{1,30}=\w{1,30}$/.test(s.when || '') ? { when: s.when } : {}) })).filter((s) => s.title.ar),
+      questions: (Array.isArray(b.questions) ? b.questions : []).slice(0, 5).map((x) => ({
+        id: str(x.id, 30).replace(/\W/g, ''), q: bi(x.q, 200),
+        options: (Array.isArray(x.options) ? x.options : []).slice(0, 6).map((o) => ({ v: str(o.v, 30).replace(/\W/g, ''), label: bi(o.label, 60) })).filter((o) => o.v && o.label.ar),
+      })).filter((x) => x.id && x.q.ar && x.options.length >= 2),
       documents: (Array.isArray(b.documents) ? b.documents : []).slice(0, 30).map((x) => bi(x, 150)).filter((x) => x.ar),
       keywords: { s: [], a: [], x: [], ...(b.keywords && typeof b.keywords === 'object' ? b.keywords : {}) },
       published: b.published === false ? 0 : 1,
@@ -743,30 +989,34 @@ export function createApp({
     if (!['online', 'in_person', 'mixed'].includes(p.mode)) fail(400, 'invalid_mode');
     if (!p.title.ar || !p.title.en) fail(400, 'title_required');
     if (!p.steps.length) fail(400, 'steps_required');
+    const qids = new Set(p.questions.map((x) => x.id));
+    if (p.steps.some((st) => st.when && !qids.has(st.when.split('=')[0]))) fail(400, 'unknown_question_in_condition');
     return p;
   };
   ad.post('/procedures', wrap(async (req) => {
     const p = cleanProc(req.body || {});
     if (await db.get('SELECT 1 x FROM procedures WHERE slug=?', p.slug)) fail(409, 'slug_taken');
-    return { id: await insertProcedure(db, p) };
+    const id = await insertProcedure(db, p);
+    await db.run('UPDATE procedures SET questions=? WHERE id=?', JSON.stringify(p.questions), id);
+    return { id };
   }));
   ad.put('/procedures/:id', wrap(async (req) => {
     const cur = (await db.get('SELECT * FROM procedures WHERE id=?', Number(req.params.id) || 0)) || fail(404, 'not_found');
     const p = cleanProc(req.body || {});
     if (p.slug !== cur.slug && await db.get('SELECT 1 x FROM procedures WHERE slug=?', p.slug)) fail(409, 'slug_taken');
     await db.run(`UPDATE procedures SET slug=?, category=?, mode=?, popular=?, title_ar=?, title_en=?, summary_ar=?, summary_en=?, fees_ar=?, fees_en=?,
-      duration_ar=?, duration_en=?, keywords=?, steps=?, documents=?, published=?, updated_at=? WHERE id=?`,
+      duration_ar=?, duration_en=?, keywords=?, steps=?, documents=?, questions=?, published=?, updated_at=? WHERE id=?`,
       p.slug, p.category, p.mode, p.popular, p.title.ar, p.title.en, p.summary.ar, p.summary.en, p.fees.ar, p.fees.en, p.duration.ar, p.duration.en,
-      JSON.stringify(p.keywords), JSON.stringify(p.steps), JSON.stringify(p.documents), p.published, nowStamp(), cur.id);
+      JSON.stringify(p.keywords), JSON.stringify(p.steps), JSON.stringify(p.documents), JSON.stringify(p.questions), p.published, nowStamp(), cur.id);
     return { ok: true };
   }));
   ad.delete('/procedures/:id', wrap(async (req) => { await db.run('DELETE FROM procedures WHERE id=?', Number(req.params.id) || 0); return { ok: true }; }));
 
-  ad.get('/agents', wrap(async () => ({ agents: (await db.all("SELECT * FROM agents ORDER BY CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END, id")).map((r) => ({ ...toAgent(r), phone: r.phone })) })));
+  ad.get('/agents', wrap(async () => ({ agents: (await db.all("SELECT a.*, CASE WHEN f.agent_id IS NULL THEN 0 ELSE 1 END has_license FROM agents a LEFT JOIN agent_files f ON f.agent_id=a.id ORDER BY CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END, a.id")).map((r) => ({ ...toAgent(r), phone: r.phone, licenseNumber: r.license_number || '', hasLicense: !!r.has_license })) })));
   ad.patch('/agents/:id', wrap(async (req) => {
     const st = req.body?.status;
     if (!['pending', 'approved', 'rejected'].includes(st)) fail(400, 'invalid_status');
-    const r = await db.run('UPDATE agents SET status=? WHERE id=?', st, Number(req.params.id) || 0);
+    const r = await db.run(`UPDATE agents SET status=?, verified_at=${"CASE WHEN ?='approved' THEN ? ELSE verified_at END"} WHERE id=?`, st, st, nowStamp(), Number(req.params.id) || 0);
     if (!r.changes) fail(404, 'not_found');
     return { ok: true };
   }));
@@ -778,6 +1028,35 @@ export function createApp({
     return { ok: true };
   }));
 
+  // What people type in the smart box that matched no procedure (to decide what to add next).
+  ad.get('/queries', wrap(async () => ({
+    unmatched: await db.all(`SELECT normalized, MAX(text) sample, ${COUNT} c, MAX(created_at) last FROM queries WHERE matched_slug IS NULL
+      GROUP BY normalized ORDER BY c DESC, last DESC LIMIT 100`),
+    totals: await db.get(`SELECT ${COUNT} total, CAST(SUM(CASE WHEN matched_slug IS NULL THEN 1 ELSE 0 END) AS INTEGER) unmatched FROM queries`),
+  })));
+  // Agent fees collected in the app: what each agent is owed after commission, and payout tracking.
+  ad.get('/payouts', wrap(async () => ({
+    pct: COMMISSION_PCT,
+    payouts: (await db.all(`SELECT bp.*, b.status booking_status, a.name_ar, a.name_en, a.phone agent_phone, p.title_ar, p.title_en FROM booking_payments bp
+      JOIN bookings b ON b.id=bp.booking_id JOIN agents a ON a.id=b.agent_id LEFT JOIN procedures p ON p.id=b.procedure_id
+      WHERE bp.status='paid' ORDER BY CASE bp.payout_status WHEN 'pending' THEN 0 ELSE 1 END, bp.id DESC LIMIT 200`)).map((r) => {
+      const amount = Number(r.amount_kwd), fee = Math.round(amount * COMMISSION_PCT * 10) / 1000;
+      return { id: r.id, bookingId: r.booking_id, bookingStatus: r.booking_status, agent: { ar: r.name_ar, en: r.name_en }, agentPhone: r.agent_phone,
+        procedure: { ar: r.title_ar, en: r.title_en }, amount, commission: fee, net: Math.round((amount - fee) * 1000) / 1000, payoutStatus: r.payout_status, paidAt: r.paid_at, payoutAt: r.payout_at };
+    }),
+  })));
+  // Pay out only once the request is done.
+  ad.patch('/payouts/:id', wrap(async (req) => {
+    const r = (await db.get('SELECT bp.*, b.status bs FROM booking_payments bp JOIN bookings b ON b.id=bp.booking_id WHERE bp.id=?', Number(req.params.id) || 0)) || fail(404, 'not_found');
+    if (r.status !== 'paid' || r.bs !== 'done') fail(409, 'not_ready_for_payout');
+    await db.run("UPDATE booking_payments SET payout_status='paid_out', payout_at=? WHERE id=?", nowStamp(), r.id);
+    return { ok: true };
+  }));
+  ad.get('/agents/:id/license', wrap(async (req, res) => {
+    const f = (await db.get('SELECT mime, data FROM agent_files WHERE agent_id=?', Number(req.params.id) || 0)) || fail(404, 'no_file');
+    res.set({ 'Content-Type': f.mime, 'Cache-Control': 'private, no-store', 'Content-Disposition': 'inline', 'Content-Security-Policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'" });
+    res.send(decrypt(Buffer.from(f.data)));
+  }));
   ad.get('/reports', wrap(async () => ({
     reports: (await db.all(`SELECT r.*, p.slug, p.title_ar, p.title_en FROM reports r JOIN procedures p ON p.id=r.procedure_id
       ORDER BY CASE r.status WHEN 'open' THEN 0 ELSE 1 END, r.id DESC LIMIT 200`))
