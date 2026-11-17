@@ -51,11 +51,15 @@ export function createApp({
   }
   initKey(dataDir);
   let db;
-  const ready = (async () => {
-    db = await openDb({ dataDir, databaseUrl });
+  let readyPromise;
+  // Connect + create tables + seed. If it fails (e.g. a database blip), the next request retries
+  // instead of leaving a warm serverless instance broken.
+  const ready = () => (readyPromise ||= (async () => {
+    db ||= await openDb({ dataDir, databaseUrl });
     await db.init((t) => seedIfEmpty(t, kuwaitToday()));
     runReminders().catch((e) => console.error('[reminders]', e.message));
-  })();
+  })().catch((e) => { readyPromise = null; throw e; }));
+  ready().catch((e) => console.error('[startup]', e.message));
   const adminPhones = new Set(String(process.env.ADMIN_PHONES || '90000000').split(',').map((s) => s.trim()).filter(Boolean));
   const demoOtp = !process.env.SMS_PROVIDER;
 
@@ -114,7 +118,7 @@ export function createApp({
     }
     return created;
   }
-  const reminderTimer = setInterval(() => ready.then(() => runReminders()).catch((e) => console.error('[reminders]', e.message)), 60 * 60 * 1000);
+  const reminderTimer = setInterval(() => ready().then(() => runReminders()).catch((e) => console.error('[reminders]', e.message)), 60 * 60 * 1000);
   reminderTimer.unref();
 
   // ---------- simple in-memory rate limiter (per instance)
@@ -137,7 +141,7 @@ export function createApp({
     next();
   });
   const api = express.Router();
-  app.use('/api', express.json({ limit: '8mb' }), (req, res, next) => ready.then(() => next(), next), api);
+  app.use('/api', express.json({ limit: '8mb' }), (req, res, next) => ready().then(() => next(), next), api);
 
   const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).then((out) => { if (out !== undefined && !res.headersSent) res.json(out); }).catch(next);
 
@@ -544,8 +548,8 @@ export function createApp({
     res.status(500).json({ error: 'server_error' });
   });
 
-  app.locals.ready = ready;
-  app.locals.runReminders = (id) => ready.then(() => runReminders(id));
+  app.locals.ready = ready();
+  app.locals.runReminders = (id) => ready().then(() => runReminders(id));
   app.locals.db = () => db;
   return app;
 }
