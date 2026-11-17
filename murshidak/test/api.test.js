@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { PROCEDURES } from '../lib/procedures-data.js';
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'murshidak-test-'));
 delete process.env.OPENAI_API_KEY; // always exercise the local matcher in tests
@@ -33,9 +34,9 @@ async function login(phone) {
   return { cookie: v.headers.get('set-cookie').split(';')[0], user: v.body.user, isNew: v.body.isNew };
 }
 
-test('seeded library has 20 procedures and every one carries steps and documents', async () => {
+test('seeded library has every procedure and every one carries steps and documents', async () => {
   const r = await call('GET', '/procedures');
-  assert.equal(r.body.procedures.length, 20);
+  assert.equal(r.body.procedures.length, PROCEDURES.length);
   const one = await call('GET', '/procedures/domestic-worker-residency-renewal');
   assert.ok(one.body.procedure.steps.length >= 3);
   assert.ok(one.body.procedure.documents.length >= 2);

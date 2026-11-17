@@ -19,6 +19,7 @@ export const ENTITIES = {
   municipality: { ar: 'بلدية الكويت', en: 'Kuwait Municipality', url: 'https://www.baladia.gov.kw/' },
   fire: { ar: 'قوة الإطفاء العام', en: 'Kuwait Fire Force', url: 'https://www.kff.gov.kw/' },
   moh: { ar: 'وزارة الصحة', en: 'Ministry of Health', url: 'https://www.moh.gov.kw/' },
+  moh_expat: { ar: 'وزارة الصحة – مراكز فحص العمالة الوافدة', en: 'Ministry of Health – expatriate medical examination centres', url: 'https://www.moh.gov.kw/' },
   hospital: { ar: 'المستشفى الذي تمت فيه الولادة', en: 'The hospital where the birth took place', url: '' },
   pam: { ar: 'الهيئة العامة للقوى العاملة', en: 'Public Authority for Manpower', url: 'https://www.manpower.gov.kw/' },
   moj: { ar: 'وزارة العدل', en: 'Ministry of Justice', url: 'https://www.moj.gov.kw/' },
@@ -37,6 +38,7 @@ export const CATEGORIES = {
   commerce: { ar: 'التجارة والأعمال', en: 'Commerce & business', icon: '🏪' },
   family: { ar: 'الأسرة والأحوال', en: 'Family affairs', icon: '👨‍👩‍👧' },
   justice: { ar: 'الشهادات والتصديقات', en: 'Certificates & attestation', icon: '📜' },
+  health: { ar: 'الصحة والتأمين', en: 'Health & insurance', icon: '🏥' },
 };
 
 // step helper: [ar, en, entity, mode]  mode: online | in_person
@@ -348,5 +350,34 @@ export const PROCEDURES = [
       s('ادفع الرسوم واطبع الرخصة الجديدة', 'Pay and print the renewed license', 'moci'),
     ],
     documents: [d('الرخصة الحالية', 'Current license'), d('عقد الإيجار ساري', 'Valid lease'), d('شهادة قيد الغرفة', 'Chamber registration certificate')],
+  },
+  {
+    slug: 'expat-medical-exam', category: 'health', mode: 'mixed', popular: 16,
+    title: d('الفحص الطبي للعمالة الوافدة (للإقامة)', 'Expatriate medical examination (for residency)'),
+    summary: d('الفحص الطبي المطلوب للعامل أو الخادمة بعد الوصول وقبل إصدار الإقامة.', 'The medical exam a worker or housemaid needs after arrival and before residency is issued.'),
+    fees: d('تُحدد عند الحجز حسب نوع الفحص', 'Set at booking depending on the exam type'),
+    duration: d('يوم الفحص + 1 – 3 أيام عمل للنتيجة', 'Exam day + 1 – 3 working days for results'),
+    keywords: { s: ['فحص طبي', 'الفحص الطبي', 'فحص العماله', 'فحص الخادمه', 'فحص الشغاله', 'medical exam', 'medical test', 'medical'], a: ['فحص', 'افحص', 'احجز', 'موعد', 'اسوي', 'book', 'exam', 'do'], x: ['فحص طبي للخادمه', 'فحص العماله الوافده', 'الفحص الطبي للاقامه'] },
+    steps: [
+      s('احجز موعد الفحص الطبي للعامل', 'Book the worker\'s medical exam appointment', 'sahel'),
+      s('ادفع رسوم الفحص', 'Pay the exam fee', 'moh_expat'),
+      s('احضر مع العامل في الموعد إلى مركز الفحص (تحاليل وأشعة)', 'Attend with the worker at the centre (blood tests and X-ray)', 'moh_expat', 'in_person'),
+      s('تُرسل النتيجة إلكترونياً إلى ملف الإقامة؛ تابع حالتها', 'Results are sent electronically to the residency file; track the status', 'moi_res'),
+    ],
+    documents: [d('جواز سفر العامل', 'Worker\'s passport'), d('صورة سمة الدخول', 'Copy of the entry visa'), d('البطاقة المدنية للكفيل', 'Sponsor\'s civil ID'), d('إيصال دفع الرسوم', 'Fee payment receipt')],
+  },
+  {
+    slug: 'resident-health-insurance', category: 'health', mode: 'online', popular: 15,
+    title: d('دفع الضمان الصحي للمقيمين', 'Health insurance payment for residents'),
+    summary: d('رسوم الضمان الصحي السنوية التي تُدفع قبل إصدار أو تجديد إقامة الوافد أو تابعيه أو العمالة المنزلية.', 'The annual health insurance fee paid before issuing or renewing an expatriate\'s, dependant\'s or domestic worker\'s residency.'),
+    fees: d('تختلف حسب الفئة والمدة – تظهر عند الدفع', 'Varies by category and period – shown at payment'),
+    duration: d('فوري', 'Instant'),
+    keywords: { s: ['ضمان صحي', 'الضمان الصحي', 'تامين صحي', 'التامين الصحي', 'health insurance'], a: ['دفع', 'ادفع', 'اسدد', 'سداد', 'تجديد', 'اجدد', 'pay', 'renew'], x: ['دفع الضمان الصحي', 'رسوم الضمان الصحي', 'تجديد الضمان الصحي'] },
+    steps: [
+      s('حدّد الشخص ومدة التأمين المطلوبة (تطابق مدة الإقامة)', 'Choose the person and the insurance period (matching the residency period)', 'self'),
+      s('ادفع رسوم الضمان الصحي إلكترونياً', 'Pay the health insurance fee online', 'sahel'),
+      s('احتفظ بالإيصال؛ يُربط الدفع تلقائياً بطلب الإقامة', 'Keep the receipt; the payment is linked to the residency request automatically', 'moi_res'),
+    ],
+    documents: [d('البطاقة المدنية للكفيل', 'Sponsor\'s civil ID'), d('البطاقة المدنية أو جواز المؤمَّن عليه', 'Insured person\'s civil ID or passport')],
   },
 ];

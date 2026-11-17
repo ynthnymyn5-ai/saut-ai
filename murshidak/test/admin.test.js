@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { PROCEDURES } from '../lib/procedures-data.js';
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'murshidak-admin-'));
 delete process.env.DATABASE_URL;
@@ -23,7 +24,7 @@ async function login(phone) {
 
 test('without sample accounts, the library and agents are still seeded but no users are', async () => {
   const db = app.locals.db();
-  assert.equal((await db.get('SELECT CAST(COUNT(*) AS INTEGER) c FROM procedures')).c, 20);
+  assert.equal((await db.get('SELECT CAST(COUNT(*) AS INTEGER) c FROM procedures')).c, PROCEDURES.length);
   assert.ok((await db.get('SELECT CAST(COUNT(*) AS INTEGER) c FROM agents')).c > 0);
   assert.equal((await db.get("SELECT CAST(COUNT(*) AS INTEGER) c FROM users WHERE phone IN ('99999999','98888888','90000000')")).c, 0);
 });
