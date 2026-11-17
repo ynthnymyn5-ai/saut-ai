@@ -24,7 +24,15 @@ export function createApp() {
       const { pool } = await import("./db");
       const r = await pool.query("select count(*)::int as tasks from tasks");
       const { llm } = await import("./llm");
-      res.json({ ok: true, db: "ok", tasks: r.rows[0].tasks, ai: llm().name });
+      // Shape of dashboard-added variables with generated names (never the value)
+      const custom = Object.entries(process.env)
+        .filter(([k]) => /^key_/i.test(k))
+        .map(([k, v]) => ({
+          name: k,
+          length: (v ?? "").length,
+          looksLike: /sk-ant-/.test(v ?? "") ? "anthropic" : /^\s*["']?sk-(proj-)?[\w-]{20,}/.test(v ?? "") ? "openai" : (v ?? "").trim() ? "other" : "empty",
+        }));
+      res.json({ ok: true, db: "ok", tasks: r.rows[0].tasks, ai: llm().name, custom });
     } catch (e) {
       res.status(503).json({ ok: false, db: (e as Error).message });
     }

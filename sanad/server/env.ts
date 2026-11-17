@@ -22,7 +22,11 @@ function validTimeZone(tz: string) {
 function anthropicKey() {
   const named = str("ANTHROPIC_API_KEY");
   if (named) return named;
-  for (const v of Object.values(process.env)) if (v && /^sk-ant-[\w-]{20,}$/.test(v.trim())) return v.trim();
+  // also catches values pasted as `ANTHROPIC_API_KEY=sk-ant-…` or with quotes
+  for (const v of Object.values(process.env)) {
+    const m = v?.match(/sk-ant-[\w-]{20,}/);
+    if (m) return m[0];
+  }
   return "";
 }
 
