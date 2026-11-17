@@ -22,6 +22,7 @@
   const money = (n) => (Number(n) || 0).toLocaleString('en-US', { maximumFractionDigits: 3 }) + ' د.ك';
   const fmtDate = (iso) => iso ? new Date(iso.length === 10 ? iso + 'T00:00:00' : iso).toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
   const today = () => new Date().toISOString().slice(0, 10);
+  const printUrl = (type, id) => `/print?type=${type}&id=${encodeURIComponent(id)}`;
   const waLink = (phone) => { const d = String(phone).replace(/^\+/, '').replace(/^00/, ''); return 'https://wa.me/' + (d.length === 8 ? '965' + d : d.replace(/^0/, '966')); }; // 8-digit numbers are Kuwaiti (+965)
 
   let S = { students: [], teachers: [], classes: [], fees: [], payments: [], balances: {}, paymentMethods: [], registrations: [], messages: [], storage: '' };
@@ -138,8 +139,8 @@
       alertEl.className = 'form-alert hidden full';
       submit.disabled = true;
       try {
-        await onSubmit(data);
-        closeDlg();
+        const r = await onSubmit(data);
+        if (r !== 'keep') closeDlg();
       } catch (err) {
         if (err.status === 401) return;
         const fieldsErr = err.body?.fields || {};
@@ -259,7 +260,22 @@
         { name: 'paidAt', label: 'تاريخ الدفع', type: 'date' },
         { name: 'note', label: 'ملاحظة / رقم الإيصال' },
       ],
-      onSubmit: (d) => save('payments', null, d, 'تم تسجيل الدفعة'),
+      onSubmit: async (d) => {
+        const r = await api('/api/office/payments', { method: 'POST', body: d });
+        await load();
+        const p = r.record;
+        const s = byId('students', p.studentId);
+        openDlg('تم تسجيل الدفعة ✓', h('div', { class: 'statement' },
+          h('div', { class: 'mini-kpis' },
+            h('div', {}, h('span', {}, 'الطالب'), h('b', {}, s?.name || '—')),
+            h('div', {}, h('span', {}, 'المبلغ'), h('b', { class: 'paid' }, money(p.amount))),
+            h('div', {}, h('span', {}, 'المتبقي الآن'), dueCell(bal(p.studentId).due))),
+          h('div', { class: 'dlg-foot' },
+            h('a', { class: 'btn btn-primary', href: printUrl('receipt', p.id), target: '_blank', rel: 'noopener' }, '🧾 طباعة الإيصال / PDF'),
+            s ? btn('كشف الحساب', () => statement(s), 'btn btn-outline') : null,
+            btn('إغلاق', closeDlg, 'btn btn-outline'))));
+        return 'keep';
+      },
     });
   }
   function chargeClassForm(c) {
@@ -291,14 +307,16 @@
         h('div', {}, h('span', {}, 'المدفوع'), h('b', { class: 'paid' }, money(b.paid))),
         h('div', {}, h('span', {}, 'المتبقي'), dueCell(b.due))),
       h('div', { class: 'dlg-foot', style: 'margin:0 0 14px' },
-        btn('+ تسجيل دفعة', () => paymentForm({ studentId: s.id })), btn('+ إضافة مستحق', () => feeForm({ studentId: s.id }), 'btn btn-outline btn-sm')),
+        btn('+ تسجيل دفعة', () => paymentForm({ studentId: s.id })), btn('+ إضافة مستحق', () => feeForm({ studentId: s.id }), 'btn btn-outline btn-sm'),
+        h('a', { class: 'btn btn-outline btn-sm', href: printUrl('statement', s.id), target: '_blank', rel: 'noopener' }, '📄 كشف الحساب PDF')),
       h('h3', {}, 'المستحقات'),
       table(['التاريخ', 'الوصف', 'الاستحقاق', 'المبلغ', ''], fees.map((f) => h('tr', {},
         h('td', {}, fmtDate(f.createdAt)), h('td', {}, f.description, f.classId && byId('classes', f.classId) && !f.description.includes(byId('classes', f.classId).name) ? h('span', { class: 'sub' }, byId('classes', f.classId).name) : null),
         h('td', {}, fmtDate(f.dueDate)), h('td', {}, money(f.amount)), h('td', {}, delBtn('fees', f.id, 'حذف هذا المستحق؟')))), 'لا توجد مستحقات'),
       h('h3', { style: 'margin-top:18px' }, 'الدفعات'),
       table(['التاريخ', 'الطريقة', 'ملاحظة', 'المبلغ', ''], pays.map((p) => h('tr', {},
-        h('td', {}, fmtDate(p.paidAt)), h('td', {}, p.method), h('td', {}, p.note || '—'), h('td', {}, h('b', { class: 'paid' }, money(p.amount))),
+        h('td', {}, fmtDate(p.paidAt)), h('td', {}, p.method), h('td', {}, p.note || '—'), h('td', {}, h('b', { class: 'paid' }, money(p.amount)),
+          h('a', { class: 'sub', href: printUrl('receipt', p.id), target: '_blank', rel: 'noopener' }, '🧾 إيصال')),
         h('td', {}, delBtn('payments', p.id, 'حذف هذه الدفعة؟')))), 'لا توجد دفعات')));
   }
 

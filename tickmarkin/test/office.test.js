@@ -127,3 +127,41 @@ test('deletes cascade consistently', async () => {
   assert.ok(!all.fees.some((f) => f.studentId === ids.s1) && !all.payments.some((p) => p.studentId === ids.s1), 'student finances removed');
   assert.equal((await call('DELETE', `/api/office/students/${ids.s1}`)).status, 404);
 });
+
+test('receipt and statement data: running balance, totals, admin only', async () => {
+  const t = (await call('POST', '/api/office/teachers', { name: 'أ. نوف', phone: '99001122', password: 'pass-1234' })).body.record;
+  const cl = (await call('POST', '/api/office/classes', { name: 'إنجليزي', teacherId: t.id, fee: '150' })).body.record;
+  const s = (await call('POST', '/api/office/students', { name: 'جود', guardianName: 'أبو جود', guardianPhone: '99112233', classIds: [cl.id] })).body.record;
+  await call('POST', `/api/office/classes/${cl.id}/charge`, { description: 'رسوم يناير' });
+  const p1 = (await call('POST', '/api/office/payments', { studentId: s.id, amount: '100', paidAt: '2026-11-01' })).body.record;
+  const p2 = (await call('POST', '/api/office/payments', { studentId: s.id, amount: '20.500', paidAt: '2026-11-10', method: 'شبكة / بطاقة' })).body.record;
+
+  const r1 = (await call('GET', `/api/office/print?type=receipt&id=${p1.id}`)).body;
+  assert.equal(r1.payment.amount, 100);
+  assert.deepEqual(r1.totals, { charged: 150, paidToDate: 100, balanceAfter: 50 });
+  assert.equal(r1.institute.currency, 'د.ك');
+  const r2 = (await call('GET', `/api/office/print?type=receipt&id=${p2.id}`)).body;
+  assert.deepEqual(r2.totals, { charged: 150, paidToDate: 120.5, balanceAfter: 29.5 });
+
+  const st = (await call('GET', `/api/office/print?type=statement&id=${s.id}`)).body;
+  assert.deepEqual(st.totals, { charged: 150, paid: 120.5, balance: 29.5 });
+  assert.equal(st.entries.at(-1).balance, 29.5, 'running balance ends at the outstanding amount');
+  assert.equal(st.student.classes[0], 'إنجليزي');
+
+  assert.equal((await call('GET', `/api/office/print?type=receipt&id=nope`)).status, 404);
+  assert.equal((await call('GET', `/api/office/print?type=other&id=${s.id}`)).status, 400);
+  assert.equal((await call('GET', `/api/office/print?type=receipt&id=${p1.id}`, null, null)).status, 401);
+  const tl = await call('POST', '/api/office/teacher-login', { phone: '99001122', password: 'pass-1234' }, null);
+  const tc = tl.headers.get('set-cookie').split(';')[0];
+  assert.equal((await call('GET', `/api/office/print?type=statement&id=${s.id}`, null, tc)).status, 401, 'teachers cannot print finances');
+});
+
+test('amount in words (Kuwaiti dinar)', () => {
+  const { kwdInWords } = require('../site/js/tafqeet.js');
+  assert.equal(kwdInWords(150), 'فقط مئة وخمسون ديناراً كويتياً لا غير');
+  assert.equal(kwdInWords(200), 'فقط مئتا دينار كويتي لا غير');
+  assert.equal(kwdInWords(5), 'فقط خمسة دنانير كويتية لا غير');
+  assert.equal(kwdInWords(1), 'فقط دينار كويتي واحد لا غير');
+  assert.equal(kwdInWords(12.375), 'فقط اثنا عشر ديناراً كويتياً وثلاثمئة وخمسة وسبعون فلساً لا غير');
+  assert.equal(kwdInWords(0), '');
+});

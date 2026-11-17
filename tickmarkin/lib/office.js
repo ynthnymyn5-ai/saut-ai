@@ -3,6 +3,9 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const INSTITUTE_FILE = path.join(__dirname, '..', 'data', 'institute.json');
 
 const clean = (v, max = 200) => String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max);
 const cleanMultiline = (v, max = 2000) => String(v ?? '').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, ' ').trim().slice(0, max);
@@ -188,6 +191,49 @@ function createOffice({ store, send, readBody, getSession, signSession, sessionC
         balances: Object.fromEntries(bal),
         paymentMethods: PAYMENT_METHODS,
       }), true;
+    }
+
+    // data for printable receipts and account statements
+    if (p === '/api/office/print' && m === 'GET') {
+      const type = url.searchParams.get('type');
+      const id = url.searchParams.get('id') || '';
+      const all = await loadAll();
+      const institute = JSON.parse(fs.readFileSync(INSTITUTE_FILE, 'utf8'));
+      const className = (cid) => all.classes.find((c) => c.id === cid)?.name || '';
+      const pubStudent = (s) => ({ id: s.id, name: s.name, grade: s.grade, phone: s.phone, guardianName: s.guardianName, guardianPhone: s.guardianPhone, classes: s.classIds.map(className).filter(Boolean) });
+      const sum = (arr) => Math.round(arr.reduce((a, x) => a + (Number(x.amount) || 0), 0) * 1000) / 1000;
+
+      if (type === 'receipt') {
+        const pay = all.payments.find((x) => x.id === id);
+        if (!pay) return send(res, 404, { error: 'not_found' }), true;
+        const s = all.students.find((x) => x.id === pay.studentId);
+        if (!s) return send(res, 404, { error: 'not_found' }), true;
+        const fees = all.fees.filter((f) => f.studentId === s.id);
+        // payments up to and including this one (by date, then creation time)
+        const key = (x) => (x.paidAt || '') + '|' + (x.createdAt || '');
+        const upTo = all.payments.filter((x) => x.studentId === s.id && key(x) <= key(pay));
+        const charged = sum(fees), paidToDate = sum(upTo);
+        return send(res, 200, {
+          type, institute, student: pubStudent(s),
+          payment: { id: pay.id, amount: Number(pay.amount), method: pay.method, paidAt: pay.paidAt, note: pay.note, createdAt: pay.createdAt },
+          totals: { charged, paidToDate, balanceAfter: Math.round((charged - paidToDate) * 1000) / 1000 },
+        }), true;
+      }
+
+      if (type === 'statement') {
+        const s = all.students.find((x) => x.id === id);
+        if (!s) return send(res, 404, { error: 'not_found' }), true;
+        const entries = [
+          ...all.fees.filter((f) => f.studentId === s.id).map((f) => ({ kind: 'fee', id: f.id, date: (f.createdAt || '').slice(0, 10), sortKey: (f.createdAt || ''), description: f.description, className: className(f.classId), dueDate: f.dueDate, amount: Number(f.amount) })),
+          ...all.payments.filter((x) => x.studentId === s.id).map((x) => ({ kind: 'payment', id: x.id, date: x.paidAt, sortKey: (x.paidAt || '') + 'T23:59:59|' + (x.createdAt || ''), description: 'دفعة — ' + x.method + (x.note ? ' (' + x.note + ')' : ''), amount: Number(x.amount) })),
+        ].sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+        let bal = 0;
+        for (const e of entries) { bal = Math.round((bal + (e.kind === 'fee' ? e.amount : -e.amount)) * 1000) / 1000; e.balance = bal; delete e.sortKey; }
+        const charged = sum(entries.filter((e) => e.kind === 'fee'));
+        const paid = sum(entries.filter((e) => e.kind === 'payment'));
+        return send(res, 200, { type, institute, student: pubStudent(s), entries, totals: { charged, paid, balance: Math.round((charged - paid) * 1000) / 1000 }, generatedAt: new Date().toISOString() }), true;
+      }
+      return send(res, 400, { error: 'bad_type' }), true;
     }
 
     if (p === '/api/office/finance.csv' && m === 'GET') {
