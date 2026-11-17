@@ -15,6 +15,17 @@ function validTimeZone(tz: string) {
   }
 }
 
+/**
+ * ANTHROPIC_API_KEY, or — when a dashboard saved the key under an
+ * auto-generated variable name — any variable whose value is an Anthropic key.
+ */
+function anthropicKey() {
+  const named = str("ANTHROPIC_API_KEY");
+  if (named) return named;
+  for (const v of Object.values(process.env)) if (v && /^sk-ant-[\w-]{20,}$/.test(v.trim())) return v.trim();
+  return "";
+}
+
 function ownerTimeZone() {
   const explicit = str("OWNER_TZ");
   if (explicit && validTimeZone(explicit)) return explicit;
@@ -45,7 +56,7 @@ export const env = {
 
   // AI — Claude (preferred when set) and/or OpenAI
   LLM_PROVIDER: str("LLM_PROVIDER").toLowerCase(),
-  ANTHROPIC_API_KEY: str("ANTHROPIC_API_KEY"),
+  ANTHROPIC_API_KEY: anthropicKey(),
   ANTHROPIC_MODEL: str("ANTHROPIC_MODEL", "claude-opus-5-5"),
   /** low | medium | high | xhigh | max — Opus 5.5 defaults to medium */
   ANTHROPIC_EFFORT: str("ANTHROPIC_EFFORT", "medium"),

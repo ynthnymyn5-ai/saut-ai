@@ -23,7 +23,8 @@ export function createApp() {
     try {
       const { pool } = await import("./db");
       const r = await pool.query("select count(*)::int as tasks from tasks");
-      res.json({ ok: true, db: "ok", tasks: r.rows[0].tasks });
+      const { llm } = await import("./llm");
+      res.json({ ok: true, db: "ok", tasks: r.rows[0].tasks, ai: llm().name });
     } catch (e) {
       res.status(503).json({ ok: false, db: (e as Error).message });
     }
