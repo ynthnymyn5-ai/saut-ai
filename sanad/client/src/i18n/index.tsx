@@ -68,6 +68,7 @@ const en = {
     no: "No",
   },
   agentsTitle: "Agents",
+  login: { password: "Password", signIn: "Sign in", wrong: "Wrong password.", tooMany: "Too many attempts — wait a minute." },
 };
 
 type Dict = typeof en;
@@ -135,6 +136,7 @@ const ar: Dict = {
     no: "لا",
   },
   agentsTitle: "الوكلاء",
+  login: { password: "كلمة المرور", signIn: "تسجيل الدخول", wrong: "كلمة المرور غير صحيحة.", tooMany: "محاولات كثيرة — انتظر دقيقة." },
 };
 
 const dicts: Record<Lang, Dict> = { en, ar };

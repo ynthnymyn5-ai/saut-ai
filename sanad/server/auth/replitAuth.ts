@@ -8,7 +8,8 @@
  * local owner, unless NODE_ENV=production (then set AUTH_DISABLED=true
  * explicitly if you really want no login, e.g. behind your own VPN).
  */
-import type { Express, NextFunction, Request, Response } from "express";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
+import crypto from "node:crypto";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import * as oidc from "openid-client";
@@ -25,8 +26,9 @@ declare module "express-session" {
   }
 }
 
-export const authMode = (): "replit" | "local" | "misconfigured" => {
+export const authMode = (): "replit" | "password" | "local" | "misconfigured" => {
   if (env.REPL_ID) return "replit";
+  if (env.OWNER_PASSWORD) return "password";
   if (!env.isProd || env.AUTH_DISABLED) return "local";
   return "misconfigured";
 };
@@ -53,6 +55,7 @@ export function setupAuth(app: Express) {
       secret: env.SESSION_SECRET,
       resave: false,
       saveUninitialized: false,
+      proxy: true,
       cookie: { httpOnly: true, secure: env.isProd || Boolean(env.REPL_ID), sameSite: "lax", maxAge: 30 * 24 * 3600_000 },
     }),
   );
@@ -60,6 +63,28 @@ export function setupAuth(app: Express) {
   app.get("/api/auth/me", (req, res) => {
     if (authMode() === "local" && !req.session.user) req.session.user = { id: "local-owner", email: null, name: "Owner", image: null };
     res.json({ user: req.session.user ?? null, mode: authMode() });
+  });
+
+  // Password login (single owner) — for hosts without Replit Auth
+  const attempts = new Map<string, { n: number; until: number }>();
+  app.post("/api/auth/login", express.json(), (req, res) => {
+    if (authMode() !== "password") return res.status(400).json({ error: "password_login_disabled" });
+    const ip = req.ip ?? "?";
+    const a = attempts.get(ip);
+    if (a && a.until > Date.now()) return res.status(429).json({ error: "too_many_attempts", message: "Too many attempts — wait a minute." });
+    const given = crypto.createHash("sha256").update(String(req.body?.password ?? "")).digest();
+    const expected = crypto.createHash("sha256").update(env.OWNER_PASSWORD).digest();
+    if (!crypto.timingSafeEqual(given, expected)) {
+      const n = (a?.n ?? 0) + 1;
+      attempts.set(ip, { n, until: n >= 5 ? Date.now() + 60_000 : 0 });
+      void logActivity({ action: "auth.denied", actor: "system", summary: "Wrong password", status: "failed" });
+      return res.status(401).json({ error: "wrong_password", message: "Wrong password." });
+    }
+    attempts.delete(ip);
+    req.session.regenerate(() => {
+      req.session.user = { id: "owner", email: env.OWNER_EMAIL || null, name: "Owner", image: null };
+      req.session.save(() => res.json({ ok: true }));
+    });
   });
 
   app.get("/api/login", async (req, res) => {

@@ -73,6 +73,22 @@ export async function runDailyFollowUps(force = false) {
   await telegramSend(lang === "ar" ? `🤝 صغت ${queued.length} رسائل متابعة (${names}). وافق عليها من التطبيق.` : `🤝 I drafted ${queued.length} follow-up email(s) (${names}). Approve them in the app.`).catch(() => false);
 }
 
+/** One pass of every job (each one checks its own time). Used by the timer and by /api/cron/tick. */
+export async function runScheduledJobs() {
+  const jobs = { reminders: runReminders, brief: () => runMorningBrief(), weekly: () => runWeeklyReport(), followUps: () => runDailyFollowUps() };
+  const out: Record<string, string> = {};
+  for (const [name, fn] of Object.entries(jobs)) {
+    try {
+      await fn();
+      out[name] = "ok";
+    } catch (e) {
+      console.error(`[scheduler] ${name}`, e);
+      out[name] = `error: ${(e as Error).message}`;
+    }
+  }
+  return out;
+}
+
 export function startScheduler() {
   const tick = () => {
     runReminders().catch((e) => console.error("[scheduler] reminders", e));

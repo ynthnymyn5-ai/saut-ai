@@ -211,7 +211,7 @@ export function SettingsPage() {
           <div className="mt-4 border-t border-white/5 pt-3">
             <p className="label mb-1">{t.settings.account}</p>
             <p className="text-sm text-zinc-300">{user?.name ?? user?.email ?? "Owner"} <span className="text-xs text-zinc-500">({authMode})</span></p>
-            {authMode === "replit" && (
+            {(authMode === "replit" || authMode === "password") && (
               <a href="/api/logout" className="btn-ghost mt-2 text-xs">
                 <LogOut className="h-3.5 w-3.5" /> {t.settings.logout}
               </a>

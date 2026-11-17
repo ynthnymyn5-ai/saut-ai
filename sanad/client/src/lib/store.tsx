@@ -122,6 +122,8 @@ export function SanadProvider({ children }: { children: ReactNode }) {
 
   // Bootstrap
   useEffect(() => {
+    const onUnauthorized = () => setUser(null);
+    window.addEventListener("sanad:unauthorized", onUnauthorized);
     api.get<{ user: SanadCtx["user"]; mode: string }>("/api/auth/me").then((r) => {
       setAuthMode(r.mode);
       if (!r.user && r.mode === "replit") window.location.href = "/api/login";
@@ -129,6 +131,7 @@ export function SanadProvider({ children }: { children: ReactNode }) {
     });
     api.get<AppStatus>("/api/status").then(setStatus).catch(() => {});
     api.get<PendingActionDTO[]>("/api/actions/pending").then(setPending).catch(() => {});
+    return () => window.removeEventListener("sanad:unauthorized", onUnauthorized);
   }, []);
 
   const setPref = useCallback(<K extends keyof Prefs>(k: K, v: Prefs[K]) => {

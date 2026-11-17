@@ -13,6 +13,16 @@ import { AgentPage } from "./pages/AgentPage";
 import { HistoryPage } from "./pages/History";
 import { ActivityPage } from "./pages/Activity";
 import { SettingsPage } from "./pages/Settings";
+import { LoginPage } from "./pages/Login";
+import { useSanad } from "./lib/store";
+import type { ReactNode } from "react";
+
+/** Shows the owner login screen in password mode until signed in. */
+function AuthGate({ children }: { children: ReactNode }) {
+  const { user, authMode } = useSanad();
+  if (authMode === "password" && !user) return <LoginPage />;
+  return <>{children}</>;
+}
 
 // Static demo build (VITE_DEMO=1): in-browser mock server + in-memory routing
 const DEMO = import.meta.env.VITE_DEMO === "1";
@@ -25,6 +35,7 @@ createRoot(document.getElementById("root")!).render(
       <SanadProvider>
         <ConfirmProvider>
           <Router>
+            <AuthGate>
             <Layout>
               <Routes>
                 <Route path="/" element={<HomePage />} />
@@ -37,6 +48,7 @@ createRoot(document.getElementById("root")!).render(
               </Routes>
             </Layout>
             <PendingActionsModal />
+            </AuthGate>
           </Router>
         </ConfirmProvider>
       </SanadProvider>

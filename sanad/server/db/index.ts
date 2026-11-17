@@ -11,8 +11,10 @@ if (!env.DATABASE_URL) {
 
 export const pool = new pg.Pool({
   connectionString: env.DATABASE_URL,
-  ssl: /sslmode=require|neon\.tech/.test(env.DATABASE_URL) ? { rejectUnauthorized: false } : undefined,
-  max: 10,
+  ssl: /sslmode=require|neon\.tech|supabase\.com/.test(env.DATABASE_URL) ? { rejectUnauthorized: false } : undefined,
+  // Serverless functions each hold a small pool; a VM can use more.
+  max: process.env.VERCEL ? 3 : 10,
+  idleTimeoutMillis: 10_000,
 });
 
 export const db = drizzle(pool, { schema });

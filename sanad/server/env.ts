@@ -12,7 +12,7 @@ export const env = {
   PORT: Number(str("PORT", "5000")),
   DATABASE_URL: str("DATABASE_URL"),
   SESSION_SECRET: str("SESSION_SECRET", "dev-only-insecure-secret"),
-  APP_URL: str("APP_URL") || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : ""),
+  APP_URL: str("APP_URL") || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : ""),
 
   // Auth (Replit Auth = OpenID Connect against replit.com/oidc)
   REPL_ID: str("REPL_ID"),
@@ -20,6 +20,10 @@ export const env = {
   OWNER_EMAIL: str("OWNER_EMAIL").toLowerCase(),
   /** Explicit opt-out for local development only. Ignored when REPL_ID is set. */
   AUTH_DISABLED: str("AUTH_DISABLED") === "true",
+  /** Single-owner password login (used where Replit Auth isn't available, e.g. Vercel) */
+  OWNER_PASSWORD: str("OWNER_PASSWORD"),
+  /** Bearer secret for /api/cron/tick (scheduler on serverless hosts) */
+  CRON_SECRET: str("CRON_SECRET"),
 
   // AI — Claude (preferred when set) and/or OpenAI
   LLM_PROVIDER: str("LLM_PROVIDER").toLowerCase(),

@@ -12,8 +12,9 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  if (res.status === 401) {
-    window.location.href = `/api/login?returnTo=${encodeURIComponent(location.pathname)}`;
+  if (res.status === 401 && !url.startsWith("/api/auth/")) {
+    // Signed out: the app shell shows the login screen (or Replit sign-in)
+    window.dispatchEvent(new Event("sanad:unauthorized"));
     throw new ApiError(401, "unauthorized");
   }
   const data = res.headers.get("content-type")?.includes("json") ? await res.json() : await res.text();
