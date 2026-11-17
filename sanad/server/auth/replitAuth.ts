@@ -72,8 +72,9 @@ export function setupAuth(app: Express) {
     const ip = req.ip ?? "?";
     const a = attempts.get(ip);
     if (a && a.until > Date.now()) return res.status(429).json({ error: "too_many_attempts", message: "Too many attempts — wait a minute." });
-    const given = crypto.createHash("sha256").update(String(req.body?.password ?? "")).digest();
-    const expected = crypto.createHash("sha256").update(env.OWNER_PASSWORD).digest();
+    // trim: phones and password managers sometimes add a space
+    const given = crypto.createHash("sha256").update(String(req.body?.password ?? "").trim()).digest();
+    const expected = crypto.createHash("sha256").update(env.OWNER_PASSWORD.trim()).digest();
     if (!crypto.timingSafeEqual(given, expected)) {
       const n = (a?.n ?? 0) + 1;
       attempts.set(ip, { n, until: n >= 5 ? Date.now() + 60_000 : 0 });

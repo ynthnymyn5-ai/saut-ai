@@ -18,8 +18,13 @@ export const pool = new pg.Pool({
   ssl: /sslmode=require|neon\.tech|supabase\.com/.test(env.DATABASE_URL) ? { rejectUnauthorized: false } : undefined,
   // Serverless functions each hold a small pool; a VM can use more.
   max: process.env.VERCEL ? 3 : 10,
-  idleTimeoutMillis: 10_000,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 15_000,
+  keepAlive: true,
 });
 
 export const db = drizzle(pool, { schema });
 export { schema };
+
+// A dropped idle connection (pooler restart, network blip) must not crash the function
+pool.on("error", (e) => console.error("[db] idle client error", e.message));
