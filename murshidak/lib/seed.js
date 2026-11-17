@@ -31,8 +31,12 @@ function addDays(base, n) {
   return d.toISOString().slice(0, 10);
 }
 
-/** Seed sample data once (inside the caller's transaction). `today` is YYYY-MM-DD in Kuwait time. */
-export async function seedIfEmpty(db, today) {
+/**
+ * Seed once (inside the caller's transaction): the procedure library and agents always;
+ * the three sample accounts only when `demoAccounts` is true (local development and tests).
+ * `today` is YYYY-MM-DD in Kuwait time.
+ */
+export async function seedIfEmpty(db, today, { demoAccounts = true } = {}) {
   const n = (await db.get('SELECT CAST(COUNT(*) AS INTEGER) c FROM procedures')).c;
   if (n > 0) return false;
   const procId = {};
@@ -42,6 +46,7 @@ export async function seedIfEmpty(db, today) {
     agentId.push((await db.run(`INSERT INTO agents (name_ar,name_en,phone,bio_ar,bio_en,categories,areas_ar,areas_en,rating,reviews,price_kwd,years,status)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, a[0], a[1], a[2], a[3], a[4], JSON.stringify(a[5]), a[6], a[7], a[8], a[9], a[10], a[11], a[12])).id);
   }
+  if (!demoAccounts) return true;
   const user = async (phone, name, role, plan) => (await db.run('INSERT INTO users (phone,name,role,plan) VALUES (?,?,?,?)', phone, name, role, plan)).id;
   const member = async (u, name, rel, nat) => (await db.run('INSERT INTO members (user_id,name,relation,nationality) VALUES (?,?,?,?)', u, name, rel, nat)).id;
   const doc = (u, mid, type, label, num, days, notes) => db.run('INSERT INTO documents (user_id,member_id,type,label,number_enc,expiry_date,notes) VALUES (?,?,?,?,?,?,?)',

@@ -45,6 +45,8 @@ const fail = (status, code, extra) => { throw new HttpError(status, code, extra)
 export function createApp({
   dataDir = process.env.DATA_DIR || path.join(__dirname, 'data'),
   databaseUrl = process.env.DATABASE_URL,
+  // Sample accounts (99999999 / 98888888 / 90000000) are for local development only, never a live database.
+  demoAccounts = process.env.SEED_DEMO_ACCOUNTS ? process.env.SEED_DEMO_ACCOUNTS === '1' : !databaseUrl,
 } = {}) {
   if (databaseUrl && !process.env.MURSHIDAK_SECRET) {
     throw new Error('MURSHIDAK_SECRET is required with DATABASE_URL (all instances must share the encryption key).');
@@ -56,11 +58,12 @@ export function createApp({
   // instead of leaving a warm serverless instance broken.
   const ready = () => (readyPromise ||= (async () => {
     db ||= await openDb({ dataDir, databaseUrl });
-    await db.init((t) => seedIfEmpty(t, kuwaitToday()));
+    await db.init((t) => seedIfEmpty(t, kuwaitToday(), { demoAccounts }));
     runReminders().catch((e) => console.error('[reminders]', e.message));
   })().catch((e) => { readyPromise = null; throw e; }));
   ready().catch((e) => console.error('[startup]', e.message));
-  const adminPhones = new Set(String(process.env.ADMIN_PHONES || '90000000').split(',').map((s) => s.trim()).filter(Boolean));
+  // No default admin: only numbers listed here become admins (on sign-up or their next sign-in).
+  const adminPhones = new Set(String(process.env.ADMIN_PHONES || '').split(',').map((s) => normPhone(s)).filter(Boolean));
   const demoOtp = !process.env.SMS_PROVIDER;
 
   // ---------- serializers
@@ -203,6 +206,9 @@ export function createApp({
         if (!(await t.get("SELECT 1 x FROM members WHERE user_id=? AND relation='self'", id))) await t.run('INSERT INTO members (user_id,name,relation) VALUES (?,?,?)', id, name || '—', 'self');
       });
       user = await db.get('SELECT * FROM users WHERE phone=?', phone);
+    } else if (adminPhones.has(phone) && user.role !== 'admin') {
+      await db.run("UPDATE users SET role='admin' WHERE id=?", user.id);
+      user = await userById(user.id);
     }
     const token = randomToken();
     await db.run('INSERT INTO sessions (token_hash,user_id,expires_at) VALUES (?,?,?)', sha256(token), user.id, Date.now() + 30 * 86400e3);

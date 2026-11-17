@@ -13,7 +13,7 @@ const { createApp } = await import('../server.js');
 let server, base, app;
 
 before(async () => {
-  app = createApp({ dataDir, databaseUrl });
+  app = createApp({ dataDir, databaseUrl, demoAccounts: true });
   await app.locals.ready;
   await new Promise((r) => { server = app.listen(0, r); });
   base = `http://localhost:${server.address().port}/api`;
