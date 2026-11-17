@@ -75,7 +75,7 @@ Without `REPL_ID`, development mode signs you in automatically as the local owne
 | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_OWNER_NUMBER` | For WhatsApp | WhatsApp Business Cloud API (Meta) |
 | `NOTION_TOKEN` | For Notion | Internal integration token. Share pages with the integration. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Optional | Web Push keys. If you leave them out, they are generated once and stored in the database. |
-| `TZ` | Optional | Your timezone. Default `Asia/Kuwait`. Used for "today", "tomorrow at 10" and the brief time. |
+| `OWNER_TZ` | Optional | Your timezone (e.g. `Asia/Kuwait`, the default). On Vercel use this instead of the reserved `TZ`. Used for "today", "tomorrow at 10" and the brief time. |
 | `BRIEF_HOUR` | Optional | Hour of the morning brief. Default `7`. |
 | `CURRENCY` | Optional | Default `KWD` |
 | `APP_URL` | Optional | Public URL for OAuth callbacks and webhooks. It is detected automatically on Replit. |
@@ -178,4 +178,4 @@ Tap **Start a live conversation** on Home (it appears when `OPENAI_API_KEY` is s
 
 - On Replit **Autoscale** deployments the in-process scheduler sleeps. Use a Reserved VM, or call `POST /api/brief/send` from an external cron.
 - iOS supports Web Push only for installed PWAs (iOS 16.4+).
-- Times on screen use your device's timezone. Sanad reasons in `TZ`, so keep the two the same.
+- Times on screen use your device's timezone. Sanad reasons in `OWNER_TZ`, so keep the two the same.

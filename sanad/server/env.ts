@@ -6,6 +6,24 @@ import "dotenv/config";
 
 const str = (k: string, d = "") => (process.env[k] ?? d).trim();
 
+function validTimeZone(tz: string) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function ownerTimeZone() {
+  const explicit = str("OWNER_TZ");
+  if (explicit && validTimeZone(explicit)) return explicit;
+  const tz = str("TZ").replace(/^:/, "");
+  // ":UTC" / "UTC" is the platform default, not a choice by the owner
+  if (tz && tz !== "UTC" && validTimeZone(tz)) return tz;
+  return "Asia/Kuwait";
+}
+
 export const env = {
   NODE_ENV: str("NODE_ENV", "development"),
   isProd: str("NODE_ENV") === "production",
@@ -58,7 +76,8 @@ export const env = {
   VAPID_PRIVATE_KEY: str("VAPID_PRIVATE_KEY"),
   VAPID_SUBJECT: str("VAPID_SUBJECT", "mailto:owner@example.com"),
   BRIEF_HOUR: Number(str("BRIEF_HOUR", "7")),
-  TZ: str("TZ", "Asia/Kuwait"),
+  /** Owner timezone. OWNER_TZ wins; hosts like Vercel force TZ=":UTC" for the process, which is ignored. */
+  TZ: ownerTimeZone(),
   CURRENCY: str("CURRENCY", "KWD"),
   BUSINESS_NAME: str("BUSINESS_NAME", "Noor Studio"),
   BUSINESS_DETAILS: str("BUSINESS_DETAILS", "Kuwait City, Kuwait"),
