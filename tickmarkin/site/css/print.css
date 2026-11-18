@@ -13,7 +13,7 @@ html, body { margin: 0; background: #e9ecf5; color: var(--ink); font-family: "Ta
 
 .doc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-bottom: 14px; border-bottom: 3px solid var(--brand); }
 .brand { display: flex; align-items: center; gap: 12px; }
-.brand svg { width: 56px; height: 56px; flex: none; }
+.brand img { height: 58px; width: auto; flex: none; }
 .brand strong { display: block; font-family: "Alexandria", sans-serif; font-size: 1.25rem; }
 .brand small { color: var(--muted); display: block; }
 .contact { text-align: left; color: var(--muted); font-size: .86rem; line-height: 1.7; direction: rtl; }
@@ -57,7 +57,7 @@ tfoot td { font-weight: 800; border-top: 2px solid var(--ink); border-bottom: 0;
 .stamp { border: 2px dashed var(--line) !important; border-radius: 50%; width: 110px; height: 110px; margin: -20px auto 0; padding-top: 38px !important; }
 .foot { margin-top: 22px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .watermark { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
-.watermark svg { width: 360px; height: 360px; opacity: .04; }
+.watermark img { width: 380px; height: auto; opacity: .05; }
 
 @page { size: A4; margin: 0; }
 @media print {

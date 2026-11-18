@@ -11,9 +11,7 @@
     for (const c of children.flat(Infinity)) if (c !== null && c !== undefined && c !== false && c !== '') el.append(c instanceof Node ? c : String(c));
     return el;
   }
-  // static brand mark (constant markup, no user data)
-  const LOGO = '<svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="pg" x1="6" y1="4" x2="44" y2="46" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4466ff"/><stop offset=".55" stop-color="#5a3df0"/><stop offset="1" stop-color="#7c2fe0"/></linearGradient><linearGradient id="pd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd25e"/><stop offset="1" stop-color="#ff8a2a"/></linearGradient></defs><rect x="1" y="1" width="46" height="46" rx="14" fill="url(#pg)"/><path d="M9 32.6c4.8-2.7 9.8-2.7 15 .7 5.2-3.4 10.2-3.4 15-.7v4.2c-4.8-2.5-9.8-2.5-15 .9-5.2-3.4-10.2-3.4-15-.9z" fill="#fff" opacity=".62"/><path d="M14.8 20.6l6.1 6.2 12.9-14" fill="none" stroke="#fff" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="37.4" cy="9.6" r="3" fill="url(#pd)"/></svg>';
-  const logo = () => { const s = h('span'); s.innerHTML = LOGO; return s.firstChild; };
+  const logo = () => h('img', { src: '/img/logo-mark.png', alt: '' });
 
   const params = new URLSearchParams(location.search);
   const type = params.get('type');
