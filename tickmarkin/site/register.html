@@ -29,6 +29,8 @@
         <form class="form-card" id="register-form" novalidate>
           <div class="form-alert hidden" role="alert"></div>
           <div class="form-grid">
+            <div class="field full" data-field="requestType"><label>نوع الطلب</label>
+              <div class="radio-row"><label><input type="radio" name="requestType" value="تسجيل" checked> تسجيل في الدورة</label><label><input type="radio" name="requestType" value="حصة تجريبية"> 🎁 حصة تجريبية مجانية</label></div><div class="err"></div></div>
             <div class="field full" data-field="courseId"><label for="courseId">الدورة <span class="req">*</span></label><select id="courseId" name="courseId" required><option value="">جارٍ التحميل…</option></select><div class="err"></div></div>
             <div class="field" data-field="name"><label for="r-name">الاسم الكامل <span class="req">*</span></label><input id="r-name" name="name" type="text" autocomplete="name" required><div class="err"></div></div>
             <div class="field" data-field="phone"><label for="r-phone">رقم الجوال <span class="req">*</span></label><input id="r-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="9xxxxxxx" required><div class="err"></div></div>

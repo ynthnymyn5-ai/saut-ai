@@ -197,7 +197,8 @@ function createHandler(options = {}) {
       const course = courseById.get(clean(b.courseId, 60));
       const mode = clean(b.mode, 30);
       const studentType = clean(b.studentType, 30);
-      const notes = cleanMultiline(b.notes, 1000);
+      const requestType = b.requestType === 'حصة تجريبية' ? 'حصة تجريبية' : 'تسجيل';
+      const notes = ((requestType === 'حصة تجريبية' ? '🎁 طلب حصة تجريبية مجانية\n' : '') + cleanMultiline(b.notes, 960)).trim();
       if (name.length < 3) errors.name = 'الرجاء كتابة الاسم الكامل';
       if (!phone) errors.phone = 'رقم الجوال غير صحيح';
       if (email && !isEmail(email)) errors.email = 'البريد الإلكتروني غير صحيح';

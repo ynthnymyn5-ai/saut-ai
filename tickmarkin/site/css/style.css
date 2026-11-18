@@ -478,6 +478,54 @@ td select { padding: 6px 8px; width: auto; font-size: .9rem; }
 .login-box { max-width: 420px; margin: 10vh auto; }
 .unread td { background: color-mix(in srgb, var(--brand) 4%, transparent); font-weight: 600; }
 
+/* ---------- programs, kids illustrations, free trial ---------- */
+.price.ask { font-family: "Tajawal", sans-serif; font-size: .98rem; color: var(--brand); }
+.badges { position: relative; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: .78rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.badge.trial { background: var(--accent-soft); color: #b06d00; }
+.badge.cert { background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); }
+.course-top .kid { position: absolute; inset-inline-end: 6px; bottom: -6px; height: 112px; width: auto; transition: transform .5s var(--ease); pointer-events: none; }
+.course-top:has(.kid) { padding-inline-end: 104px; min-height: 128px; }
+.course-card:hover .kid { transform: translateY(-6px) rotate(-3deg); }
+.kid-aside { display: block; height: 150px; width: auto; margin: -8px auto 0; }
+
+.stage-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+@media (max-width: 1000px) { .stage-grid { grid-template-columns: 1fr; max-width: 560px; margin-inline: auto; } }
+.stage-card { position: relative; display: flex; flex-direction: column; border-radius: 26px; overflow: hidden; background: var(--card); border: 1px solid var(--line); color: var(--ink); box-shadow: var(--shadow); transition: transform .4s var(--ease), box-shadow .4s var(--ease); }
+.stage-card:hover { text-decoration: none; transform: translateY(-8px); box-shadow: var(--shadow-lg); }
+.stage-art { position: relative; height: 210px; display: grid; place-items: end center; overflow: hidden; }
+.stage-card[data-stage="0"] .stage-art { background: radial-gradient(circle at 50% 120%, #ffd6dc, transparent 65%), linear-gradient(160deg, #ffe9ec, #fff6f0); }
+.stage-card[data-stage="1"] .stage-art { background: radial-gradient(circle at 50% 120%, #c9d6ff, transparent 65%), linear-gradient(160deg, #e8eeff, #f3f6ff); }
+.stage-card[data-stage="2"] .stage-art { background: radial-gradient(circle at 50% 120%, #ddd0ff, transparent 65%), linear-gradient(160deg, #efe9ff, #f7f3ff); }
+:root[data-theme="dark"] .stage-art { filter: saturate(1.05); }
+:root[data-theme="dark"] .stage-card .stage-art { background: radial-gradient(circle at 50% 120%, color-mix(in srgb, var(--brand) 45%, transparent), transparent 65%), #141c4a; }
+.stage-kid { height: 200px; width: auto; margin-bottom: -8px; transition: transform .5s var(--ease); }
+.stage-card:hover .stage-kid { transform: translateY(-8px) scale(1.04); }
+.stage-ribbon { position: absolute; top: 14px; inset-inline-start: 14px; background: var(--grad-warm); color: #2a1300; font-weight: 800; font-size: .82rem; padding: 5px 12px; border-radius: 999px; box-shadow: 0 8px 18px -8px rgba(255,122,47,.7); }
+.stage-body { padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.stage-body h3 { font-size: 1.35rem; margin: 0; }
+.stage-sub { margin: -4px 0 0; color: var(--brand); font-weight: 700; }
+.stage-body ul { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 6px; }
+.stage-body li { display: flex; gap: 8px; align-items: flex-start; color: var(--ink-2); font-size: .95rem; }
+.stage-body li::before { content: "✓"; color: var(--green); font-weight: 800; }
+.stage-foot { margin-top: auto; padding-top: 14px; border-top: 1px dashed var(--line); display: flex; justify-content: space-between; align-items: center; }
+.stage-price b { font-family: "Alexandria", sans-serif; font-size: 1.9rem; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.stage-price small { color: var(--muted); }
+.stage-price.ask { color: var(--brand); font-weight: 700; }
+.stage-go { color: var(--brand); font-weight: 700; transition: transform .3s var(--ease); }
+.stage-card:hover .stage-go { transform: translateX(-6px); }
+
+.trial-band { position: relative; overflow: hidden; display: grid; grid-template-columns: 300px 1fr; gap: 28px; align-items: center; border-radius: 30px; padding: 28px clamp(22px, 4vw, 48px); background: radial-gradient(500px circle at 0% 0%, color-mix(in srgb, var(--accent) 25%, transparent), transparent 60%), var(--grad); color: #fff; box-shadow: var(--shadow-lg); }
+.trial-kids { position: relative; display: flex; justify-content: center; align-items: flex-end; height: 230px; }
+.trial-kids img { height: 220px; width: auto; animation: bob 5s ease-in-out infinite; }
+.trial-kids img + img { height: 210px; margin-inline-start: -40px; animation-delay: -2.5s; }
+.trial-tag { display: inline-block; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); padding: 4px 14px; border-radius: 999px; font-weight: 800; margin-bottom: 10px; }
+.trial-text h2 { color: #fff; margin-bottom: 14px; }
+.trial-steps { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-wrap: wrap; gap: 10px; }
+.trial-steps li { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25); border-radius: 14px; padding: 8px 14px; font-weight: 700; }
+.trial-steps span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #fff; color: var(--brand); font-weight: 800; font-size: .9rem; }
+@media (max-width: 800px) { .trial-band { grid-template-columns: 1fr; text-align: center; } .trial-steps { justify-content: center; } .trial-kids { height: 190px; } .trial-kids img { height: 180px; } .trial-kids img + img { height: 170px; } }
+
 /* ---------- motion graphics ---------- */
 .scene { width: 100%; height: auto; display: block; overflow: visible; }
 .scene * { transform-box: fill-box; transform-origin: center; }

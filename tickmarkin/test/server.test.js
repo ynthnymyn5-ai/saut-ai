@@ -112,3 +112,14 @@ test('CSV export neutralises formula injection', async () => {
   const csv = await (await fetch(base + '/api/admin/export.csv', { headers: { cookie } })).text();
   assert.match(csv, /"'=HYPERLINK/);
 });
+
+test('free trial request is marked on the registration; new programs are in the catalog', async () => {
+  const r = await post('/api/register', { ...valid, courseId: 'secondary-all', requestType: 'حصة تجريبية', notes: 'بعد العصر' });
+  assert.equal(r.status, 201);
+  const saved = JSON.parse(fs.readFileSync(dataFile, 'utf8')).registrations.find((x) => x.courseId === 'secondary-all');
+  assert.match(saved.notes, /^🎁 طلب حصة تجريبية مجانية\nبعد العصر$/);
+  const c = await (await fetch(base + '/api/catalog')).json();
+  for (const id of ['primary', 'middle-bag', 'secondary-all', 'english-cambridge', 'general-management']) assert.ok(c.courses.some((x) => x.id === id), id);
+  assert.equal(c.courses.find((x) => x.id === 'secondary-all').price, 120);
+  assert.equal(c.courses.find((x) => x.id === 'middle-bag').price, 99);
+});

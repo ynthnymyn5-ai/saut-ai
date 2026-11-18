@@ -27,6 +27,12 @@
     return r.json();
   }));
 
+  const priceHTML = (c, big) => c.price == null ? `<span class="price ask">${big ? 'تواصل معنا للسعر' : 'اسأل عن السعر'}</span>` : `<span class="price">${fmtPrice(c.price)} <small>د.ك</small></span>`;
+  const priceText = (c) => c.price == null ? 'تواصل معنا' : `${fmtPrice(c.price)} د.ك`;
+  const startText = (c) => c.start ? `يبدأ ${fmtDate(c.start)}` : 'التسجيل مستمر';
+  const durText = (c) => c.options ? c.options.join(' / ') : c.weeks % 4 === 0 && c.weeks >= 4 ? `${c.weeks / 4 === 1 ? 'شهر' : c.weeks / 4 + ' شهور'}` : `${c.weeks} أسابيع`;
+  const kidImg = (c, cls) => c.kid ? `<img class="${cls}" src="/img/kids/${encodeURIComponent(c.kid)}.svg" alt="" loading="lazy">` : '';
+  const badges = (c) => (c.trial ? '<span class="badge trial">🎁 يوم تجربة مجاني</span>' : '') + (c.certificate ? '<span class="badge cert">🏅 شهادة معتمدة</span>' : '');
   const deptName = (cat, id) => cat.departments.find((d) => d.id === id)?.name || '';
   const instructor = (cat, id) => cat.instructors.find((i) => i.id === id);
 
@@ -34,20 +40,21 @@
     return `
     <article class="card course-card glow reveal" data-dept="${esc(c.dept)}">
       <div class="course-top">
-        <span class="wm" aria-hidden="true">${ICONS[cat.departments.find((d) => d.id === c.dept)?.icon] || ''}</span>
+        ${c.kid ? kidImg(c, 'kid') : `<span class="wm" aria-hidden="true">${ICONS[cat.departments.find((d) => d.id === c.dept)?.icon] || ''}</span>`}
         <span class="chip">${esc(deptName(cat, c.dept))}</span>
         <h3><a href="/course?id=${encodeURIComponent(c.id)}">${esc(c.title)}</a></h3>
+        ${badges(c) ? `<div class="badges">${badges(c)}</div>` : ''}
       </div>
       <div class="course-body">
         <p>${esc(c.summary)}</p>
         <div class="meta">
-          <span>${ICONS.clock}${esc(c.hours)} ساعة · ${esc(c.weeks)} أسابيع</span>
+          <span>${ICONS.clock}${esc(c.schedule || (c.options ? 'مدد مرنة' : `${c.hours} ساعة · ${durText(c)}`))}</span>
           <span>${ICONS.level}${esc(c.level)}</span>
-          <span>${ICONS.calendar}يبدأ ${esc(fmtDate(c.start))}</span>
+          <span>${ICONS.calendar}${esc(c.options ? durText(c) : startText(c))}</span>
           <span>${ICONS.pin}${esc(c.mode)}</span>
         </div>
         <div class="course-foot">
-          <span class="price">${fmtPrice(c.price)} <small>د.ك</small></span>
+          ${priceHTML(c)}
           <a class="btn btn-primary btn-sm" href="/register?course=${encodeURIComponent(c.id)}">سجّل</a>
         </div>
       </div>
@@ -223,10 +230,21 @@
       const cat = await getCatalog();
       const deptEl = $('#home-depts');
       deptEl.innerHTML = cat.departments.map((d) => deptCard(d, cat.courses.filter((c) => c.dept === d.id).length)).join('');
-      const featuredIds = ['qudrat', 'math-hs', 'ielts', 'hr-pro', 'eng-general', 'pm'];
+      const stages = ['primary', 'middle-bag', 'secondary-all'].map((id) => cat.courses.find((c) => c.id === id)).filter(Boolean);
+      $('#stage-cards').innerHTML = stages.map((c, i) => `
+        <a class="stage-card reveal" data-stage="${i}" href="/course?id=${encodeURIComponent(c.id)}">
+          <div class="stage-art">${kidImg(c, 'stage-kid')}${c.trial ? '<span class="stage-ribbon">🎁 يوم تجربة مجاني</span>' : ''}</div>
+          <div class="stage-body">
+            <h3>${esc(c.title.split(' — ')[0])}</h3>
+            ${c.title.includes(' — ') ? `<p class="stage-sub">${esc(c.title.split(' — ')[1])}</p>` : ''}
+            <ul>${c.outcomes.slice(0, 4).map((o) => `<li>${esc(o)}</li>`).join('')}</ul>
+            <div class="stage-foot">${c.price == null ? '<span class="stage-price ask">اسأل عن السعر</span>' : `<span class="stage-price"><b>${fmtPrice(c.price)}</b> د.ك <small>/ شهرياً</small></span>`}<span class="stage-go">التفاصيل ←</span></div>
+          </div>
+        </a>`).join('');
+      const featuredIds = ['secondary-all', 'middle-bag', 'primary', 'english-cambridge', 'general-management', 'ielts'];
       $('#home-courses').innerHTML = featuredIds.map((id) => cat.courses.find((c) => c.id === id)).filter(Boolean).map((c) => courseCard(cat, c)).join('');
       $('#home-people').innerHTML = cat.instructors.slice(0, 4).map((p) => personCard(cat, p)).join('');
-      const upcoming = [...cat.courses].sort((a, b) => a.start.localeCompare(b.start)).slice(0, 4);
+      const upcoming = cat.courses.filter((c) => c.start).sort((a, b) => a.start.localeCompare(b.start)).slice(0, 4);
       $('#hero-upcoming').innerHTML = upcoming.map((c) => `
         <li><a href="/course?id=${encodeURIComponent(c.id)}"><span><b>${esc(c.title)}</b><small>${esc(deptName(cat, c.dept))} · يبدأ ${esc(fmtDate(c.start))}</small></span><span aria-hidden="true">←</span></a></li>`).join('');
       FX.setCount($('#stat-courses'), cat.courses.length);
@@ -292,7 +310,7 @@
           </div>
           <div class="card" style="margin-top:20px">
             <h2 style="font-size:1.4rem">تفاصيل البرنامج</h2>
-            <p class="muted">يُقدَّم البرنامج على مدى ${esc(c.weeks)} أسابيع بإجمالي ${esc(c.hours)} ساعة تدريبية، بأسلوب تطبيقي يجمع بين الشرح والتمارين العملية والمشاريع. يحصل المتدرب عند إتمام 80% من الحضور واجتياز التقييم على شهادة إتمام موثّقة من المعهد.</p>
+            <p class="muted">يُقدَّم البرنامج لمدة ${esc(durText(c))}${c.schedule ? ` (${esc(c.schedule)})` : ''}، بأسلوب تطبيقي يجمع بين الشرح والتمارين العملية والمشاريع. يحصل المتدرب عند إتمام 80% من الحضور واجتياز التقييم على شهادة إتمام موثّقة من المعهد.</p>
             <ul class="check-list">
               <li>مواد تدريبية ومراجع رقمية طوال فترة الدورة</li>
               <li>مجموعات صغيرة لضمان متابعة كل متدرب</li>
@@ -307,10 +325,14 @@
         </div>
         <aside class="card side-card">
           <span class="chip">${esc(deptName(cat, c.dept))}</span>
-          <p class="price" style="font-size:2rem;margin:12px 0">${fmtPrice(c.price)} <small>د.ك</small></p>
+          ${c.kid ? kidImg(c, 'kid-aside') : ''}
+          <p style="font-size:2rem;margin:12px 0">${priceHTML(c, true)}</p>
+          ${badges(c) ? `<div class="badges" style="margin-bottom:14px">${badges(c)}</div>` : ''}
           <ul class="info-list">
-            <li><span>تاريخ البدء</span><span>${esc(fmtDate(c.start))}</span></li>
-            <li><span>المدة</span><span>${esc(c.weeks)} أسابيع</span></li>
+            <li><span>تاريخ البدء</span><span>${esc(c.start ? fmtDate(c.start) : 'التسجيل مستمر')}</span></li>
+            ${c.schedule ? `<li><span>الدوام</span><span>${esc(c.schedule)}</span></li>` : ''}
+            ${c.certificate ? `<li><span>الشهادة</span><span>${esc(c.certificate)}</span></li>` : ''}
+            <li><span>المدة</span><span>${esc(durText(c))}</span></li>
             <li><span>عدد الساعات</span><span>${esc(c.hours)} ساعة</span></li>
             <li><span>المستوى</span><span>${esc(c.level)}</span></li>
             <li><span>طريقة الحضور</span><span>${esc(c.mode)}</span></li>
@@ -411,11 +433,12 @@
           <span class="chip">${esc(deptName(cat, c.dept))}</span>
           <h3 style="margin:10px 0 6px">${esc(c.title)}</h3>
           <ul class="info-list">
-            <li><span>تاريخ البدء</span><span>${esc(fmtDate(c.start))}</span></li>
-            <li><span>المدة</span><span>${esc(c.weeks)} أسابيع · ${esc(c.hours)} ساعة</span></li>
+            <li><span>تاريخ البدء</span><span>${esc(c.start ? fmtDate(c.start) : 'التسجيل مستمر')}</span></li>
+            <li><span>المدة</span><span>${esc(c.schedule ? durText(c) + ' · ' + c.schedule : durText(c))}</span></li>
             <li><span>المستوى</span><span>${esc(c.level)}</span></li>
             <li><span>طريقة الحضور</span><span>${esc(c.mode)}</span></li>
-            <li><span>الرسوم</span><span>${fmtPrice(c.price)} د.ك</span></li>
+            <li><span>الرسوم</span><span>${esc(priceText(c))}</span></li>
+            ${c.trial ? '<li><span>تجربة</span><span>🎁 يوم تجربة مجاني</span></li>' : ''}
           </ul>`;
         const remoteOk = c.mode.includes('عن بُعد');
         const inPersonOk = c.mode.includes('حضوري');
@@ -428,6 +451,7 @@
         if (!$('input[name=mode]:checked', form)) $('input[name=mode]:not(:disabled)', form).checked = true;
       };
       select.value = params.get('course') || '';
+      if (params.get('trial') === '1') { const t = form.querySelector('input[name=requestType][value="حصة تجريبية"]'); if (t) t.checked = true; }
       select.addEventListener('change', showSummary);
       showSummary();
     } catch { showError(summary); }
@@ -441,7 +465,7 @@
         $('#register-wrap').innerHTML = `
           <div class="form-card success-box">
             <div class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
-            <h2>تم استلام طلب تسجيلك بنجاح</h2>
+            <h2>${data.requestType === 'حصة تجريبية' ? 'تم حجز حصتك التجريبية المجانية 🎁' : 'تم استلام طلب تسجيلك بنجاح'}</h2>
             <p class="muted">سجّلنا طلبك في <b>${esc(res.course)}</b>. سيتواصل معك فريق القبول خلال يوم عمل واحد لتأكيد المقعد وإرسال تفاصيل الدفع.</p>
             <p>رقم الطلب: <span class="ref">${esc(res.id)}</span></p>
             <div class="hero-actions" style="justify-content:center"><a class="btn btn-primary" href="/courses">تصفح دورات أخرى</a><a class="btn btn-outline" href="/">العودة للرئيسية</a></div>
