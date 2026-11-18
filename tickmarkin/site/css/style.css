@@ -130,6 +130,8 @@ body[data-page="home"] .site-header:not(.scrolled) .theme-toggle { color: #fff; 
 .brand-light .wm-accent, body[data-page="home"] .site-header:not(.scrolled) .wm-accent, :root[data-theme="dark"] .wm-accent { background: none; color: var(--accent); -webkit-text-fill-color: currentColor; }
 .brand-text strong { font-family: "Alexandria", sans-serif; font-size: 1.22rem; color: var(--ink); letter-spacing: .3px; transition: color .3s; }
 .brand-text small { font-size: .76rem; color: var(--muted); transition: color .3s; }
+.brand-text small { white-space: nowrap; }
+@media (max-width: 480px) { .brand-tail { display: none; } }
 .brand-light .brand-text strong { color: #fff; }
 .brand-light .brand-text small { color: #9aa3d6; }
 .site-nav { display: flex; align-items: center; gap: 4px; }

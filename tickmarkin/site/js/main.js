@@ -294,7 +294,7 @@
         root.innerHTML = '<div class="empty">لم يتم العثور على الدورة. <a href="/courses">تصفّح جميع الدورات</a></div>';
         return;
       }
-      document.title = `${c.title} | معهد تيك ماركن`;
+      document.title = `${c.title} | معهد تك مارك البريطاني`;
       const t = instructor(cat, c.instructor);
       $('#course-title').textContent = c.title;
       $('#course-summary').textContent = c.summary;
