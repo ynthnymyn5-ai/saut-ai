@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Sanad design tokens ─────────────────────────────────────────────── */
+:root {
+  --bg: #07040d;
+  --glass: rgba(28, 16, 48, 0.55);
+  --glass-border: rgba(168, 85, 247, 0.22);
+  --purple: #a855f7;
+  --orange: #fb923c;
+  color-scheme: dark;
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  @apply bg-ink-950 text-zinc-100 font-sans antialiased;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, rgba(124, 58, 237, 0.25), transparent 60%),
+    radial-gradient(900px 600px at 100% 110%, rgba(251, 146, 60, 0.12), transparent 60%),
+    radial-gradient(700px 500px at -10% 80%, rgba(168, 85, 247, 0.12), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+[dir="rtl"] body, [dir="rtl"] { font-family: "IBM Plex Sans Arabic", Inter, system-ui, sans-serif; }
+
+@layer components {
+  .glass {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .glass-strong {
+    background: rgba(20, 11, 36, 0.82);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed select-none;
+  }
+  .btn-primary {
+    @apply btn text-white;
+    background: linear-gradient(135deg, #7c3aed, #a855f7 55%, #fb923c);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.35);
+  }
+  .btn-primary:hover:not(:disabled) { box-shadow: 0 0 28px rgba(168, 85, 247, 0.55); }
+  .btn-ghost { @apply btn bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-200; }
+  .btn-danger { @apply btn bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-200; }
+  .input {
+    @apply w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-neon-purple/60 focus:ring-2 focus:ring-neon-purple/20;
+  }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border; }
+  .label { @apply text-[11px] uppercase tracking-wider text-zinc-400 font-medium; }
+  [dir="rtl"] .label { @apply tracking-normal normal-case text-xs; }
+}
+
+/* Markdown inside chat bubbles and notes */
+.md p { margin: 0.35em 0; }
+.md ul, .md ol { margin: 0.35em 0; padding-inline-start: 1.25em; }
+.md ul { list-style: disc; }
+.md ol { list-style: decimal; }
+.md h1, .md h2, .md h3 { font-weight: 600; margin: 0.6em 0 0.3em; }
+.md h1 { font-size: 1.15em; } .md h2 { font-size: 1.08em; } .md h3 { font-size: 1em; }
+.md code { background: rgba(255,255,255,.08); padding: 0.1em 0.35em; border-radius: 6px; font-size: 0.9em; }
+.md pre { background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.08); padding: 0.8em; border-radius: 12px; overflow-x: auto; margin: 0.5em 0; direction: ltr; text-align: left; }
+.md pre code { background: none; padding: 0; }
+.md a { color: #c4b5fd; text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }
+.md strong { color: #fff; }
+
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(168,85,247,.3); border-radius: 6px; }
+
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
