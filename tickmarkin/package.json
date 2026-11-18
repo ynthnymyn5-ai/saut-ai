@@ -1,0 +1,14 @@
+{
+  "name": "tickmarkin-institute",
+  "version": "1.0.0",
+  "private": true,
+  "description": "موقع معهد تيك ماركن Tickmarkin — دورات وتسجيل ولوحة إدارة",
+  "main": "lib/server.js",
+  "scripts": {
+    "start": "node lib/server.js",
+    "dev": "node --watch lib/server.js",
+    "build": "node scripts/build.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": "22.x" }
+}

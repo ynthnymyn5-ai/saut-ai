@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>نظام إدارة المعهد | تك مارك البريطاني</title>
+  <link rel="icon" href="/img/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@600;700;800&family=Tajawal:wght@400;500;700;800&display=swap">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/theme.js"></script>
+</head>
+<body class="admin-body">
+  <header class="admin-top">
+    <div class="container nav-wrap">
+      <a href="/" class="brand brand-light">
+        <span class="brand-logo"><img src="/img/logo-mark-light.png" alt="" width="58" height="44"></span>
+        <span class="brand-text"><strong>Tick<span class="wm-accent">mark</span></strong><small>نظام إدارة المعهد</small></span>
+      </a>
+      <button class="btn btn-ghost btn-sm hidden" id="logout">تسجيل الخروج</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="login-view" class="container hidden">
+      <form class="form-card login-box" id="login-form">
+        <h1 style="font-size:1.5rem">دخول الإدارة</h1>
+        <p class="muted">أدخل كلمة مرور الإدارة.</p>
+        <div class="form-alert hidden" role="alert"></div>
+        <div class="field"><label for="password">كلمة المرور</label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn btn-primary" type="submit" style="width:100%;margin-top:16px">دخول</button>
+        <p class="center muted" style="margin:16px 0 0;font-size:.92rem">معلم؟ <a href="/teacher">دخول المعلمين</a></p>
+      </form>
+    </section>
+
+    <section id="app-view" class="office hidden">
+      <nav class="office-nav" aria-label="أقسام النظام">
+        <button data-view="overview" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z"/></svg>الرئيسية</button>
+        <button data-view="students"><svg viewBox="0 0 24 24"><path d="M12 3 1 9l11 6 9-4.9V17h2V9zM5 13.2v4L12 21l7-3.8v-4L12 17z"/></svg>الطلاب</button>
+        <button data-view="teachers"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>المعلمون</button>
+        <button data-view="classes"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H4zm-2 14h20v2H2z"/></svg>الصفوف</button>
+        <button data-view="finance"><svg viewBox="0 0 24 24"><path d="M3 6h18v12H3zm9 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM5 8v2a2 2 0 0 0 2-2zm12 0a2 2 0 0 0 2 2V8zM5 16h2a2 2 0 0 0-2-2zm14 0v-2a2 2 0 0 0-2 2z"/></svg>المستحقات المالية</button>
+        <button data-view="registrations"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm-1 7V3.5L18.5 9z"/></svg>طلبات التسجيل <span class="count" id="badge-regs"></span></button>
+        <button data-view="messages"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg>الرسائل <span class="count" id="badge-msgs"></span></button>
+      </nav>
+      <div class="office-main">
+        <div class="storage-note hidden" id="storage-note"></div>
+        <div id="view"></div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="dlg" class="dlg">
+    <div class="dlg-head"><h2 id="dlg-title"></h2><button class="dlg-x" type="button" aria-label="إغلاق">×</button></div>
+    <div id="dlg-body"></div>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="/js/admin.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>بوابة المعلم | تك مارك البريطاني</title>
+  <link rel="icon" href="/img/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@600;700;800&family=Tajawal:wght@400;500;700;800&display=swap">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/theme.js"></script>
+</head>
+<body class="admin-body">
+  <header class="admin-top">
+    <div class="container nav-wrap">
+      <a href="/" class="brand brand-light">
+        <span class="brand-logo"><img src="/img/logo-mark-light.png" alt="" width="58" height="44"></span>
+        <span class="brand-text"><strong>Tick<span class="wm-accent">mark</span></strong><small>بوابة المعلم</small></span>
+      </a>
+      <button class="btn btn-ghost btn-sm hidden" id="logout">تسجيل الخروج</button>
+    </div>
+  </header>
+  <main id="main" class="container" style="padding:28px 0 60px">
+    <section id="login-view" class="hidden">
+      <form class="form-card login-box" id="login-form" novalidate>
+        <h1 style="font-size:1.5rem">دخول المعلمين</h1>
+        <p class="muted">ادخل برقم جوالك وكلمة المرور التي استلمتها من إدارة المعهد.</p>
+        <div class="form-alert hidden" role="alert"></div>
+        <div class="field"><label for="phone">رقم الجوال</label><input id="phone" name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="username" placeholder="9xxxxxxx" required></div>
+        <div class="field" style="margin-top:12px"><label for="password">كلمة المرور</label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn btn-primary" type="submit" style="width:100%;margin-top:18px">دخول</button>
+      </form>
+    </section>
+    <section id="app-view" class="hidden">
+      <div class="view-head"><div><h1 id="hello"></h1><p class="muted" id="summary"></p></div>
+        <div class="view-actions"><input type="search" id="q" placeholder="بحث عن طالب" aria-label="بحث عن طالب" style="min-width:220px"></div></div>
+      <div id="classes"></div>
+    </section>
+  </main>
+  <script src="/js/teacher.js" defer></script>
+</body>
+</html>
